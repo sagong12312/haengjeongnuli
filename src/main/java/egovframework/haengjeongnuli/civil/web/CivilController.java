@@ -3,20 +3,31 @@ package egovframework.haengjeongnuli.civil.web;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import egovframework.haengjeongnuli.civil.service.CivilComplaintVO;
+import egovframework.haengjeongnuli.civil.service.CivilForm;
 import egovframework.haengjeongnuli.civil.service.CivilKind;
+import egovframework.haengjeongnuli.civil.service.CivilSearchVO;
+import egovframework.haengjeongnuli.civil.service.CivilService;
+import egovframework.haengjeongnuli.civil.service.CivilStatus;
 import egovframework.haengjeongnuli.civil.service.DeadlineCalculator;
 import egovframework.haengjeongnuli.civil.service.LegalAffair;
 import egovframework.haengjeongnuli.cmm.LoginUser;
@@ -29,16 +40,22 @@ public class CivilController {
 
     private final LoginUser loginUser;
     private final DeadlineCalculator deadlineCalculator;
+    private final CivilService civilService;
 
-    public CivilController(LoginUser loginUser, DeadlineCalculator deadlineCalculator) {
+    public CivilController(LoginUser loginUser, DeadlineCalculator deadlineCalculator, CivilService civilService) {
         this.loginUser = loginUser;
         this.deadlineCalculator = deadlineCalculator;
+        this.civilService = civilService;
     }
 
     @GetMapping
-    public String list(@RequestParam(required = false) CivilKind kind, Model model) {
+    public String list(@ModelAttribute("search") CivilSearchVO search, Model model) {
         model.addAttribute("kinds", CivilKind.values());
-        model.addAttribute("kind", kind);
+        model.addAttribute("statuses", CivilStatus.values());
+        model.addAttribute("kind", search.getKind());
+        model.addAttribute("summary", civilService.summary());
+        model.addAttribute("complaints", civilService.search(search));
+        model.addAttribute("total", civilService.count(search));
         return "civil/list";
     }
 
@@ -48,22 +65,36 @@ public class CivilController {
             response.setStatus(HttpStatus.FORBIDDEN.value());
             return "civil/denied";
         }
-        model.addAttribute("kinds", CivilKind.values());
-        model.addAttribute("affairGroups", java.util.Arrays.stream(LegalAffair.values())
-                .collect(java.util.stream.Collectors.groupingBy(
-                        LegalAffair::getGroup, java.util.LinkedHashMap::new, java.util.stream.Collectors.toList())));
+        if (!model.containsAttribute("civilForm")) {
+            model.addAttribute("civilForm", new CivilForm());
+        }
+        addFormOptions(model);
         return "civil/new";
     }
 
-    /** 접수 (저장소 연동 전에는 안내만 한다). 화면과 별개로 서버에서도 권한을 확인한다. */
+    /** 접수. 화면과 별개로 서버에서도 권한과 입력값을 확인한다. */
     @PostMapping("/new")
-    public String submit(RedirectAttributes ra, HttpServletResponse response) {
+    public String submit(@Validated @ModelAttribute("civilForm") CivilForm form, BindingResult result,
+                         Model model, RedirectAttributes ra, HttpServletResponse response) {
         if (!loginUser.isCounterStaff()) {
             response.setStatus(HttpStatus.FORBIDDEN.value());
             return "civil/denied";
         }
-        ra.addFlashAttribute("message", "민원이 접수되었습니다. 접수번호: [접수번호]");
+        if (result.hasErrors()) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            addFormOptions(model);
+            return "civil/new";
+        }
+        CivilComplaintVO saved = civilService.receive(form, loginUser.name());
+        ra.addFlashAttribute("message", "민원이 접수되었습니다. 접수번호: " + saved.getReceiptNo());
         return "redirect:/civil";
+    }
+
+    private void addFormOptions(Model model) {
+        model.addAttribute("kinds", CivilKind.values());
+        Map<String, java.util.List<LegalAffair>> groups = Arrays.stream(LegalAffair.values())
+                .collect(Collectors.groupingBy(LegalAffair::getGroup, LinkedHashMap::new, Collectors.toList()));
+        model.addAttribute("affairGroups", groups);
     }
 
     /** 접수 화면에서 종류·사무를 고를 때 처리기간과 예상 처리기한을 돌려준다 */

@@ -7,6 +7,12 @@ bin/
 .vscode/
 .DS_Store
 
+# 로컬 H2 데이터 파일
+data/
+
+# Tibero 드라이버 등 직접 넣는 jar (라이선스상 저장소에 올리지 않음)
+libs/*.jar
+
 # 글꼴 파일은 이용 조건 확인 전까지 저장소에 올리지 않음
 src/main/resources/static/fonts/*.ttf
 src/main/resources/static/fonts/*.woff2

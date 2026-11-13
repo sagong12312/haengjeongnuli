@@ -25,7 +25,7 @@ class PagesTest {
     MockMvc mvc;
 
     @ParameterizedTest
-    @ValueSource(strings = {"/", "/approval", "/approval?box=back", "/approval/draft", "/civil", "/civil?kind=QUERY",
+    @ValueSource(strings = {"/", "/approval", "/approval?box=back", "/approval/draft", "/civil", "/civil?kind=QUERY", "/civil?status=DONE&q=x",
             "/civil/new", "/finance", "/finance?area=tax", "/hr", "/board", "/board?tab=archive",
             "/board/write", "/board/upload"})
     void 모든_화면이_열린다(String url) throws Exception {

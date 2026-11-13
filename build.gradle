@@ -29,6 +29,15 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
+
+    // 로컬 실행·테스트용 (Oracle 호환 모드)
+    runtimeOnly 'com.h2database:h2'
+    // 운영: Oracle
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
+    // 운영: Tibero — Maven Central에 없으므로 Tibero 설치 폴더의 tibero7-jdbc.jar 를 libs/ 에 넣는다
+    runtimeOnly fileTree(dir: 'libs', include: ['*.jar'])
 
     if (useEgov) {
         // 아티팩트 이름과 버전은 전자정부 프레임워크 저장소에서 확인 후 조정

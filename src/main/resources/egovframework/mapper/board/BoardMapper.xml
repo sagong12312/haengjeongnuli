@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 게시판. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
+<mapper namespace="egovframework.haengjeongnuli.board.service.impl.BoardMapper">
+
+    <select id="nextId" resultType="long">
+        SELECT SEQ_BOARD_POST.NEXTVAL FROM DUAL
+    </select>
+
+    <insert id="insertPost" parameterType="egovframework.haengjeongnuli.board.service.BoardPostVO">
+        INSERT INTO BOARD_POST (
+            POST_ID, BOARD_TYPE, TITLE, CONTENT, CATEGORY, OPEN_SCOPE, PINNED_YN,
+            VIEW_COUNT, WRITER, WRITER_DEPT, CREATED_AT
+        ) VALUES (
+            #{postId}, #{boardType}, #{title}, #{content, jdbcType=CLOB}, #{category}, #{openScope}, #{pinnedYn},
+            0, #{writer}, #{writerDept}, #{createdAt}
+        )
+    </insert>
+
+    <sql id="searchWhere">
+        WHERE BOARD_TYPE = #{boardType}
+        <if test="q != null">
+            AND (TITLE LIKE '%' || #{q} || '%' OR WRITER LIKE '%' || #{q} || '%')
+        </if>
+    </sql>
+
+    <select id="selectPostList" resultType="egovframework.haengjeongnuli.board.service.BoardPostVO">
+        SELECT * FROM (
+            SELECT POST_ID, BOARD_TYPE, TITLE, CATEGORY, OPEN_SCOPE, PINNED_YN, VIEW_COUNT,
+                   WRITER, WRITER_DEPT, CREATED_AT
+              FROM BOARD_POST
+            <include refid="searchWhere"/>
+             ORDER BY CASE WHEN PINNED_YN = 'Y' THEN 0 ELSE 1 END, CREATED_AT DESC, POST_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+
+    <select id="selectPostCount" resultType="int">
+        SELECT COUNT(*) FROM BOARD_POST
+        <include refid="searchWhere"/>
+    </select>
+
+</mapper>

@@ -10,9 +10,10 @@
     <h1>자료 올리기</h1>
   </div>
 
-  <form class="panel" th:action="@{/board/upload}" method="post" enctype="multipart/form-data" style="padding:28px; gap:22px;">
+  <form class="panel" th:action="@{/board/upload}" th:object="${postForm}" method="post" enctype="multipart/form-data" style="padding:28px; gap:22px;">
+    <div th:replace="~{fragments/form-errors :: errors}"></div>
     <div class="field">
-      <span class="field-label">파일 <span class="req">*</span></span>
+      <span class="field-label">파일</span>
       <label for="uf" style="border:2px dashed #A9B5C4; border-radius:16px; background:#F8FAFC; padding:40px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; cursor:pointer; text-align:center;">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#1D4E89" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
         <span style="font-size:21px; font-weight:700;">파일을 여기로 끌어오거나 눌러서 선택하세요</span>
@@ -20,25 +21,26 @@
         <span id="uf-names" class="muted" style="font-size:17px;"></span>
         <span class="btn btn-outline" style="height:48px; font-size:19px;">파일 선택</span>
       </label>
-      <input id="uf" name="files" type="file" multiple required class="sr-only">
+      <input id="uf" name="files" type="file" multiple class="sr-only">
+      <p class="hint">첨부파일 저장은 아직 연결하지 않아, 지금은 제목·분류·설명만 저장됩니다.</p>
     </div>
     <div class="grid-fields">
       <div class="field">
         <label for="ucat">분류</label>
-        <select id="ucat" name="category" class="select"><option>업무 서식</option><option>지침·매뉴얼</option><option>교육 자료</option><option>기타</option></select>
+        <select id="ucat" th:field="*{category}" class="select"><option value="업무 서식">업무 서식</option><option value="지침·매뉴얼">지침·매뉴얼</option><option value="교육 자료">교육 자료</option><option value="기타">기타</option></select>
       </div>
       <div class="field">
         <label for="uscope">공개 범위</label>
-        <select id="uscope" name="scope" class="select"><option>전체 공개</option><option>우리 부서</option></select>
+        <select id="uscope" th:field="*{scope}" class="select"><option value="전체 공개">전체 공개</option><option value="우리 부서">우리 부서</option></select>
       </div>
     </div>
     <div class="field">
       <label for="ut">자료 제목 <span class="req">*</span></label>
-      <input id="ut" name="title" class="input" type="text" required placeholder="자료 제목을 입력하세요">
+      <input id="ut" th:field="*{title}" class="input" type="text" required maxlength="300" placeholder="자료 제목을 입력하세요">
     </div>
     <div class="field">
       <label for="ud">설명</label>
-      <textarea id="ud" name="description" class="textarea" rows="5" placeholder="자료에 대한 간단한 설명을 입력하세요"></textarea>
+      <textarea id="ud" th:field="*{content}" class="textarea" rows="5" placeholder="자료에 대한 간단한 설명을 입력하세요"></textarea>
     </div>
     <div class="form-actions" style="justify-content:flex-end;">
       <a class="btn btn-plain btn-lg" th:href="@{/board(tab='archive')}">취소</a>

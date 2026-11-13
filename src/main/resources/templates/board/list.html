@@ -29,18 +29,14 @@
 
   <form class="search-bar" role="search" th:action="@{/board}" method="get">
     <input type="hidden" name="tab" th:value="${current.id}">
-    <label for="scope" class="sr-only">검색 범위</label>
-    <select id="scope" name="scope" class="select">
-      <option>제목+내용</option><option>제목</option><option>작성자</option><option>부서</option>
-    </select>
     <label for="bq" class="sr-only">게시글 검색</label>
-    <input id="bq" name="q" class="input" type="search" placeholder="검색어를 입력하세요">
+    <input id="bq" name="q" class="input" type="search" th:value="${q}" placeholder="제목 또는 작성자 검색">
     <button type="submit" class="btn btn-outline">검색</button>
   </form>
 
   <section class="panel flush" aria-label="게시글 목록">
     <div class="panel-head" style="font-size:17px; color:var(--text-2);">
-      <span>전체 <b style="color:var(--text)">[건수]</b>건</span><span>최신순</span>
+      <span>전체 <b style="color:var(--text)" th:text="${total}">0</b>건</span><span>최신순 (최대 50건)</span>
     </div>
     <div class="table-wrap">
       <table class="list">
@@ -50,23 +46,28 @@
           <th scope="col" style="width:130px">등록일</th><th scope="col" style="width:80px">조회</th>
         </tr></thead>
         <tbody>
-          <tr class="pinned">
-            <td><span class="badge badge-brand">공지</span></td>
-            <td class="left"><a href="#" style="font-weight:700">[고정 공지 제목]</a></td>
-            <td>[작성자]</td><td>[부서]</td><td>[날짜]</td><td>[조회]</td>
+          <tr th:if="${#lists.isEmpty(posts)}">
+            <td colspan="6" style="padding:40px 12px;">등록된 글이 없습니다.</td>
           </tr>
-          <tr th:each="i : ${#numbers.sequence(1, rowCount)}">
-            <td>[번호]</td><td class="left"><a href="#">[게시글 제목]</a></td>
-            <td>[작성자]</td><td>[부서]</td><td>[날짜]</td><td>[조회]</td>
+          <tr th:each="p : ${posts}" th:classappend="${p.pinned} ? 'pinned'">
+            <td>
+              <span th:if="${p.pinned}" class="badge badge-brand">공지</span>
+              <span th:unless="${p.pinned}" th:text="${p.postId}">1</span>
+            </td>
+            <td class="left">
+              <span th:if="${p.category}" class="badge badge-gray" style="margin-right:6px;" th:text="${p.category}">업무 서식</span>
+              <a href="#" th:text="${p.title}" th:style="${p.pinned} ? 'font-weight:700' : null">제목</a>
+            </td>
+            <td th:text="${p.writer}">작성자</td>
+            <td th:text="${p.writerDept} ?: '—'">부서</td>
+            <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd')}">날짜</td>
+            <td th:text="${p.viewCount}">0</td>
           </tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <nav class="pager" aria-label="페이지">
-    <a href="#" aria-label="이전 페이지">‹</a><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#">3</a><a href="#" aria-label="다음 페이지">›</a>
-  </nav>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

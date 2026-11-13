@@ -24,10 +24,10 @@
 
   <!-- 처리 현황 -->
   <div class="stat-grid">
-    <div class="stat" style="background:#fff; border:1px solid var(--line);"><small style="font-weight:700; color:var(--text)">접수 대기</small><strong style="font-size:32px">0</strong><small>배정 전 민원</small></div>
-    <div class="stat blue" style="background:#fff; border:1px solid var(--line);"><small style="font-weight:700; color:var(--text)">처리 중</small><strong style="font-size:32px">0</strong><small>내가 맡은 민원</small></div>
-    <div class="stat orange" style="border:1px solid var(--orange-line);"><small style="font-weight:700; color:#6B3A0E">기한 임박</small><strong style="font-size:32px">0</strong><small style="color:#6B3A0E">처리기한 [기준]일 이내</small></div>
-    <div class="stat" style="background:#fff; border:1px solid var(--line);"><small style="font-weight:700; color:var(--text)">처리 완료</small><strong style="font-size:32px; color:var(--green-fg)">0</strong><small>이번 달</small></div>
+    <div class="stat" style="background:#fff; border:1px solid var(--line);"><small style="font-weight:700; color:var(--text)">접수 대기</small><strong style="font-size:32px" th:text="${summary.received}">0</strong><small>담당 배정 전 민원</small></div>
+    <div class="stat blue" style="background:#fff; border:1px solid var(--line);"><small style="font-weight:700; color:var(--text)">처리 중</small><strong style="font-size:32px" th:text="${summary.inProgress}">0</strong><small>담당자가 처리 중인 민원</small></div>
+    <div class="stat orange" style="border:1px solid var(--orange-line);"><small style="font-weight:700; color:#6B3A0E">기한 임박</small><strong style="font-size:32px" th:text="${summary.imminent}">0</strong><small style="color:#6B3A0E" th:text="'처리기한 ' + ${@environment.getProperty('app.civil.imminent-days', '2')} + '일 이내·지남'">처리기한 2일 이내</small></div>
+    <div class="stat" style="background:#fff; border:1px solid var(--line);"><small style="font-weight:700; color:var(--text)">처리 완료</small><strong style="font-size:32px; color:var(--green-fg)" th:text="${summary.doneThisMonth}">0</strong><small>이번 달</small></div>
   </div>
 
   <!-- 민원 종류 -->
@@ -44,15 +44,18 @@
   <form class="search-bar" role="search" th:action="@{/civil}" method="get">
     <input th:if="${kind}" type="hidden" name="kind" th:value="${kind}">
     <label for="cstatus" class="sr-only">처리 상태</label>
-    <select id="cstatus" name="status" class="select"><option>모든 상태</option><option>접수 대기</option><option>처리 중</option><option>처리 완료</option></select>
+    <select id="cstatus" name="status" class="select">
+      <option value="">모든 상태</option>
+      <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}" th:selected="${s == search.status}">접수 대기</option>
+    </select>
     <label for="cq" class="sr-only">민원 검색</label>
-    <input id="cq" name="q" class="input" type="search" placeholder="접수번호, 제목, 민원인 검색">
+    <input id="cq" name="q" class="input" type="search" th:value="${search.q}" placeholder="접수번호, 제목, 민원인 검색">
     <button type="submit" class="btn btn-outline">검색</button>
   </form>
 
   <section class="panel flush" aria-label="민원 목록">
     <div class="panel-head" style="font-size:17px; color:var(--text-2);">
-      <span>전체 <b style="color:var(--text)">[건수]</b>건</span><span>처리기한 빠른 순</span>
+      <span>전체 <b style="color:var(--text)" th:text="${total}">0</b>건</span><span>처리기한 빠른 순 (최대 50건)</span>
     </div>
     <div class="table-wrap">
       <table class="list" style="min-width:1000px">
@@ -61,19 +64,29 @@
           <th scope="col" style="width:110px">민원인</th><th scope="col" style="width:120px">접수일</th><th scope="col" style="width:120px">처리기한</th>
           <th scope="col" style="width:110px">담당자</th><th scope="col" style="width:110px">상태</th>
         </tr></thead>
-        <tbody th:with="kindText=${kind} ? ${kind.shortLabel} : '[종류]'">
-          <tr class="warn"><td>[접수번호]</td><td style="color:var(--text)" th:text="${kindText}"></td><td class="left"><a href="#">[민원 제목]</a></td><td>[민원인]</td><td>[날짜]</td><td style="color:var(--orange-strong); font-weight:700">[날짜]</td><td>[담당자]</td><td><span class="badge badge-orange">기한 임박</span></td></tr>
-          <tr><td>[접수번호]</td><td style="color:var(--text)" th:text="${kindText}"></td><td class="left"><a href="#">[민원 제목]</a></td><td>[민원인]</td><td>[날짜]</td><td>[날짜]</td><td>[담당자]</td><td><span class="badge badge-blue">처리 중</span></td></tr>
-          <tr><td>[접수번호]</td><td style="color:var(--text)" th:text="${kindText}"></td><td class="left"><a href="#">[민원 제목]</a></td><td>[민원인]</td><td>[날짜]</td><td>[날짜]</td><td>—</td><td><span class="badge badge-gray">접수 대기</span></td></tr>
-          <tr><td>[접수번호]</td><td style="color:var(--text)" th:text="${kindText}"></td><td class="left"><a href="#">[민원 제목]</a></td><td>[민원인]</td><td>[날짜]</td><td>[날짜]</td><td>[담당자]</td><td><span class="badge badge-green">처리 완료</span></td></tr>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(complaints)}">
+            <td colspan="8" style="padding:40px 12px;">조건에 맞는 민원이 없습니다.</td>
+          </tr>
+          <tr th:each="c : ${complaints}" th:classappend="${c.imminent} ? 'warn'">
+            <td th:text="${c.receiptNo}">2026-000001</td>
+            <td style="color:var(--text)" th:text="${c.kind.shortLabel}">질의</td>
+            <td class="left"><a href="#" th:text="${c.title}">[민원 제목]</a></td>
+            <td th:text="${c.applicantName}">[민원인]</td>
+            <td th:text="${#temporals.format(c.receivedAt, 'yyyy-MM-dd')}">[날짜]</td>
+            <td th:text="${c.deadline} ? ${#temporals.format(c.deadline, 'yyyy-MM-dd')} : '—'"
+                th:style="${c.imminent} ? 'color:var(--orange-strong); font-weight:700' : null">[날짜]</td>
+            <td th:text="${c.assignee} ?: '—'">[담당자]</td>
+            <td>
+              <span th:if="${c.imminent}" class="badge badge-orange">기한 임박</span>
+              <span th:unless="${c.imminent}" th:class="'badge ' + ${c.status.badge}" th:text="${c.status.label}">처리 중</span>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <nav class="pager" aria-label="페이지">
-    <a href="#" aria-label="이전 페이지">‹</a><a href="#" aria-current="page">1</a><a href="#">2</a><a href="#" aria-label="다음 페이지">›</a>
-  </nav>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

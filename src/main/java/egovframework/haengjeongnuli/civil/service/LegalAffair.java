@@ -23,4 +23,7 @@ public enum LegalAffair {
     public String getGroup() { return group; }
     public String getLabel() { return label; }
     public String getPeriodText() { return periodText; }
+
+    /** 처리기간 일수. 지금 목록의 사무는 모두 즉시(근무시간 내 3시간)라 0 */
+    public int periodDays() { return 0; }
 }

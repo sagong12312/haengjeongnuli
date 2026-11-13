@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 민원. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
+<mapper namespace="egovframework.haengjeongnuli.civil.service.impl.CivilMapper">
+
+    <select id="nextId" resultType="long">
+        SELECT SEQ_CIVIL_COMPLAINT.NEXTVAL FROM DUAL
+    </select>
+
+    <insert id="insertComplaint" parameterType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
+        INSERT INTO CIVIL_COMPLAINT (
+            COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE,
+            APPLICANT_NAME, MOBILE, HOME_PHONE, EMAIL, ADDRESS, NOTIFY_METHOD,
+            TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, REGISTER_ID
+        ) VALUES (
+            #{complaintId}, #{receiptNo}, #{kind}, #{lawInterpretYn}, #{legalAffair}, #{route},
+            #{applicantName}, #{mobile}, #{homePhone}, #{email}, #{address}, #{notifyMethod},
+            #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{registerId}
+        )
+    </insert>
+
+    <sql id="searchWhere">
+        <where>
+            <if test="kind != null">AND KIND = #{kind}</if>
+            <if test="status != null">AND STATUS = #{status}</if>
+            <if test="q != null">
+                AND (RECEIPT_NO LIKE '%' || #{q} || '%'
+                     OR TITLE LIKE '%' || #{q} || '%'
+                     OR APPLICANT_NAME LIKE '%' || #{q} || '%')
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectComplaintList" parameterType="egovframework.haengjeongnuli.civil.service.CivilSearchVO"
+            resultType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
+        SELECT * FROM (
+            SELECT COMPLAINT_ID, RECEIPT_NO, KIND, LEGAL_AFFAIR, APPLICANT_NAME, TITLE,
+                   DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, COMPLETED_AT
+              FROM CIVIL_COMPLAINT
+            <include refid="searchWhere"/>
+             ORDER BY CASE WHEN STATUS = 'DONE' THEN 1 ELSE 0 END,
+                      DEADLINE ASC NULLS LAST,
+                      RECEIVED_AT DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+
+    <select id="selectComplaintCount" parameterType="egovframework.haengjeongnuli.civil.service.CivilSearchVO" resultType="int">
+        SELECT COUNT(*) FROM CIVIL_COMPLAINT
+        <include refid="searchWhere"/>
+    </select>
+
+    <select id="selectSummary" resultType="egovframework.haengjeongnuli.civil.service.CivilSummaryVO">
+        SELECT NVL(SUM(CASE WHEN STATUS = 'RECEIVED' THEN 1 ELSE 0 END), 0)                                   AS RECEIVED,
+               NVL(SUM(CASE WHEN STATUS = 'IN_PROGRESS' THEN 1 ELSE 0 END), 0)                                AS IN_PROGRESS,
+               NVL(SUM(CASE WHEN STATUS &lt;&gt; 'DONE' AND DEADLINE &lt;= #{imminentUntil} THEN 1 ELSE 0 END), 0) AS IMMINENT,
+               NVL(SUM(CASE WHEN STATUS = 'DONE' AND COMPLETED_AT &gt;= #{monthStart} THEN 1 ELSE 0 END), 0)    AS DONE_THIS_MONTH
+          FROM CIVIL_COMPLAINT
+    </select>
+
+</mapper>

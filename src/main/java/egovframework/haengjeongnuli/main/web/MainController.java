@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
+import egovframework.haengjeongnuli.board.service.BoardService;
+import egovframework.haengjeongnuli.civil.service.CivilService;
 import jakarta.servlet.http.HttpSession;
 
 /** 메인메뉴와 출퇴근 처리 */
@@ -15,9 +17,19 @@ public class MainController {
     /** 세션에 저장하는 출근 상태 키 (근태 기록 연동 전 임시) */
     public static final String WORKING = "working";
 
+    private final CivilService civilService;
+    private final BoardService boardService;
+
+    public MainController(CivilService civilService, BoardService boardService) {
+        this.civilService = civilService;
+        this.boardService = boardService;
+    }
+
     @GetMapping("/")
     public String main(HttpSession session, Model model) {
         model.addAttribute("working", isWorking(session));
+        model.addAttribute("civilSummary", civilService.summary());
+        model.addAttribute("notices", boardService.list("notice", null, 3));
         return "main/index";
     }
 

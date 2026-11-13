@@ -10,7 +10,14 @@
     <h1>민원 접수</h1>
   </div>
 
-  <form th:action="@{/civil/new}" method="post" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:20px;">
+  <form th:action="@{/civil/new}" th:object="${civilForm}" method="post" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:20px;">
+
+    <div th:if="${#fields.hasAnyErrors()}" class="alert" role="alert" style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg);">
+      입력 내용을 확인해 주세요.
+      <ul style="margin:8px 0 0; padding-left:22px; font-weight:400; font-size:17px;">
+        <li th:each="e : ${#fields.allErrors()}" th:text="${e}"></li>
+      </ul>
+    </div>
 
     <!-- 1. 민원 종류 -->
     <section class="panel" aria-labelledby="s1">
@@ -18,20 +25,20 @@
       <div class="grid-fields">
         <div class="field">
           <label for="ckind">민원 종류 <span class="req">*</span></label>
-          <select id="ckind" name="kind" class="select">
+          <select id="ckind" th:field="*{kind}" class="select">
             <option th:each="k : ${kinds}" th:value="${k}" th:text="${k.label}">법정민원</option>
           </select>
         </div>
         <div class="field" id="qtype-field" hidden>
           <label for="cqtype">질의 내용</label>
-          <select id="cqtype" name="lawInterpretation" class="select">
+          <select id="cqtype" th:field="*{lawInterpretation}" class="select">
             <option value="true">법령 설명·해석</option>
             <option value="false">제도·절차 등</option>
           </select>
         </div>
         <div class="field" id="affair-field">
           <label for="caffair">민원 사무 <span class="req">*</span></label>
-          <select id="caffair" name="affair" class="select">
+          <select id="caffair" th:field="*{affair}" class="select">
             <option value="">사무를 선택하세요</option>
             <optgroup th:each="g : ${affairGroups}" th:label="${g.key}">
               <option th:each="a : ${g.value}" th:value="${a}" th:text="${a.label}"></option>
@@ -41,8 +48,8 @@
         </div>
         <div class="field">
           <label for="croute">접수 경로</label>
-          <select id="croute" name="route" class="select">
-            <option>방문</option><option>인터넷</option><option>우편</option><option>팩스</option><option>전화</option>
+          <select id="croute" th:field="*{route}" class="select">
+            <option value="방문">방문</option><option value="인터넷">인터넷</option><option value="우편">우편</option><option value="팩스">팩스</option><option value="전화">전화</option>
           </select>
         </div>
       </div>
@@ -59,38 +66,38 @@
       <div class="grid-fields">
         <div class="field">
           <label for="cname">성명 <span class="req">*</span></label>
-          <input id="cname" name="name" class="input" type="text" required>
+          <input id="cname" th:field="*{name}" class="input" type="text" required maxlength="100">
         </div>
         <div class="field">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
             <label for="ctel" class="field-label">휴대전화 <span class="req" id="tel-req">*</span></label>
-            <label class="check" style="font-size:17px; color:var(--text-2)"><input type="checkbox" id="no-tel" name="noMobile">없음</label>
+            <label class="check" style="font-size:17px; color:var(--text-2)"><input type="checkbox" id="no-tel" th:field="*{noMobile}">없음</label>
           </div>
-          <input id="ctel" name="mobile" class="input" type="tel" required placeholder="010-0000-0000">
+          <input id="ctel" th:field="*{mobile}" class="input" type="tel" required maxlength="20" placeholder="010-0000-0000">
           <div id="home-wrap" hidden style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
               <label for="chome" class="field-label">집전화 <span class="req" id="home-req">*</span></label>
-              <label class="check" style="font-size:17px; color:var(--text-2)"><input type="checkbox" id="no-home" name="noHome">없음</label>
+              <label class="check" style="font-size:17px; color:var(--text-2)"><input type="checkbox" id="no-home" th:field="*{noHome}">없음</label>
             </div>
-            <input id="chome" name="homePhone" class="input" type="tel" placeholder="지역번호 포함 (예: 02-000-0000)">
+            <input id="chome" th:field="*{homePhone}" class="input" type="tel" maxlength="20" placeholder="지역번호 포함 (예: 02-000-0000)">
             <span id="no-phone-note" class="alert alert-warn" hidden>전화 연락처가 없습니다. 결과는 우편·이메일·방문 수령으로 알려 주세요.</span>
           </div>
         </div>
         <div class="field">
           <label for="cmail">이메일</label>
-          <input id="cmail" name="email" class="input" type="email">
+          <input id="cmail" th:field="*{email}" class="input" type="email" maxlength="200">
         </div>
       </div>
       <div class="field">
         <label for="caddr">주소</label>
-        <input id="caddr" name="address" class="input" type="text">
+        <input id="caddr" th:field="*{address}" class="input" type="text" maxlength="500">
       </div>
       <fieldset style="margin:0; border:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px;">
         <legend class="field-label" style="padding:0; margin-bottom:8px;">결과 통지 방법</legend>
-        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="문자" id="notify-sms" checked>문자</label>
-        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="이메일">이메일</label>
-        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="우편" id="notify-post">우편</label>
-        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="방문 수령">방문 수령</label>
+        <label class="check" style="font-size:19px"><input type="radio" id="notify-sms" th:field="*{notify}" value="문자">문자</label>
+        <label class="check" style="font-size:19px"><input type="radio" id="notify-mail" th:field="*{notify}" value="이메일">이메일</label>
+        <label class="check" style="font-size:19px"><input type="radio" id="notify-post" th:field="*{notify}" value="우편">우편</label>
+        <label class="check" style="font-size:19px"><input type="radio" id="notify-visit" th:field="*{notify}" value="방문 수령">방문 수령</label>
         <span id="sms-note" class="hint" hidden>휴대전화가 없어 문자는 고를 수 없습니다.</span>
       </fieldset>
     </section>
@@ -100,15 +107,16 @@
       <h2 id="s3">3. 민원 내용</h2>
       <div class="field">
         <label for="ctitle">제목 <span class="req">*</span></label>
-        <input id="ctitle" name="title" class="input" type="text" required>
+        <input id="ctitle" th:field="*{title}" class="input" type="text" required maxlength="300">
       </div>
       <div class="field">
         <label for="cbody">내용 <span class="req">*</span></label>
-        <textarea id="cbody" name="content" class="textarea" rows="8" required></textarea>
+        <textarea id="cbody" th:field="*{content}" class="textarea" rows="8" required></textarea>
       </div>
       <div class="field">
         <label for="cfile">구비서류·첨부</label>
         <input id="cfile" name="files" type="file" multiple class="input" style="height:auto; padding:12px; border-style:dashed; background:#F8FAFC;">
+        <p class="hint">첨부파일 저장은 아직 연결하지 않았습니다.</p>
       </div>
     </section>
 
@@ -118,15 +126,15 @@
       <div class="grid-fields">
         <div class="field">
           <label for="cdept">처리 부서</label>
-          <select id="cdept" name="dept" class="select"><option>[부서 선택]</option></select>
+          <input id="cdept" th:field="*{dept}" class="input" type="text" maxlength="100" placeholder="[부서명] — 부서 목록 연동 전 직접 입력">
         </div>
         <div class="field">
           <label for="cstaff">담당자</label>
-          <select id="cstaff" name="staff" class="select"><option>나중에 배정 (접수 대기)</option><option>[담당자 선택]</option></select>
+          <input id="cstaff" th:field="*{staff}" class="input" type="text" maxlength="100" placeholder="비워 두면 접수 대기로 남습니다">
         </div>
       </div>
       <label class="check" style="align-items:flex-start; background:#F8FAFC; border:1px solid var(--line); border-radius:12px; padding:14px 16px;">
-        <input type="checkbox" name="privacyConsent" required style="width:22px; height:22px; margin-top:2px;">
+        <input type="checkbox" th:field="*{privacyConsent}" required style="width:22px; height:22px; margin-top:2px;">
         <span>민원인에게 개인정보 수집·이용 목적과 항목을 안내하고 동의를 받았습니다. <span class="req">*</span></span>
       </label>
       <div class="form-actions">
@@ -175,12 +183,13 @@
       var homeNone = mobileNone && noHome.checked;
       tel.disabled = mobileNone;
       tel.required = !mobileNone;
-      tel.value = mobileNone ? '' : tel.value;
+      if (mobileNone) { tel.value = ''; }
       tel.placeholder = mobileNone ? '휴대전화 없음' : '010-0000-0000';
       document.getElementById('tel-req').hidden = mobileNone;
       document.getElementById('home-wrap').hidden = !mobileNone;
       home.disabled = homeNone;
       home.required = mobileNone && !homeNone;
+      if (homeNone) { home.value = ''; }
       home.placeholder = homeNone ? '집전화 없음' : '지역번호 포함 (예: 02-000-0000)';
       document.getElementById('home-req').hidden = homeNone;
       document.getElementById('no-phone-note').hidden = !homeNone;

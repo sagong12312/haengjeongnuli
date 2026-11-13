@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- th:object 가 걸린 form 안에서 사용 -->
+<div th:fragment="errors" th:if="${#fields.hasAnyErrors()}" class="alert" role="alert"
+     style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg);">
+  입력 내용을 확인해 주세요.
+  <ul style="margin:8px 0 0; padding-left:22px; font-weight:400; font-size:17px;">
+    <li th:each="e : ${#fields.allErrors()}" th:text="${e}"></li>
+  </ul>
+</div>
+</body>
+</html>

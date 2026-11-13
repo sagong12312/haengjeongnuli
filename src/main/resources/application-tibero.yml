@@ -1,0 +1,15 @@
+# Tibero 연결. 드라이버 jar(tibero7-jdbc.jar 등)를 프로젝트의 libs/ 폴더에 넣어야 한다.
+# 접속 정보는 환경변수로 넘긴다.
+#   DB_URL       예: jdbc:tibero:thin:@db-host:8629:DB_NAME
+#   DB_USERNAME
+#   DB_PASSWORD
+# 테이블은 DBA가 db/oracle/schema.sql 로 미리 만든다 (Tibero는 Oracle 문법 호환).
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.tmax.tibero.jdbc.TbDriver
+  sql:
+    init:
+      mode: never
