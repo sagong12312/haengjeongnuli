@@ -20,7 +20,7 @@
         <button type="button" id="add-approver" class="btn btn-outline" style="height:48px; font-size:18px;">+ 결재자 추가</button>
       </div>
       <ol id="line" style="list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
-        <li class="step"><div class="step-box"><div class="step-role">기안</div><div class="step-body"><b th:text="${loginUser.name}">[사용자명]</b><small th:text="${loginUser.dept}">[소속 부서]</small></div></div></li>
+        <li class="step"><div class="step-box"><div class="step-role">기안</div><div class="step-body"><b th:text="${loginUser.name()}">[사용자명]</b><small th:text="${loginUser.dept()}">[소속 부서]</small></div></div></li>
         <li class="step"><div class="step-box"><div class="step-role">검토</div><div class="step-body"><b>[검토자]</b><small>[부서]</small></div></div></li>
         <li class="step" id="final-step"><div class="step-box"><div class="step-role">결재</div><div class="step-body"><b>[결재권자]</b><small>[부서]</small></div></div></li>
       </ol>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('로그인')}"></head>
+<body style="min-height:100vh; display:flex; flex-direction:column;">
+
+<main style="flex:1; display:flex; align-items:center; justify-content:center; padding:24px;">
+  <div style="width:100%; max-width:440px; display:flex; flex-direction:column; gap:24px;">
+    <div style="display:flex; align-items:center; gap:14px; justify-content:center;">
+      <span class="logo-mark" style="background:var(--brand); color:#fff; width:52px; height:52px; border-radius:14px;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v9h14v-9"/><path d="M10 19v-5h4v5"/></svg>
+      </span>
+      <div>
+        <div style="font-size:32px; font-weight:800; letter-spacing:-0.5px;">행정누리</div>
+        <div class="muted" style="font-size:16px;">통합 행정업무 시스템</div>
+      </div>
+    </div>
+
+    <form class="panel" th:action="@{/login}" method="post" style="padding:32px; gap:20px;">
+      <h1 style="margin:0; font-size:26px;">로그인</h1>
+
+      <div th:if="${error}" class="alert" role="alert" style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg); font-size:17px;" th:text="${error}"></div>
+      <div th:if="${info}" class="alert alert-success" role="status" style="font-size:17px;" th:text="${info}"></div>
+
+      <div class="field">
+        <label for="loginId">아이디</label>
+        <input id="loginId" name="loginId" class="input" type="text" required autocomplete="username" autofocus>
+      </div>
+      <div class="field">
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" class="input" type="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">로그인</button>
+      <p class="hint" style="text-align:center;">계정이 없거나 비밀번호를 잊었으면 시스템 관리자에게 문의하세요.</p>
+    </form>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -24,12 +24,17 @@
       <a th:href="@{/hr}" th:attr="aria-current=${active == 'hr'} ? 'page' : null">인사</a>
       <a th:href="@{/board}" th:attr="aria-current=${active == 'board'} ? 'page' : null">게시판</a>
     </nav>
-    <div class="user-chip">
-      <span class="avatar" th:text="${loginUser.initial()}">홍</span>
-      <span>
-        <b th:text="${loginUser.name} + ' ' + ${loginUser.position}">[사용자명] 주무관</b>
-        <small th:text="${loginUser.dept}">[소속 부서]</small>
-      </span>
+    <div th:if="${loginUser}" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <a class="user-chip" th:href="@{/mypage/password}" style="color:#fff; text-decoration:none;" title="내 정보 · 비밀번호 변경">
+        <span class="avatar" th:text="${loginUser.initial()}">홍</span>
+        <span>
+          <b th:text="${loginUser.name()} + ' ' + ${loginUser.position()}">홍길동 주무관</b>
+          <small th:text="${#strings.isEmpty(loginUser.dept())} ? ${loginUser.role.label} : ${loginUser.dept()} + ' · ' + ${loginUser.role.label}">부서 · 권한</small>
+        </span>
+      </a>
+      <form th:action="@{/logout}" method="post" style="margin:0;">
+        <button type="submit" class="icon-btn" style="width:auto; padding:0 14px; font:inherit; font-size:17px;">로그아웃</button>
+      </form>
     </div>
   </div>
 </header>

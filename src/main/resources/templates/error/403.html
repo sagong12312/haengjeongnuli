@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>권한 없음 | 행정누리</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="page" style="max-width:640px; padding-top:80px;">
+  <section class="panel" role="alert" style="align-items:center; text-align:center; padding:40px 28px; gap:14px;">
+    <h1 style="margin:0; font-size:26px;">이 화면을 볼 권한이 없습니다</h1>
+    <p class="muted" style="margin:0;">필요하면 시스템 관리자에게 권한을 요청하세요.</p>
+    <a class="btn btn-plain" th:href="@{/}">홈으로</a>
+  </section>
+</main>
+</body>
+</html>

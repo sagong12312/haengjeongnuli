@@ -1,5 +1,6 @@
 package egovframework.haengjeongnuli.cmm;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
@@ -7,14 +8,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 @ControllerAdvice
 public class GlobalModelAdvice {
 
-    private final LoginUser loginUser;
-
-    public GlobalModelAdvice(LoginUser loginUser) {
-        this.loginUser = loginUser;
-    }
-
+    /** 로그인한 직원. 로그인 화면에서는 null */
     @ModelAttribute("loginUser")
-    public LoginUser loginUser() {
-        return loginUser;
+    public LoginUser loginUser(@AuthenticationPrincipal LoginUser user) {
+        return user;
     }
 }

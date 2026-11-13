@@ -23,9 +23,10 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
+import org.junit.jupiter.api.BeforeEach;
 
 import egovframework.haengjeongnuli.civil.service.CivilComplaintVO;
 import egovframework.haengjeongnuli.civil.service.CivilForm;
@@ -36,11 +37,17 @@ import egovframework.haengjeongnuli.civil.service.CivilStatus;
 import egovframework.haengjeongnuli.civil.service.LegalAffair;
 
 @SpringBootTest
-@AutoConfigureMockMvc
 class DatabaseFlowTest {
 
     @Autowired
+    WebApplicationContext ctx;
+
     MockMvc mvc;
+
+    @BeforeEach
+    void setUp() {
+        mvc = TestUsers.mvcAs(ctx, TestUsers.counter());
+    }
 
     @Autowired
     CivilService civilService;

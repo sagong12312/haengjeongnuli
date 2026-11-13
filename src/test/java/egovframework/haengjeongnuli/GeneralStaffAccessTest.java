@@ -10,17 +10,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
+import org.junit.jupiter.api.BeforeEach;
 
 @DisplayName("일반 직원은 민원 접수를 할 수 없다")
-@SpringBootTest(properties = "app.user.role=GENERAL")
-@AutoConfigureMockMvc
+@SpringBootTest
 class GeneralStaffAccessTest {
 
     @Autowired
+    WebApplicationContext ctx;
+
     MockMvc mvc;
+
+    @BeforeEach
+    void setUp() {
+        mvc = TestUsers.mvcAs(ctx, TestUsers.general());
+    }
 
     @Test
     void 민원_접수_화면은_막힌다() throws Exception {

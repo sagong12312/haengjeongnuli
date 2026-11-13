@@ -18,8 +18,8 @@
         <div style="display:flex; align-items:center; gap:16px;">
           <div style="width:72px; height:72px; border-radius:999px; background:var(--brand-tint); color:var(--brand); font-size:30px; font-weight:800; display:flex; align-items:center; justify-content:center;" th:text="${loginUser.initial()}">홍</div>
           <div>
-            <div style="font-size:24px; font-weight:800;" th:text="${loginUser.name}">[사용자명]</div>
-            <div class="muted" th:text="'[직급] · ' + ${loginUser.dept}">[직급] · [소속 부서]</div>
+            <div style="font-size:24px; font-weight:800;" th:text="${loginUser.name()}">[사용자명]</div>
+            <div class="muted" th:text="${loginUser.position()} + ' · ' + ${loginUser.dept()}">[직급] · [소속 부서]</div>
           </div>
         </div>
         <dl style="margin:0; display:grid; grid-template-columns:110px 1fr; gap:12px;">

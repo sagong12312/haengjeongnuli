@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -46,12 +47,10 @@ public class BoardController {
             new Tab("archive", "자료실"));
 
     private final BoardService boardService;
-    private final LoginUser loginUser;
     private final FileStorage fileStorage;
 
-    public BoardController(BoardService boardService, LoginUser loginUser, FileStorage fileStorage) {
+    public BoardController(BoardService boardService, FileStorage fileStorage) {
         this.boardService = boardService;
-        this.loginUser = loginUser;
         this.fileStorage = fileStorage;
     }
 
@@ -75,7 +74,7 @@ public class BoardController {
     }
 
     @PostMapping("/write")
-    public String write(@Validated @ModelAttribute("postForm") BoardPostForm form, BindingResult result,
+    public String write(@AuthenticationPrincipal LoginUser loginUser, @Validated @ModelAttribute("postForm") BoardPostForm form, BindingResult result,
                         @RequestParam(value = "files", required = false) List<MultipartFile> files,
                         Model model, RedirectAttributes ra, HttpServletResponse response) {
         if ("archive".equals(form.getBoard())) {
@@ -105,7 +104,7 @@ public class BoardController {
     }
 
     @PostMapping("/upload")
-    public String upload(@Validated @ModelAttribute("postForm") BoardPostForm form, BindingResult result,
+    public String upload(@AuthenticationPrincipal LoginUser loginUser, @Validated @ModelAttribute("postForm") BoardPostForm form, BindingResult result,
                          @RequestParam(value = "files", required = false) List<MultipartFile> files,
                          Model model, RedirectAttributes ra, HttpServletResponse response) {
         form.setBoard("archive");

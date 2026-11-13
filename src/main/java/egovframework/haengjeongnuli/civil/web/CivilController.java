@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -38,12 +39,10 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/civil")
 public class CivilController {
 
-    private final LoginUser loginUser;
     private final DeadlineCalculator deadlineCalculator;
     private final CivilService civilService;
 
-    public CivilController(LoginUser loginUser, DeadlineCalculator deadlineCalculator, CivilService civilService) {
-        this.loginUser = loginUser;
+    public CivilController(DeadlineCalculator deadlineCalculator, CivilService civilService) {
         this.deadlineCalculator = deadlineCalculator;
         this.civilService = civilService;
     }
@@ -60,7 +59,7 @@ public class CivilController {
     }
 
     @GetMapping("/new")
-    public String newForm(Model model, HttpServletResponse response) {
+    public String newForm(@AuthenticationPrincipal LoginUser loginUser, Model model, HttpServletResponse response) {
         if (!loginUser.isCounterStaff()) {
             response.setStatus(HttpStatus.FORBIDDEN.value());
             return "civil/denied";
@@ -74,7 +73,7 @@ public class CivilController {
 
     /** 접수. 화면과 별개로 서버에서도 권한과 입력값을 확인한다. */
     @PostMapping("/new")
-    public String submit(@Validated @ModelAttribute("civilForm") CivilForm form, BindingResult result,
+    public String submit(@AuthenticationPrincipal LoginUser loginUser, @Validated @ModelAttribute("civilForm") CivilForm form, BindingResult result,
                          Model model, RedirectAttributes ra, HttpServletResponse response) {
         if (!loginUser.isCounterStaff()) {
             response.setStatus(HttpStatus.FORBIDDEN.value());
@@ -85,7 +84,7 @@ public class CivilController {
             addFormOptions(model);
             return "civil/new";
         }
-        CivilComplaintVO saved = civilService.receive(form, loginUser.name());
+        CivilComplaintVO saved = civilService.receive(form, loginUser.getLoginId());
         ra.addFlashAttribute("message", "민원이 접수되었습니다. 접수번호: " + saved.getReceiptNo());
         return "redirect:/civil";
     }

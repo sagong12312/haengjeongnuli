@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('직원 계정 관리')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div>
+    <span class="crumb"><a th:href="@{/}">홈</a> › 시스템 관리</span>
+    <h1>직원 계정 관리</h1>
+  </div>
+
+  <!-- 계정 목록 -->
+  <section class="panel flush" aria-labelledby="list-title">
+    <div class="panel-head"><h2 id="list-title">직원 계정</h2><span class="muted" style="font-size:17px;" th:text="'전체 ' + ${#lists.size(users)} + '명'">전체</span></div>
+    <div class="table-wrap">
+      <table class="list" style="min-width:1000px">
+        <thead><tr>
+          <th scope="col">아이디</th><th scope="col">이름</th><th scope="col">직급</th><th scope="col">부서</th>
+          <th scope="col">권한</th><th scope="col">상태</th><th scope="col">마지막 로그인</th><th scope="col">관리</th>
+        </tr></thead>
+        <tbody>
+          <tr th:each="u : ${users}">
+            <td style="color:var(--text)" th:text="${u.loginId}">id</td>
+            <td style="color:var(--text)" th:text="${u.userName}">이름</td>
+            <td th:text="${u.positionName} ?: '—'">직급</td>
+            <td th:text="${u.deptName} ?: '—'">부서</td>
+            <td th:text="${u.role.label}">권한</td>
+            <td>
+              <span th:if="${!u.enabled}" class="badge badge-gray">사용 중지</span>
+              <span th:if="${u.enabled and u.locked}" class="badge badge-red">잠김</span>
+              <span th:if="${u.enabled and !u.locked}" class="badge badge-green">사용 중</span>
+            </td>
+            <td th:text="${u.lastLoginAt} ? ${#temporals.format(u.lastLoginAt, 'yyyy-MM-dd HH:mm')} : '—'">—</td>
+            <td style="text-align:left;">
+              <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                <form th:if="${u.locked}" th:action="@{/admin/users/{id}/unlock(id=${u.userId})}" method="post" style="margin:0;">
+                  <button type="submit" class="btn btn-outline" style="height:40px; font-size:16px; padding:0 12px;">잠금 해제</button>
+                </form>
+                <form th:action="@{/admin/users/{id}/enabled(id=${u.userId})}" method="post" style="margin:0;">
+                  <input type="hidden" name="value" th:value="${!u.enabled}">
+                  <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;" th:text="${u.enabled} ? '사용 중지' : '다시 사용'">사용 중지</button>
+                </form>
+                <form th:action="@{/admin/users/{id}/password(id=${u.userId})}" method="post" style="margin:0; display:flex; gap:6px;">
+                  <label th:for="'pw' + ${u.userId}" class="sr-only">새 비밀번호</label>
+                  <input th:id="'pw' + ${u.userId}" name="newPassword" type="password" class="input" required minlength="9" placeholder="새 비밀번호" autocomplete="new-password" style="height:40px; font-size:16px; width:150px;">
+                  <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;">비밀번호 재설정</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 계정 만들기 -->
+  <form class="panel" th:action="@{/admin/users}" th:object="${userForm}" method="post" style="gap:20px;">
+    <h2>계정 만들기</h2>
+    <div th:replace="~{fragments/form-errors :: errors}"></div>
+    <div class="grid-fields">
+      <div class="field">
+        <label for="nid">아이디 <span class="req">*</span></label>
+        <input id="nid" th:field="*{loginId}" class="input" type="text" required maxlength="50" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="nname">이름 <span class="req">*</span></label>
+        <input id="nname" th:field="*{userName}" class="input" type="text" required maxlength="100">
+      </div>
+      <div class="field">
+        <label for="npos">직급</label>
+        <input id="npos" th:field="*{positionName}" class="input" type="text" maxlength="50" placeholder="예: 주무관">
+      </div>
+      <div class="field">
+        <label for="ndept">부서</label>
+        <input id="ndept" th:field="*{deptName}" class="input" type="text" maxlength="100">
+      </div>
+      <div class="field">
+        <label for="nrole">권한 <span class="req">*</span></label>
+        <select id="nrole" th:field="*{role}" class="select">
+          <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}">일반 직원</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="npw">초기 비밀번호 <span class="req">*</span></label>
+        <input id="npw" th:field="*{password}" class="input" type="password" required minlength="9" maxlength="64" autocomplete="new-password">
+      </div>
+    </div>
+    <p class="hint" th:text="'비밀번호 규칙: ' + ${rule}">규칙</p>
+    <div class="form-actions" style="justify-content:flex-end;">
+      <button type="submit" class="btn btn-primary btn-lg">계정 만들기</button>
+    </div>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

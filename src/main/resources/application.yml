@@ -24,14 +24,10 @@ mybatis:
     map-underscore-to-camel-case: true
     jdbc-type-for-null: VARCHAR
 
-# 로그인 기능 전까지 쓰는 임시 사용자 정보
 app:
-  user:
-    name: "[사용자명]"
-    position: 주무관
-    dept: "[소속 부서]"
-    # COUNTER(창구 직원) 또는 GENERAL(일반 직원)
-    role: COUNTER
+  # 계정이 하나도 없을 때 만드는 첫 관리자(admin) 비밀번호. 비워 두면 무작위로 만들어 서버 창에 한 번 보여준다.
+  init-admin:
+    password: ${APP_INIT_ADMIN_PASSWORD:}
   civil:
     # 처리기한이 며칠 이내로 남으면 '기한 임박'으로 볼지
     imminent-days: 2
