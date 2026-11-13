@@ -33,7 +33,7 @@
     <div class="field">
       <label for="wf">첨부파일</label>
       <input id="wf" name="files" type="file" multiple class="input" style="height:auto; padding:12px; border-style:dashed; background:#F8FAFC;">
-      <p class="hint">첨부파일 저장은 아직 연결하지 않았습니다.</p>
+      <p class="hint" th:text="'파일당 20MB까지 · 올릴 수 있는 형식: ' + ${allowedExt}">파일당 20MB까지</p>
     </div>
     <label class="check" style="font-size:19px;"><input type="checkbox" th:field="*{pinned}" style="width:22px; height:22px;">상단 공지로 고정 (공지사항만)</label>
     <div class="form-actions" style="justify-content:flex-end;">

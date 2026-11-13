@@ -13,6 +13,10 @@ spring:
     default: local
   thymeleaf:
     cache: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 100MB
 
 mybatis:
   mapper-locations: classpath:egovframework/mapper/**/*.xml
@@ -31,3 +35,8 @@ app:
   civil:
     # 처리기한이 며칠 이내로 남으면 '기한 임박'으로 볼지
     imminent-days: 2
+  file:
+    # 첨부파일 저장 폴더 (운영에서는 백업되는 경로로 바꾼다)
+    upload-dir: ./uploads
+    # 올릴 수 있는 확장자
+    allowed-extensions: hwp,hwpx,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif,zip

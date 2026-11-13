@@ -57,6 +57,15 @@
             <td class="left">
               <span th:if="${p.category}" class="badge badge-gray" style="margin-right:6px;" th:text="${p.category}">업무 서식</span>
               <a href="#" th:text="${p.title}" th:style="${p.pinned} ? 'font-weight:700' : null">제목</a>
+              <ul th:unless="${#lists.isEmpty(p.files)}" style="list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:4px;">
+                <li th:each="f : ${p.files}">
+                  <a th:href="@{/board/files/{id}(id=${f.fileId})}" style="display:inline-flex; align-items:center; gap:6px; font-size:16px; color:var(--brand);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+                    <span th:text="${f.originalName}">파일명</span>
+                    <span class="muted" style="font-size:15px;" th:text="'(' + ${f.sizeText} + ' · 받은 횟수 ' + ${f.downloadCount} + ')'">(1.2MB)</span>
+                  </a>
+                </li>
+              </ul>
             </td>
             <td th:text="${p.writer}">작성자</td>
             <td th:text="${p.writerDept} ?: '—'">부서</td>

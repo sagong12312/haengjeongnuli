@@ -17,7 +17,12 @@ public class BoardPostVO {
     private String writerDept;
     private LocalDateTime createdAt;
 
+    private java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> files = new java.util.ArrayList<>();
+
     public boolean isPinned() { return "Y".equals(pinnedYn); }
+
+    public java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> getFiles() { return files; }
+    public void setFiles(java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> files) { this.files = files; }
 
     public Long getPostId() { return postId; }
     public void setPostId(Long postId) { this.postId = postId; }

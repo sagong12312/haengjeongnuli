@@ -39,4 +39,32 @@
         <include refid="searchWhere"/>
     </select>
 
+    <!-- 첨부파일 -->
+    <select id="nextFileId" resultType="long">
+        SELECT SEQ_ATTACH_FILE.NEXTVAL FROM DUAL
+    </select>
+
+    <insert id="insertFile" parameterType="egovframework.haengjeongnuli.cmm.file.AttachFileVO">
+        INSERT INTO ATTACH_FILE (FILE_ID, POST_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, DOWNLOAD_COUNT, CREATED_AT)
+        VALUES (#{fileId}, #{postId}, #{originalName}, #{storedName}, #{fileSize}, 0, #{createdAt})
+    </insert>
+
+    <select id="selectFilesByPostIds" resultType="egovframework.haengjeongnuli.cmm.file.AttachFileVO">
+        SELECT FILE_ID, POST_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, DOWNLOAD_COUNT, CREATED_AT
+          FROM ATTACH_FILE
+         WHERE POST_ID IN
+        <foreach collection="postIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+         ORDER BY POST_ID, FILE_ID
+    </select>
+
+    <select id="selectFile" resultType="egovframework.haengjeongnuli.cmm.file.AttachFileVO">
+        SELECT FILE_ID, POST_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, DOWNLOAD_COUNT, CREATED_AT
+          FROM ATTACH_FILE
+         WHERE FILE_ID = #{fileId}
+    </select>
+
+    <update id="increaseDownloadCount">
+        UPDATE ATTACH_FILE SET DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1 WHERE FILE_ID = #{fileId}
+    </update>
+
 </mapper>

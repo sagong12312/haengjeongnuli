@@ -10,8 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.springframework.mock.web.MockMultipartFile;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,14 +129,46 @@ class DatabaseFlowTest {
     }
 
     @Test
-    void 자료를_올리면_자료실에_나온다() throws Exception {
+    void 자료를_올리고_내려받는다() throws Exception {
         String title = "서식 " + UUID.randomUUID();
-        mvc.perform(post("/board/upload")
+        byte[] data = "가나다 hwp 내용".getBytes(StandardCharsets.UTF_8);
+        MockMultipartFile file = new MockMultipartFile("files", "출장 신청서.hwp", "application/octet-stream", data);
+
+        mvc.perform(multipart("/board/upload").file(file)
                         .param("category", "업무 서식").param("scope", "전체 공개").param("title", title))
                 .andExpect(redirectedUrl("/board?tab=archive"));
 
-        mvc.perform(get("/board").param("tab", "archive"))
+        String html = mvc.perform(get("/board").param("tab", "archive"))
                 .andExpect(content().string(containsString(title)))
-                .andExpect(content().string(containsString("업무 서식")));
+                .andExpect(content().string(containsString("출장 신청서.hwp")))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        Matcher m = Pattern.compile("/board/files/(\\d+)").matcher(html.substring(html.indexOf(title)));
+        assertThat(m.find()).isTrue();
+        mvc.perform(get("/board/files/" + m.group(1)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(header().string("Content-Disposition", containsString("UTF-8''")))
+                .andExpect(content().bytes(data));
+    }
+
+    @Test
+    void 파일_없이_자료를_올릴_수_없다() throws Exception {
+        mvc.perform(multipart("/board/upload").param("scope", "전체 공개").param("title", "빈 자료"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("올릴 파일을 하나 이상 선택하세요.")));
+    }
+
+    @Test
+    void 허용하지_않은_형식은_거부된다() throws Exception {
+        MockMultipartFile exe = new MockMultipartFile("files", "virus.exe", "application/octet-stream", new byte[]{1, 2});
+        mvc.perform(multipart("/board/upload").file(exe).param("scope", "전체 공개").param("title", "실행 파일"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("올릴 수 없는 형식의 파일입니다: virus.exe")));
+    }
+
+    @Test
+    void 없는_파일은_404() throws Exception {
+        mvc.perform(get("/board/files/999999")).andExpect(status().isNotFound());
     }
 }

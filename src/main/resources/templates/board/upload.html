@@ -13,16 +13,16 @@
   <form class="panel" th:action="@{/board/upload}" th:object="${postForm}" method="post" enctype="multipart/form-data" style="padding:28px; gap:22px;">
     <div th:replace="~{fragments/form-errors :: errors}"></div>
     <div class="field">
-      <span class="field-label">파일</span>
+      <span class="field-label">파일 <span class="req">*</span></span>
       <label for="uf" style="border:2px dashed #A9B5C4; border-radius:16px; background:#F8FAFC; padding:40px 20px; display:flex; flex-direction:column; align-items:center; gap:12px; cursor:pointer; text-align:center;">
         <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#1D4E89" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
         <span style="font-size:21px; font-weight:700;">파일을 여기로 끌어오거나 눌러서 선택하세요</span>
-        <span class="muted" style="font-size:17px;">한 번에 여러 개 선택할 수 있습니다 · 허용 형식·용량: [기준]</span>
+        <span class="muted" style="font-size:17px;">한 번에 여러 개 선택할 수 있습니다 · 파일당 20MB, 한 번에 100MB까지</span>
+        <span class="muted" style="font-size:16px;" th:text="'올릴 수 있는 형식: ' + ${allowedExt}">올릴 수 있는 형식</span>
         <span id="uf-names" class="muted" style="font-size:17px;"></span>
         <span class="btn btn-outline" style="height:48px; font-size:19px;">파일 선택</span>
       </label>
       <input id="uf" name="files" type="file" multiple class="sr-only">
-      <p class="hint">첨부파일 저장은 아직 연결하지 않아, 지금은 제목·분류·설명만 저장됩니다.</p>
     </div>
     <div class="grid-fields">
       <div class="field">
