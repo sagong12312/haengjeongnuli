@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>행정누리 전자결재</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'MDotum';src:url('/_blob/3df0dad862d67c0e08fd381254d1931c') format('truetype');font-weight:400 800;font-display:swap}
+body{margin:0;background:#F3F5F8}
+a{color:#1D4E89}a:hover{color:#123A6B}
+</style>
+</helmet>
+<div style="font-family: 'MDotum', system-ui, sans-serif; color: #18212E; background: #F3F5F8; min-height: 100vh;">
+
+  <!-- 상단 헤더 -->
+  <header style="background: {{brand}}; color: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; color: #FFFFFF; text-decoration: none;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{brand}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M10 19v-5h4v5"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">행정누리</span>
+          <span style="font-size: 15px; color: #C9D8EC;">통합 행정업무 시스템</span>
+        </div>
+      </a>
+      <nav aria-label="주 메뉴" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 420px;">
+        <a href="Main.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">홈</a>
+        <a href="Approval.dc.html" aria-current="page" style="color: #FFFFFF; text-decoration: none; padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.14); font-weight: 700; font-size: 19px;">전자결재</a>
+        <a href="Civil.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">민원</a>
+        <a href="Finance.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">재정·세무</a>
+        <a href="Hr.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">인사</a>
+        <a href="Board.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">게시판</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12);">
+        <div style="width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; color: {{brand}}; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 18px;">홍</div>
+        <div style="display: flex; flex-direction: column; line-height: 1.3;">
+          <span style="font-size: 18px; font-weight: 700;">[사용자명] 주무관</span>
+          <span style="font-size: 15px; color: #C9D8EC;">[소속 부서]</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1360px; margin: 0 auto; padding: 28px 24px 48px; display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- 제목 + 기안하기 -->
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 17px; color: #5B6779;">홈 › 전자결재 › {{boxName}}</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">전자결재</h1>
+      </div>
+      <a href="Draft.dc.html" style="height: 52px; padding: 0 24px; border-radius: 12px; background: {{brand}}; color: #FFFFFF; text-decoration: none; font-size: 20px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+        기안하기
+      </a>
+    </div>
+
+    <!-- 문서함 요약 (누르면 해당 문서함으로) -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
+      <sc-for list="{{boxes}}" as="box" hint-placeholder-count="5">
+        <button type="button" aria-pressed="{{box.pressed}}" onClick="{{box.pick}}" style="{{box.style}}">
+          <span style="font-size: 19px; font-weight: 700;">{{box.label}}</span>
+          <span style="font-size: 32px; font-weight: 800;">0</span>
+          <span style="font-size: 16px; color: #5B6779;">{{box.desc}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- 검색 -->
+    <form role="search" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+      <label for="aperiod" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">기간</label>
+      <select id="aperiod" style="height: 52px; padding: 0 14px; font-size: 18px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+        <option>최근 1개월</option>
+        <option>최근 3개월</option>
+        <option>올해</option>
+        <option>전체</option>
+      </select>
+      <label for="aq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">문서 검색</label>
+      <input id="aq" type="search" placeholder="제목, 문서번호, 기안자 검색" style="flex: 1 1 280px; min-width: 0; height: 52px; padding: 0 16px; font-size: 18px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+      <button type="submit" style="height: 52px; padding: 0 24px; border: 2px solid {{brand}}; border-radius: 12px; background: #FFFFFF; color: {{brand}}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer;">검색</button>
+    </form>
+
+    <!-- 문서 목록 -->
+    <section aria-label="결재 문서 목록" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; overflow: hidden;">
+      <div style="padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #DDE3EB;">
+        <h2 style="margin: 0; font-size: 22px; font-weight: 800;">{{boxName}}</h2>
+        <span style="font-size: 17px; color: #4A5668;">전체 <b style="color: #18212E;">[건수]</b>건</span>
+      </div>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; min-width: 900px; border-collapse: collapse; font-size: 18px;">
+          <thead>
+            <tr style="background: #F3F6FA; color: #4A5668;">
+              <th scope="col" style="padding: 14px 12px; width: 150px; font-weight: 700; text-align: center;">문서번호</th>
+              <th scope="col" style="padding: 14px 12px; font-weight: 700; text-align: left;">제목</th>
+              <th scope="col" style="padding: 14px 12px; width: 120px; font-weight: 700; text-align: center;">기안자</th>
+              <th scope="col" style="padding: 14px 12px; width: 140px; font-weight: 700; text-align: center;">기안부서</th>
+              <th scope="col" style="padding: 14px 12px; width: 120px; font-weight: 700; text-align: center;">기안일</th>
+              <th scope="col" style="padding: 14px 12px; width: 120px; font-weight: 700; text-align: center;">상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="row" hint-placeholder-count="6">
+              <tr style="border-top: 1px solid #E6EAF0;">
+                <td style="padding: 16px 12px; text-align: center; color: #5B6779;">[문서번호]</td>
+                <td style="padding: 16px 12px;"><a href="#" style="color: #18212E; text-decoration: none;">[문서 제목]</a></td>
+                <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[기안자]</td>
+                <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[부서]</td>
+                <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[날짜]</td>
+                <td style="padding: 16px 12px; text-align: center;"><span style="{{row.badgeStyle}}">{{row.status}}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 페이지 이동 -->
+    <nav aria-label="페이지" style="display: flex; justify-content: center; flex-wrap: wrap; gap: 6px;">
+      <a href="#" aria-label="이전 페이지" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #C5CFDC; border-radius: 10px; background: #FFFFFF; color: #4A5668; text-decoration: none; font-size: 18px;">‹</a>
+      <a href="#" aria-current="page" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: {{brand}}; color: #FFFFFF; text-decoration: none; font-size: 18px; font-weight: 700;">1</a>
+      <a href="#" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #C5CFDC; border-radius: 10px; background: #FFFFFF; color: #18212E; text-decoration: none; font-size: 18px;">2</a>
+      <a href="#" aria-label="다음 페이지" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #C5CFDC; border-radius: 10px; background: #FFFFFF; color: #4A5668; text-decoration: none; font-size: 18px;">›</a>
+    </nav>
+  </main>
+
+  <footer style="border-top: 1px solid #DDE3EB; background: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 17px; color: #5B6779;">
+      <span>행정누리 · [운영 기관명]</span>
+      <span>시스템 문의 [연락처]</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"brand":{"editor":"color","default":"#1D4E89","options":["#1D4E89","#0F5C55","#3B3F8F","#22313F"]},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const brand = this.props.brand ?? '#1D4E89';
+    const defs = [
+      { id: 'wait', label: '결재 대기', desc: '내가 결재할 문서', status: '결재 대기', bg: '#FFF4E8', fg: '#8A430A' },
+      { id: 'prog', label: '진행 중', desc: '내가 올린 결재 진행', status: '진행 중', bg: '#E6EEF8', fg: '#1D3A5F' },
+      { id: 'done', label: '완료', desc: '결재가 끝난 문서', status: '완료', bg: '#E3F3E8', fg: '#1C6B35' },
+      { id: 'back', label: '반려', desc: '돌려받은 문서', status: '반려', bg: '#FCE8E8', fg: '#A12626' },
+      { id: 'recv', label: '수신 문서', desc: '접수·배부할 문서', status: '접수 대기', bg: '#EEF1F5', fg: '#4A5668' }
+    ];
+    const picked = (this.state && this.state.box) || 'wait';
+    const cur = defs.find((d) => d.id === picked) || defs[0];
+    const base = 'text-align: left; font-family: inherit; color: #18212E; cursor: pointer; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px; ';
+    const boxes = defs.map((d) => ({
+      label: d.label,
+      desc: d.desc,
+      pressed: d.id === picked ? 'true' : 'false',
+      style: base + (d.id === picked
+        ? 'background: #FFFFFF; border: 3px solid ' + brand + '; box-shadow: 0 2px 8px rgba(24,33,46,0.08);'
+        : 'background: #FFFFFF; border: 1px solid #DDE3EB; padding: 20px 22px;'),
+      pick: () => this.setState({ box: d.id })
+    }));
+    const badge = 'display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 16px; font-weight: 700; background: ' + cur.bg + '; color: ' + cur.fg + ';';
+    const rows = [];
+    for (let i = 0; i < 6; i++) rows.push({ status: cur.status, badgeStyle: badge });
+    return { brand: brand, boxes: boxes, rows: rows, boxName: cur.label };
+  }
+}
+</script>
+</body>
+</html>

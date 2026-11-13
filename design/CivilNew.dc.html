@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>행정누리 민원 접수</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'MDotum';src:url('/_blob/3df0dad862d67c0e08fd381254d1931c') format('truetype');font-weight:400 800;font-display:swap}
+body{margin:0;background:#F3F5F8}
+a{color:#1D4E89}a:hover{color:#123A6B}
+</style>
+</helmet>
+<div style="font-family: 'MDotum', system-ui, sans-serif; color: #18212E; background: #F3F5F8; min-height: 100vh;">
+
+  <!-- 상단 헤더 -->
+  <header style="background: {{brand}}; color: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; color: #FFFFFF; text-decoration: none;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{brand}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M10 19v-5h4v5"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">행정누리</span>
+          <span style="font-size: 15px; color: #C9D8EC;">통합 행정업무 시스템</span>
+        </div>
+      </a>
+      <nav aria-label="주 메뉴" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 420px;">
+        <a href="Main.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">홈</a>
+        <a href="Approval.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">전자결재</a>
+        <a href="Civil.dc.html" aria-current="page" style="color: #FFFFFF; text-decoration: none; padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.14); font-weight: 700; font-size: 19px;">민원</a>
+        <a href="Finance.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">재정·세무</a>
+        <a href="Hr.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">인사</a>
+        <a href="Board.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">게시판</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12);">
+        <div style="width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; color: {{brand}}; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 18px;">홍</div>
+        <div style="display: flex; flex-direction: column; line-height: 1.3;">
+          <span style="font-size: 18px; font-weight: 700;">[사용자명] 주무관</span>
+          <span style="font-size: 15px; color: #C9D8EC;">[소속 부서]</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1160px; margin: 0 auto; padding: 28px 24px 48px; display: flex; flex-direction: column; gap: 20px;">
+
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span style="font-size: 17px; color: #5B6779;"><a href="Civil.dc.html" style="color: #5B6779;">민원</a> › 민원 접수</span>
+      <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">민원 접수</h1>
+    </div>
+
+    <sc-if value="{{notCounter}}" hint-placeholder-val="{{ false }}">
+      <section role="alert" style="background: #FFFFFF; border: 2px solid #F0C9A0; border-radius: 16px; padding: 40px 28px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#A6510A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        <h2 style="margin: 0; font-size: 24px; font-weight: 800;">민원 접수는 창구 직원만 할 수 있습니다</h2>
+        <p style="margin: 0; font-size: 19px; color: #4A5668; line-height: 1.6;">접수 권한이 필요하면 시스템 관리자에게 권한을 요청하세요.</p>
+        <a href="Civil.dc.html" style="height: 52px; padding: 0 24px; display: inline-flex; align-items: center; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E; text-decoration: none; font-size: 19px; font-weight: 700;">민원 목록으로</a>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{isCounter}}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+
+    <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="background: #E3F3E8; border: 1px solid #A9D8B6; color: #1C6B35; border-radius: 12px; padding: 16px 20px; font-size: 19px; font-weight: 700;">민원이 접수되었습니다. 접수번호: [접수번호]</div>
+    </sc-if>
+
+    <!-- 1. 민원 종류 + 처리기한 -->
+    <section aria-labelledby="s1" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;">
+      <h2 id="s1" style="margin: 0; font-size: 22px; font-weight: 800;">1. 민원 종류</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="ckind" style="font-size: 19px; font-weight: 700;">민원 종류 <span style="color: #A12626;">*</span></label>
+          <select id="ckind" onChange="{{onKind}}" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option value="법정">법정민원</option>
+            <option value="질의">질의민원</option>
+            <option value="건의">건의민원</option>
+            <option value="기타">기타민원</option>
+            <option value="고충">고충민원</option>
+          </select>
+        </div>
+        <sc-if value="{{isQuery}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label for="cqtype" style="font-size: 19px; font-weight: 700;">질의 내용</label>
+            <select id="cqtype" onChange="{{onQtype}}" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+              <option value="law">법령 설명·해석</option>
+              <option value="etc">제도·절차 등</option>
+            </select>
+          </div>
+        </sc-if>
+        <sc-if value="{{isLegal}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label for="caffair" style="font-size: 19px; font-weight: 700;">민원 사무 <span style="color: #A12626;">*</span></label>
+            <select id="caffair" onChange="{{onAffair}}" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+              <option value="">사무를 선택하세요</option>
+              <optgroup label="주민등록">
+                <option value="resident-copy">주민등록표 등본(초본) 발급</option>
+                <option value="move-in">전입신고</option>
+              </optgroup>
+              <optgroup label="인감">
+                <option value="seal">인감증명서 발급</option>
+              </optgroup>
+              <optgroup label="기타">
+                <option value="other">[민원처리기준표 나머지 사무]</option>
+              </optgroup>
+            </select>
+          </div>
+        </sc-if>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="croute" style="font-size: 19px; font-weight: 700;">접수 경로</label>
+          <select id="croute" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option>방문</option>
+            <option>인터넷</option>
+            <option>우편</option>
+            <option>팩스</option>
+            <option>전화</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+        <div style="flex: 1 1 260px; background: #E6EEF8; border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 17px; color: #1D3A5F;">처리기간</span>
+          <span style="font-size: 24px; font-weight: 800; color: #1D3A5F;">{{period}}</span>
+        </div>
+        <div style="flex: 1 1 260px; background: #FFF4E8; border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 4px;">
+          <span style="font-size: 17px; color: #6B3A0E;">예상 처리기한</span>
+          <span style="font-size: 24px; font-weight: 800; color: #8A430A;">{{deadline}}</span>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 16px; color: #5B6779;">처리기간은 접수한 날을 포함하고 공휴일은 빼고 셉니다. 이 시안은 토·일요일만 빼고 계산하며, 공휴일은 반영하지 않습니다.</p>
+    </section>
+
+    <!-- 2. 민원인 정보 -->
+    <section aria-labelledby="s2" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;">
+      <h2 id="s2" style="margin: 0; font-size: 22px; font-weight: 800;">2. 민원인 정보</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="cname" style="font-size: 19px; font-weight: 700;">성명 <span style="color: #A12626;">*</span></label>
+          <input id="cname" type="text" required style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <label for="ctel" style="font-size: 19px; font-weight: 700;">휴대전화 <sc-if value="{{hasTel}}" hint-placeholder-val="{{ true }}"><span style="color: #A12626;">*</span></sc-if></label>
+            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 17px; color: #4A5668; cursor: pointer;"><input type="checkbox" checked="{{noTel}}" onChange="{{toggleTel}}" style="width: 20px; height: 20px;">없음</label>
+          </div>
+          <sc-if value="{{hasTel}}" hint-placeholder-val="{{ true }}">
+            <input id="ctel" type="tel" required placeholder="010-0000-0000" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+          </sc-if>
+          <sc-if value="{{noTel}}" hint-placeholder-val="{{ false }}">
+            <input type="text" disabled aria-label="휴대전화 없음" value="휴대전화 없음" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #DDE3EB; border-radius: 12px; color: #5B6779; background: #EEF1F5;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px;">
+              <label for="chome" style="font-size: 19px; font-weight: 700;">집전화 <sc-if value="{{hasHome}}" hint-placeholder-val="{{ true }}"><span style="color: #A12626;">*</span></sc-if></label>
+              <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 17px; color: #4A5668; cursor: pointer;"><input type="checkbox" checked="{{noHome}}" onChange="{{toggleHome}}" style="width: 20px; height: 20px;">없음</label>
+            </div>
+            <sc-if value="{{hasHome}}" hint-placeholder-val="{{ true }}">
+              <input id="chome" type="tel" required placeholder="지역번호 포함 (예: 02-000-0000)" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+            </sc-if>
+            <sc-if value="{{noHome}}" hint-placeholder-val="{{ false }}">
+              <input type="text" disabled aria-label="집전화 없음" value="집전화 없음" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #DDE3EB; border-radius: 12px; color: #5B6779; background: #EEF1F5;">
+              <span role="note" style="font-size: 16px; color: #8A430A; background: #FFF4E8; border-radius: 10px; padding: 10px 12px; line-height: 1.5;">전화 연락처가 없습니다. 결과는 우편·이메일·방문 수령으로 알려 주세요.</span>
+            </sc-if>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="cmail" style="font-size: 19px; font-weight: 700;">이메일</label>
+          <input id="cmail" type="email" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="caddr" style="font-size: 19px; font-weight: 700;">주소</label>
+        <input id="caddr" type="text" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+      </div>
+      <fieldset style="margin: 0; border: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px;">
+        <legend style="padding: 0; margin-bottom: 8px; font-size: 19px; font-weight: 700;">결과 통지 방법</legend>
+        <sc-for list="{{notifyOpts}}" as="n" hint-placeholder-count="4">
+          <label style="{{n.labelStyle}}"><input type="radio" name="cnotify" value="{{n.value}}" checked="{{n.checked}}" disabled="{{n.disabled}}" onChange="{{n.pick}}" style="width: 20px; height: 20px;">{{n.label}}</label>
+        </sc-for>
+        <sc-if value="{{noTel}}" hint-placeholder-val="{{ false }}">
+          <span style="font-size: 16px; color: #5B6779;">휴대전화가 없어 문자는 고를 수 없습니다.</span>
+        </sc-if>
+      </fieldset>
+    </section>
+
+    <!-- 3. 민원 내용 -->
+    <section aria-labelledby="s3" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;">
+      <h2 id="s3" style="margin: 0; font-size: 22px; font-weight: 800;">3. 민원 내용</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="ctitle" style="font-size: 19px; font-weight: 700;">제목 <span style="color: #A12626;">*</span></label>
+        <input id="ctitle" type="text" required style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="cbody" style="font-size: 19px; font-weight: 700;">내용 <span style="color: #A12626;">*</span></label>
+        <textarea id="cbody" required rows="8" style="padding: 14px 16px; font-size: 19px; line-height: 1.7; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E; resize: vertical;"></textarea>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="cfile" style="font-size: 19px; font-weight: 700;">구비서류·첨부</label>
+        <input id="cfile" type="file" multiple style="font-size: 18px; font-family: inherit; padding: 12px; border: 2px dashed #C5CFDC; border-radius: 12px; background: #F8FAFC;">
+      </div>
+    </section>
+
+    <!-- 4. 담당 배정 -->
+    <section aria-labelledby="s4" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;">
+      <h2 id="s4" style="margin: 0; font-size: 22px; font-weight: 800;">4. 담당 배정</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="cdept" style="font-size: 19px; font-weight: 700;">처리 부서</label>
+          <select id="cdept" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option>[부서 선택]</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="cstaff" style="font-size: 19px; font-weight: 700;">담당자</label>
+          <select id="cstaff" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option>나중에 배정 (접수 대기)</option>
+            <option>[담당자 선택]</option>
+          </select>
+        </div>
+      </div>
+
+      <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 18px; cursor: pointer; background: #F8FAFC; border: 1px solid #DDE3EB; border-radius: 12px; padding: 14px 16px;">
+        <input type="checkbox" style="width: 22px; height: 22px; margin-top: 2px;">
+        민원인에게 개인정보 수집·이용 목적과 항목을 안내하고 동의를 받았습니다. <span style="color: #A12626;">*</span>
+      </label>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; border-top: 1px solid #E6EAF0; padding-top: 22px;">
+        <a href="Civil.dc.html" style="height: 56px; padding: 0 28px; display: inline-flex; align-items: center; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E; text-decoration: none; font-size: 20px; font-weight: 700;">취소</a>
+        <button type="button" onClick="{{submit}}" style="height: 56px; padding: 0 32px; border: 0; border-radius: 12px; background: {{brand}}; color: #FFFFFF; font-family: inherit; font-size: 20px; font-weight: 700; cursor: pointer;">접수</button>
+      </div>
+    </section>
+    </div>
+    </sc-if>
+  </main>
+
+  <footer style="border-top: 1px solid #DDE3EB; background: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 17px; color: #5B6779;">
+      <span>행정누리 · [운영 기관명]</span>
+      <span>시스템 문의 [연락처]</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"brand":{"editor":"color","default":"#1D4E89","options":["#1D4E89","#0F5C55","#3B3F8F","#22313F"]},"role":{"editor":"enum","options":["창구 직원","일반 직원"],"default":"창구 직원"},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const kind = s.kind || '법정';
+    const qtype = s.qtype || 'law';
+    let days = null;
+    let period = '';
+    const affairs = {
+      'resident-copy': '즉시 (근무시간 내 3시간)',
+      'move-in': '즉시 (근무시간 내 3시간)',
+      'seal': '즉시 (3시간 이내)',
+      'other': '[민원처리기준표 기간]'
+    };
+    let legalNote = null;
+    if (kind === '법정') {
+      const a = s.affair || '';
+      period = a ? affairs[a] : '사무를 선택하세요';
+      if (a && a !== 'other') legalNote = '오늘 접수 시각부터 근무시간 내 3시간 이내';
+    }
+    else if (kind === '질의') { days = qtype === 'law' ? 14 : 7; period = days + '일'; }
+    else if (kind === '건의') { days = 14; period = '14일'; }
+    else if (kind === '기타') { days = 0; period = '즉시'; }
+    else if (kind === '고충') { days = 7; period = '7일 (현장조사 14일 별도)'; }
+    let deadline = legalNote || '[민원 사무 선택 시 표시]';
+    if (days === 0) deadline = '오늘 즉시 처리';
+    else if (days) {
+      const d = new Date();
+      let left = days;
+      while (true) {
+        const wd = d.getDay();
+        if (wd !== 0 && wd !== 6) { left -= 1; if (left === 0) break; }
+        d.setDate(d.getDate() + 1);
+      }
+      const w = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+      deadline = d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '. (' + w + ')';
+    }
+    return {
+      brand: this.props.brand ?? '#1D4E89',
+      isQuery: kind === '질의',
+      isLegal: kind === '법정',
+      period: period,
+      deadline: deadline,
+      done: !!s.done,
+      isCounter: (this.props.role ?? '창구 직원') === '창구 직원',
+      notCounter: (this.props.role ?? '창구 직원') !== '창구 직원',
+      noTel: !!s.noTel,
+      hasTel: !s.noTel,
+      toggleTel: () => this.setState({ noTel: !s.noTel, noHome: false }),
+      noHome: !!s.noTel && !!s.noHome,
+      hasHome: !s.noHome,
+      toggleHome: () => this.setState({ noHome: !s.noHome }),
+      onKind: (e) => this.setState({ kind: e.target.value }),
+      onAffair: (e) => this.setState({ affair: e.target.value }),
+      notifyOpts: ['문자', '이메일', '우편', '방문 수령'].map((v) => {
+        const off = v === '문자' && !!s.noTel;
+        const chosen = (s.notify && !(s.notify === '문자' && s.noTel)) ? s.notify : (s.noTel ? '우편' : '문자');
+        return {
+          label: v, value: v, disabled: off, checked: v === chosen,
+          labelStyle: 'display: inline-flex; align-items: center; gap: 8px; font-size: 19px; ' + (off ? 'color: #8A96A8; cursor: not-allowed; text-decoration: line-through;' : 'cursor: pointer;'),
+          pick: () => this.setState({ notify: v })
+        };
+      }),
+      onQtype: (e) => this.setState({ qtype: e.target.value }),
+      submit: () => this.setState({ done: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>행정누리 기안하기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'MDotum';src:url('/_blob/3df0dad862d67c0e08fd381254d1931c') format('truetype');font-weight:400 800;font-display:swap}
+body{margin:0;background:#F3F5F8}
+a{color:#1D4E89}a:hover{color:#123A6B}
+</style>
+</helmet>
+<div style="font-family: 'MDotum', system-ui, sans-serif; color: #18212E; background: #F3F5F8; min-height: 100vh;">
+
+  <!-- 상단 헤더 -->
+  <header style="background: {{brand}}; color: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; color: #FFFFFF; text-decoration: none;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{brand}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M10 19v-5h4v5"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">행정누리</span>
+          <span style="font-size: 15px; color: #C9D8EC;">통합 행정업무 시스템</span>
+        </div>
+      </a>
+      <nav aria-label="주 메뉴" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 420px;">
+        <a href="Main.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">홈</a>
+        <a href="Approval.dc.html" aria-current="page" style="color: #FFFFFF; text-decoration: none; padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.14); font-weight: 700; font-size: 19px;">전자결재</a>
+        <a href="Civil.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">민원</a>
+        <a href="Finance.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">재정·세무</a>
+        <a href="Hr.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">인사</a>
+        <a href="Board.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">게시판</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12);">
+        <div style="width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; color: {{brand}}; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 18px;">홍</div>
+        <div style="display: flex; flex-direction: column; line-height: 1.3;">
+          <span style="font-size: 18px; font-weight: 700;">[사용자명] 주무관</span>
+          <span style="font-size: 15px; color: #C9D8EC;">[소속 부서]</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1160px; margin: 0 auto; padding: 28px 24px 48px; display: flex; flex-direction: column; gap: 20px;">
+
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span style="font-size: 17px; color: #5B6779;"><a href="Approval.dc.html" style="color: #5B6779;">전자결재</a> › 기안하기</span>
+      <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">기안하기</h1>
+    </div>
+
+    <sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="background: #E3F3E8; border: 1px solid #A9D8B6; color: #1C6B35; border-radius: 12px; padding: 16px 20px; font-size: 19px; font-weight: 700;">결재가 상신되었습니다. 진행 상황은 전자결재 › 진행 중에서 확인할 수 있습니다.</div>
+    </sc-if>
+    <sc-if value="{{saved}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="background: #E6EEF8; border: 1px solid #B8CBE4; color: #1D3A5F; border-radius: 12px; padding: 16px 20px; font-size: 19px; font-weight: 700;">임시저장되었습니다.</div>
+    </sc-if>
+
+    <!-- 결재선 -->
+    <section aria-labelledby="line-title" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 24px 28px; display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+        <h2 id="line-title" style="margin: 0; font-size: 22px; font-weight: 800;">결재선</h2>
+        <button type="button" onClick="{{addApprover}}" style="height: 48px; padding: 0 20px; border: 2px solid {{brand}}; border-radius: 12px; background: #FFFFFF; color: {{brand}}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer;">+ 결재자 추가</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px;">
+        <sc-for list="{{line}}" as="step" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="min-width: 150px; border: 1px solid #DDE3EB; border-radius: 12px; overflow: hidden; text-align: center;">
+              <div style="background: #F3F6FA; padding: 8px 12px; font-size: 17px; font-weight: 700; color: #4A5668;">{{step.role}}</div>
+              <div style="padding: 14px 12px; display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-size: 19px; font-weight: 700;">{{step.name}}</span>
+                <span style="font-size: 16px; color: #5B6779;">{{step.dept}}</span>
+              </div>
+            </div>
+            <sc-if value="{{step.arrow}}" hint-placeholder-val="{{ true }}">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A96A8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- 문서 정보 + 본문 -->
+    <form style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 22px;">
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="dkind" style="font-size: 19px; font-weight: 700;">문서 종류</label>
+          <select id="dkind" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option>일반 기안</option>
+            <option>지출결의</option>
+            <option>협조 요청</option>
+            <option>보고</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="dkeep" style="font-size: 19px; font-weight: 700;">보존기간</label>
+          <select id="dkeep" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option>1년</option>
+            <option>3년</option>
+            <option>5년</option>
+            <option>10년</option>
+            <option>30년</option>
+            <option>준영구</option>
+            <option>영구</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="dopen" style="font-size: 19px; font-weight: 700;">공개 여부</label>
+          <select id="dopen" onChange="{{onOpen}}" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option>공개</option>
+            <option>부분공개</option>
+            <option>비공개</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="ddate" style="font-size: 19px; font-weight: 700;">시행일자</label>
+          <input id="ddate" type="date" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+        </div>
+      </div>
+
+      <!-- 비공개 사유 (부분공개·비공개일 때) -->
+      <sc-if value="{{restricted}}" hint-placeholder-val="{{ false }}">
+        <fieldset style="margin: 0; border: 2px solid #F0C9A0; background: #FFF8F0; border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px;">
+          <legend style="padding: 0 6px; font-size: 19px; font-weight: 700; color: #8A430A;">비공개 사유 (정보공개법 제9조 제1항, 하나 이상 선택) <span style="color: #A12626;">*</span></legend>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 16px;">
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제1호 법령상 비밀·비공개</label>
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제2호 국가안전보장·국방·통일·외교</label>
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제3호 국민의 생명·신체·재산 및 공공안전</label>
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제4호 재판·수사 등</label>
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제5호 업무의 공정한 수행에 현저한 지장</label>
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제6호 개인정보 (사생활 침해 우려)</label>
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제7호 법인 등의 경영·영업상 비밀</label>
+            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 18px; cursor: pointer;"><input type="checkbox" style="width: 20px; height: 20px; margin-top: 3px;">제8호 부동산 투기·매점매석 등 특정인 이익·불이익 우려</label>
+          </div>
+          <label for="dreason" style="font-size: 18px; font-weight: 700;">제한 범위·사유</label>
+          <input id="dreason" type="text" placeholder="비공개하는 부분과 사유를 적으세요 (예: 붙임 2 개인정보 포함)" style="height: 52px; padding: 0 16px; font-size: 18px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E; background: #FFFFFF;">
+        </fieldset>
+      </sc-if>
+
+      <!-- 두문: 수신 · 경유 · 참조 -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="drecvtype" style="font-size: 19px; font-weight: 700;">수신 구분</label>
+          <select id="drecvtype" onChange="{{onRecv}}" style="height: 56px; padding: 0 14px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+            <option value="internal">내부결재</option>
+            <option value="external">수신자 지정</option>
+          </select>
+        </div>
+        <sc-if value="{{external}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label for="drecv" style="font-size: 19px; font-weight: 700;">수신자 <span style="color: #A12626;">*</span></label>
+            <input id="drecv" type="text" placeholder="기관명 또는 부서명" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label for="dvia" style="font-size: 19px; font-weight: 700;">경유</label>
+            <input id="dvia" type="text" placeholder="경유할 기관이 있을 때" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label for="dref" style="font-size: 19px; font-weight: 700;">참조</label>
+            <input id="dref" type="text" placeholder="참조할 부서·담당자" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="dtitle" style="font-size: 19px; font-weight: 700;">제목 <span style="color: #A12626;">*</span></label>
+        <input id="dtitle" type="text" required placeholder="문서 제목을 입력하세요" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="dbody" style="font-size: 19px; font-weight: 700;">본문 <span style="color: #A12626;">*</span></label>
+        <textarea id="dbody" required rows="14" placeholder="본문을 입력하세요" style="padding: 14px 16px; font-size: 19px; line-height: 1.7; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E; resize: vertical;"></textarea>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="dfile" style="font-size: 19px; font-weight: 700;">붙임</label>
+        <input id="dfile" type="file" multiple style="font-size: 18px; font-family: inherit; padding: 12px; border: 2px dashed #C5CFDC; border-radius: 12px; background: #F8FAFC;">
+      </div>
+
+      <!-- 결문: 발신 명의 -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label for="dsender" style="font-size: 19px; font-weight: 700;">발신 명의</label>
+        <input id="dsender" type="text" placeholder="[기관장 명의] — 내부결재는 비워 둡니다" style="height: 56px; padding: 0 16px; font-size: 19px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; border-top: 1px solid #E6EAF0; padding-top: 22px;">
+        <a href="Approval.dc.html" style="height: 56px; padding: 0 28px; display: inline-flex; align-items: center; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E; text-decoration: none; font-size: 20px; font-weight: 700;">취소</a>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <button type="button" onClick="{{save}}" style="height: 56px; padding: 0 28px; border: 2px solid {{brand}}; border-radius: 12px; background: #FFFFFF; color: {{brand}}; font-family: inherit; font-size: 20px; font-weight: 700; cursor: pointer;">임시저장</button>
+          <button type="button" onClick="{{send}}" style="height: 56px; padding: 0 32px; border: 0; border-radius: 12px; background: {{brand}}; color: #FFFFFF; font-family: inherit; font-size: 20px; font-weight: 700; cursor: pointer;">결재 상신</button>
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <footer style="border-top: 1px solid #DDE3EB; background: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 17px; color: #5B6779;">
+      <span>행정누리 · [운영 기관명]</span>
+      <span>시스템 문의 [연락처]</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"brand":{"editor":"color","default":"#1D4E89","options":["#1D4E89","#0F5C55","#3B3F8F","#22313F"]},"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const extra = s.extra || 0;
+    const steps = [{ role: '기안', name: '[사용자명]', dept: '[소속 부서]' }, { role: '검토', name: '[검토자]', dept: '[부서]' }];
+    for (let i = 0; i < extra; i++) steps.push({ role: '검토', name: '[검토자]', dept: '[부서]' });
+    steps.push({ role: '결재', name: '[결재권자]', dept: '[부서]' });
+    const line = steps.map((st, i) => ({ ...st, arrow: i < steps.length - 1 }));
+    return {
+      brand: this.props.brand ?? '#1D4E89',
+      line: line,
+      sent: !!s.sent,
+      saved: !!s.saved && !s.sent,
+      restricted: s.open === '부분공개' || s.open === '비공개',
+      external: s.recv === 'external',
+      onOpen: (e) => this.setState({ open: e.target.value }),
+      onRecv: (e) => this.setState({ recv: e.target.value }),
+      addApprover: () => this.setState({ extra: Math.min(extra + 1, 4) }),
+      save: () => this.setState({ saved: true }),
+      send: () => this.setState({ sent: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

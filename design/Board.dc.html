@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>행정누리 게시판</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'MDotum';src:url('/_blob/3df0dad862d67c0e08fd381254d1931c') format('truetype');font-weight:400 800;font-display:swap}
+body{margin:0;background:#F3F5F8}
+a{color:#1D4E89}a:hover{color:#123A6B}
+</style>
+</helmet>
+<div style="font-family: 'MDotum', system-ui, sans-serif; color: #18212E; background: #F3F5F8; min-height: 100vh;">
+
+  <!-- 상단 헤더 -->
+  <header style="background: {{brand}}; color: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; color: #FFFFFF; text-decoration: none;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{brand}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M10 19v-5h4v5"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">행정누리</span>
+          <span style="font-size: 15px; color: #C9D8EC;">통합 행정업무 시스템</span>
+        </div>
+      </a>
+      <nav aria-label="주 메뉴" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 420px;"><a href="Main.dc.html" style="color: rgb(227, 236, 247); text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px">홈</a>
+        <a href="Approval.dc.html" style="color: rgb(227, 236, 247); text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px">전자결재</a>
+        <a href="Civil.dc.html" style="color: rgb(227, 236, 247); text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px">민원</a>
+        <a href="Finance.dc.html" style="color: rgb(227, 236, 247); text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px">재정·세무</a>
+        <a href="Hr.dc.html" style="color: rgb(227, 236, 247); text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px">인사</a>
+        <a href="Board.dc.html" aria-current="page" style="color: rgb(255, 255, 255); text-decoration: none; padding: 10px 14px; border-radius: 8px; background: rgba(255, 255, 255, 0.14); font-weight: 700; font-size: 19px">게시판</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12);">
+        <div style="width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; color: {{brand}}; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 18px;">홍</div>
+        <div style="display: flex; flex-direction: column; line-height: 1.3;">
+          <span style="font-size: 18px; font-weight: 700;">[사용자명] 주무관</span>
+          <span style="font-size: 15px; color: #C9D8EC;">[소속 부서]</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1360px; margin: 0 auto; padding: 28px 24px 48px; display: flex; flex-direction: column; gap: 20px;">
+
+    <!-- 제목 + 글쓰기 -->
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 17px; color: #5B6779;">홈 › 게시판 › {{boardName}}</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">게시판</h1>
+      </div>
+      <sc-if value="{{notArchive}}" hint-placeholder-val="{{ true }}">
+      <a href="Write.dc.html" style="height: 52px; padding: 0 24px; border-radius: 12px; background: {{brand}}; color: #FFFFFF; text-decoration: none; font-size: 20px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+        글쓰기
+      </a>
+      </sc-if>
+      <sc-if value="{{isArchive}}" hint-placeholder-val="{{ false }}">
+      <a href="Upload.dc.html" style="height: 52px; padding: 0 24px; border-radius: 12px; background: {{brand}}; color: #FFFFFF; text-decoration: none; font-size: 20px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path></svg>
+        자료 올리기
+      </a>
+      </sc-if>
+    </div>
+
+    <!-- 게시판 탭 -->
+    <div role="tablist" aria-label="게시판 종류" style="display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 2px solid #DDE3EB;">
+      <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
+        <button type="button" role="tab" aria-selected="{{tab.selected}}" onClick="{{tab.pick}}" style="{{tab.style}}">{{tab.label}}</button>
+      </sc-for>
+    </div>
+
+    <!-- 검색 -->
+    <form role="search" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+      <label for="scope" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">검색 범위</label>
+      <select id="scope" style="height: 52px; padding: 0 14px; font-size: 18px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+        <option>제목+내용</option>
+        <option>제목</option>
+        <option>작성자</option>
+        <option>부서</option>
+      </select>
+      <label for="bq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">게시글 검색</label>
+      <input id="bq" type="search" placeholder="검색어를 입력하세요" style="flex: 1 1 280px; min-width: 0; height: 52px; padding: 0 16px; font-size: 18px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; color: #18212E;">
+      <button type="submit" style="height: 52px; padding: 0 24px; border: 2px solid {{brand}}; border-radius: 12px; background: #FFFFFF; color: {{brand}}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer;">검색</button>
+    </form>
+
+    <!-- 게시글 목록 -->
+    <section aria-label="게시글 목록" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; overflow: hidden;">
+      <div style="padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #DDE3EB; font-size: 17px; color: #4A5668;">
+        <span>전체 <b style="color: #18212E;">[건수]</b>건</span>
+        <span>최신순</span>
+      </div>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 18px;">
+          <thead>
+            <tr style="background: #F3F6FA; color: #4A5668;">
+              <th scope="col" style="padding: 14px 12px; width: 80px; font-weight: 700; text-align: center;">번호</th>
+              <th scope="col" style="padding: 14px 12px; font-weight: 700; text-align: left;">제목</th>
+              <th scope="col" style="padding: 14px 12px; width: 130px; font-weight: 700; text-align: center;">작성자</th>
+              <th scope="col" style="padding: 14px 12px; width: 150px; font-weight: 700; text-align: center;">부서</th>
+              <th scope="col" style="padding: 14px 12px; width: 130px; font-weight: 700; text-align: center;">등록일</th>
+              <th scope="col" style="padding: 14px 12px; width: 80px; font-weight: 700; text-align: center;">조회</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background: #F5F8FC; border-top: 1px solid #E6EAF0;">
+              <td style="padding: 16px 12px; text-align: center;"><span style="display: inline-block; padding: 3px 10px; border-radius: 999px; background: {{brand}}; color: #FFFFFF; font-size: 15px; font-weight: 700;">공지</span></td>
+              <td style="padding: 16px 12px;"><a href="#" style="color: #18212E; text-decoration: none; font-weight: 700;">[고정 공지 제목]</a></td>
+              <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[작성자]</td>
+              <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[부서]</td>
+              <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[날짜]</td>
+              <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[조회]</td>
+            </tr>
+            <sc-for list="{{rows}}" as="row" hint-placeholder-count="8">
+              <tr style="border-top: 1px solid #E6EAF0;">
+                <td style="padding: 16px 12px; text-align: center; color: #5B6779;">{{row.no}}</td>
+                <td style="padding: 16px 12px;"><a href="#" style="color: #18212E; text-decoration: none;">[게시글 제목]</a></td>
+                <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[작성자]</td>
+                <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[부서]</td>
+                <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[날짜]</td>
+                <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[조회]</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 페이지 이동 -->
+    <nav aria-label="페이지" style="display: flex; justify-content: center; flex-wrap: wrap; gap: 6px;">
+      <a href="#" aria-label="이전 페이지" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #C5CFDC; border-radius: 10px; background: #FFFFFF; color: #4A5668; text-decoration: none; font-size: 18px;">‹</a>
+      <a href="#" aria-current="page" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: {{brand}}; color: #FFFFFF; text-decoration: none; font-size: 18px; font-weight: 700;">1</a>
+      <a href="#" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #C5CFDC; border-radius: 10px; background: #FFFFFF; color: #18212E; text-decoration: none; font-size: 18px;">2</a>
+      <a href="#" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #C5CFDC; border-radius: 10px; background: #FFFFFF; color: #18212E; text-decoration: none; font-size: 18px;">3</a>
+      <a href="#" aria-label="다음 페이지" style="min-width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #C5CFDC; border-radius: 10px; background: #FFFFFF; color: #4A5668; text-decoration: none; font-size: 18px;">›</a>
+    </nav>
+  </main>
+
+  <footer style="border-top: 1px solid #DDE3EB; background: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 17px; color: #5B6779;">
+      <span>행정누리 · [운영 기관명]</span>
+      <span>시스템 문의 [연락처]</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"brand":{"editor":"color","default":"#1D4E89","options":["#1D4E89","#0F5C55","#3B3F8F","#22313F"]},"rowCount":{"editor":"int","default":8,"min":3,"max":15},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const brand = this.props.brand ?? '#1D4E89';
+    const names = ['공지사항', '건의사항', '자료실'];
+    const picked = (this.state && this.state.tab) || '공지사항';
+    const base = 'height: 52px; padding: 0 22px; border: 0; background: transparent; font-family: inherit; font-size: 20px; cursor: pointer; margin-bottom: -2px; ';
+    const tabs = names.map((n) => ({
+      label: n,
+      selected: n === picked ? 'true' : 'false',
+      style: base + (n === picked
+        ? 'color: ' + brand + '; font-weight: 800; border-bottom: 3px solid ' + brand + ';'
+        : 'color: #4A5668; font-weight: 500; border-bottom: 3px solid transparent;'),
+      pick: () => this.setState({ tab: n })
+    }));
+    const count = this.props.rowCount ?? 8;
+    const rows = [];
+    for (let i = 0; i < count; i++) rows.push({ no: '[번호]' });
+    return { brand: brand, tabs: tabs, rows: rows, boardName: picked, isArchive: picked === '자료실', notArchive: picked !== '자료실' };
+  }
+}
+</script>
+</body>
+</html>

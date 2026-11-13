@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>행정누리 재정·세무</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+@font-face{font-family:'MDotum';src:url('/_blob/3df0dad862d67c0e08fd381254d1931c') format('truetype');font-weight:400 800;font-display:swap}
+body{margin:0;background:#F3F5F8}
+a{color:#1D4E89}a:hover{color:#123A6B}
+</style>
+</helmet>
+<div style="font-family: 'MDotum', system-ui, sans-serif; color: #18212E; background: #F3F5F8; min-height: 100vh;">
+
+  <!-- 상단 헤더 -->
+  <header style="background: {{brand}}; color: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px;">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; color: #FFFFFF; text-decoration: none;">
+        <div style="width: 40px; height: 40px; border-radius: 10px; background: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{{brand}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"></path><path d="M5 10v9h14v-9"></path><path d="M10 19v-5h4v5"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">행정누리</span>
+          <span style="font-size: 15px; color: #C9D8EC;">통합 행정업무 시스템</span>
+        </div>
+      </a>
+      <nav aria-label="주 메뉴" style="display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 420px;">
+        <a href="Main.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">홈</a>
+        <a href="Approval.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">전자결재</a>
+        <a href="Civil.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">민원</a>
+        <a href="Finance.dc.html" aria-current="page" style="color: #FFFFFF; text-decoration: none; padding: 10px 14px; border-radius: 8px; background: rgba(255,255,255,0.14); font-weight: 700; font-size: 19px;">재정·세무</a>
+        <a href="Hr.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">인사</a>
+        <a href="Board.dc.html" style="color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px;">게시판</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12);">
+        <div style="width: 36px; height: 36px; border-radius: 999px; background: #FFFFFF; color: {{brand}}; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 18px;">홍</div>
+        <div style="display: flex; flex-direction: column; line-height: 1.3;">
+          <span style="font-size: 18px; font-weight: 700;">[사용자명] 주무관</span>
+          <span style="font-size: 15px; color: #C9D8EC;">[소속 부서]</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width: 1360px; margin: 0 auto; padding: 28px 24px 48px; display: flex; flex-direction: column; gap: 20px;">
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 17px; color: #5B6779;">홈 › 재정·세무 › {{areaName}}</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.5px;">재정·세무</h1>
+      </div>
+      <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700;">회계연도
+        <select style="height: 52px; padding: 0 14px; font-size: 18px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px; background: #FFFFFF; color: #18212E;">
+          <option>[회계연도]</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- 재정 / 세무 전환 -->
+    <div role="tablist" aria-label="업무 영역" style="display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 2px solid #DDE3EB;">
+      <sc-for list="{{areas}}" as="a" hint-placeholder-count="2">
+        <button type="button" role="tab" aria-selected="{{a.selected}}" onClick="{{a.pick}}" style="{{a.style}}">{{a.label}}</button>
+      </sc-for>
+    </div>
+
+    <!-- ===== 재정 ===== -->
+    <sc-if value="{{isFin}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+
+        <section aria-labelledby="bud-title" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+            <h2 id="bud-title" style="margin: 0; font-size: 22px; font-weight: 800;">우리 부서 예산 집행 현황</h2>
+            <span style="font-size: 17px; color: #5B6779;">기준일 [날짜]</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div style="background: #F3F6FA; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 17px; color: #4A5668;">예산현액</span>
+              <span style="font-size: 26px; font-weight: 800;">[금액]원</span>
+            </div>
+            <div style="background: #F3F6FA; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 17px; color: #4A5668;">지출액</span>
+              <span style="font-size: 26px; font-weight: 800;">[금액]원</span>
+            </div>
+            <div style="background: #E6EEF8; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 17px; color: #1D3A5F;">집행 잔액</span>
+              <span style="font-size: 26px; font-weight: 800; color: {{brand}};">[금액]원</span>
+            </div>
+            <div style="background: #F3F6FA; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;">
+              <span style="font-size: 17px; color: #4A5668;">집행률</span>
+              <span style="font-size: 26px; font-weight: 800;">[집행률]%</span>
+              <div role="img" aria-label="집행률 막대 (값 미정)" style="height: 10px; border-radius: 999px; background: #DDE3EB; overflow: hidden;"><div style="width: 0%; height: 100%; background: {{brand}};"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="fin-menu" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 id="fin-menu" style="margin: 0; font-size: 24px; font-weight: 800;">재정 업무</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;">
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">예산 편성</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">세출예산 요구, 사업별 예산서</span>
+            </a>
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">지출결의</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">지출 원인행위, 지출결의서 작성</span>
+            </a>
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">계약</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">물품·용역·공사 계약 요청</span>
+            </a>
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">결산</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">세입·세출 결산, 성과보고</span>
+            </a>
+          </div>
+        </section>
+
+        <section aria-labelledby="exp-title" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; overflow: hidden;">
+          <div style="padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #DDE3EB;">
+            <h2 id="exp-title" style="margin: 0; font-size: 22px; font-weight: 800;">최근 지출결의</h2>
+            <a href="#" style="font-size: 17px;">전체 보기</a>
+          </div>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; min-width: 820px; border-collapse: collapse; font-size: 18px;">
+              <thead>
+                <tr style="background: #F3F6FA; color: #4A5668;">
+                  <th scope="col" style="padding: 14px 12px; width: 140px; text-align: center; font-weight: 700;">결의번호</th>
+                  <th scope="col" style="padding: 14px 12px; text-align: left; font-weight: 700;">건명</th>
+                  <th scope="col" style="padding: 14px 12px; width: 160px; text-align: left; font-weight: 700;">세부사업</th>
+                  <th scope="col" style="padding: 14px 12px; width: 150px; text-align: right; font-weight: 700;">금액</th>
+                  <th scope="col" style="padding: 14px 12px; width: 120px; text-align: center; font-weight: 700;">상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-top: 1px solid #E6EAF0;">
+                  <td style="padding: 16px 12px; text-align: center; color: #5B6779;">[결의번호]</td>
+                  <td style="padding: 16px 12px;">[지출 건명]</td>
+                  <td style="padding: 16px 12px; color: #4A5668;">[세부사업]</td>
+                  <td style="padding: 16px 12px; text-align: right;">[금액]원</td>
+                  <td style="padding: 16px 12px; text-align: center;"><span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background: #FFF4E8; color: #8A430A; font-size: 16px; font-weight: 700;">결재 중</span></td>
+                </tr>
+                <tr style="border-top: 1px solid #E6EAF0;">
+                  <td style="padding: 16px 12px; text-align: center; color: #5B6779;">[결의번호]</td>
+                  <td style="padding: 16px 12px;">[지출 건명]</td>
+                  <td style="padding: 16px 12px; color: #4A5668;">[세부사업]</td>
+                  <td style="padding: 16px 12px; text-align: right;">[금액]원</td>
+                  <td style="padding: 16px 12px; text-align: center;"><span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background: #E3F3E8; color: #1C6B35; font-size: 16px; font-weight: 700;">지급 완료</span></td>
+                </tr>
+                <tr style="border-top: 1px solid #E6EAF0;">
+                  <td style="padding: 16px 12px; text-align: center; color: #5B6779;">[결의번호]</td>
+                  <td style="padding: 16px 12px;">[지출 건명]</td>
+                  <td style="padding: 16px 12px; color: #4A5668;">[세부사업]</td>
+                  <td style="padding: 16px 12px; text-align: right;">[금액]원</td>
+                  <td style="padding: 16px 12px; text-align: center;"><span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background: #FCE8E8; color: #A12626; font-size: 16px; font-weight: 700;">반려</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===== 세무 ===== -->
+    <sc-if value="{{isTax}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+
+        <section aria-labelledby="tax-sum" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+            <h2 id="tax-sum" style="margin: 0; font-size: 22px; font-weight: 800;">부과·징수 현황</h2>
+            <span style="font-size: 17px; color: #5B6779;">기준일 [날짜]</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div style="background: #F3F6FA; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 17px; color: #4A5668;">부과액</span>
+              <span style="font-size: 26px; font-weight: 800;">[금액]원</span>
+            </div>
+            <div style="background: #F3F6FA; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 17px; color: #4A5668;">수납액</span>
+              <span style="font-size: 26px; font-weight: 800; color: #1C6B35;">[금액]원</span>
+            </div>
+            <div style="background: #F3F6FA; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 17px; color: #4A5668;">징수율</span>
+              <span style="font-size: 26px; font-weight: 800;">[징수율]%</span>
+            </div>
+            <div style="background: #FCE8E8; border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 17px; color: #7A1E1E;">체납액</span>
+              <span style="font-size: 26px; font-weight: 800; color: #A12626;">[금액]원</span>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="tax-menu" style="display: flex; flex-direction: column; gap: 14px;">
+          <h2 id="tax-menu" style="margin: 0; font-size: 24px; font-weight: 800;">세무 업무</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;">
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">지방세 부과</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">세목별 부과, 감면, 경정</span>
+            </a>
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">세외수입 부과</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">사용료·수수료·과태료 등</span>
+            </a>
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">징수·수납</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">수납 확인, 환급</span>
+            </a>
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">체납 관리</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">독촉, 체납처분, 분할납부</span>
+            </a>
+            <a href="#" style="text-decoration: none; color: #18212E; background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-size: 25px; font-weight: 700;">고지서 발송</span>
+              <span style="font-size: 19px; color: #4A5668; line-height: 1.5;">우편·전자고지 발송 관리</span>
+            </a>
+          </div>
+        </section>
+
+        <section aria-labelledby="levy-title" style="background: #FFFFFF; border: 1px solid #DDE3EB; border-radius: 16px; overflow: hidden;">
+          <div style="padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; border-bottom: 1px solid #DDE3EB;">
+            <h2 id="levy-title" style="margin: 0; font-size: 22px; font-weight: 800;">부과 내역</h2>
+            <form role="search" style="display: flex; gap: 8px; flex: 0 1 420px;">
+              <label for="tq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">납세자 검색</label>
+              <input id="tq" type="search" placeholder="납세자명, 과세번호 검색" style="flex: 1; min-width: 0; height: 48px; padding: 0 14px; font-size: 18px; font-family: inherit; border: 2px solid #C5CFDC; border-radius: 12px;">
+              <button type="submit" style="height: 48px; padding: 0 18px; border: 2px solid {{brand}}; border-radius: 12px; background: #FFFFFF; color: {{brand}}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer;">검색</button>
+            </form>
+          </div>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; min-width: 900px; border-collapse: collapse; font-size: 18px;">
+              <thead>
+                <tr style="background: #F3F6FA; color: #4A5668;">
+                  <th scope="col" style="padding: 14px 12px; width: 150px; text-align: center; font-weight: 700;">과세번호</th>
+                  <th scope="col" style="padding: 14px 12px; width: 140px; text-align: center; font-weight: 700;">구분</th>
+                  <th scope="col" style="padding: 14px 12px; text-align: left; font-weight: 700;">세목·항목</th>
+                  <th scope="col" style="padding: 14px 12px; width: 120px; text-align: center; font-weight: 700;">납세자</th>
+                  <th scope="col" style="padding: 14px 12px; width: 140px; text-align: right; font-weight: 700;">부과액</th>
+                  <th scope="col" style="padding: 14px 12px; width: 120px; text-align: center; font-weight: 700;">납기</th>
+                  <th scope="col" style="padding: 14px 12px; width: 100px; text-align: center; font-weight: 700;">상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-top: 1px solid #E6EAF0;">
+                  <td style="padding: 16px 12px; text-align: center; color: #5B6779;">[과세번호]</td>
+                  <td style="padding: 16px 12px; text-align: center;">지방세</td>
+                  <td style="padding: 16px 12px;">[세목]</td>
+                  <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[납세자]</td>
+                  <td style="padding: 16px 12px; text-align: right;">[금액]원</td>
+                  <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[날짜]</td>
+                  <td style="padding: 16px 12px; text-align: center;"><span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background: #E3F3E8; color: #1C6B35; font-size: 16px; font-weight: 700;">납부</span></td>
+                </tr>
+                <tr style="border-top: 1px solid #E6EAF0;">
+                  <td style="padding: 16px 12px; text-align: center; color: #5B6779;">[과세번호]</td>
+                  <td style="padding: 16px 12px; text-align: center;">세외수입</td>
+                  <td style="padding: 16px 12px;">[항목]</td>
+                  <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[납세자]</td>
+                  <td style="padding: 16px 12px; text-align: right;">[금액]원</td>
+                  <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[날짜]</td>
+                  <td style="padding: 16px 12px; text-align: center;"><span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background: #EEF1F5; color: #4A5668; font-size: 16px; font-weight: 700;">미납</span></td>
+                </tr>
+                <tr style="border-top: 1px solid #E6EAF0;">
+                  <td style="padding: 16px 12px; text-align: center; color: #5B6779;">[과세번호]</td>
+                  <td style="padding: 16px 12px; text-align: center;">지방세</td>
+                  <td style="padding: 16px 12px;">[세목]</td>
+                  <td style="padding: 16px 12px; text-align: center; color: #4A5668;">[납세자]</td>
+                  <td style="padding: 16px 12px; text-align: right;">[금액]원</td>
+                  <td style="padding: 16px 12px; text-align: center; color: #A12626; font-weight: 700;">[날짜]</td>
+                  <td style="padding: 16px 12px; text-align: center;"><span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background: #FCE8E8; color: #A12626; font-size: 16px; font-weight: 700;">체납</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+  </main>
+
+  <footer style="border-top: 1px solid #DDE3EB; background: #FFFFFF;">
+    <div style="max-width: 1360px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 17px; color: #5B6779;">
+      <span>행정누리 · [운영 기관명]</span>
+      <span>시스템 문의 [연락처]</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"brand":{"editor":"color","default":"#1D4E89","options":["#1D4E89","#0F5C55","#3B3F8F","#22313F"]},"startArea":{"editor":"enum","options":["재정","세무"],"default":"재정"},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const brand = this.props.brand ?? '#1D4E89';
+    const s = this.state || {};
+    const picked = s.area || this.props.startArea || '재정';
+    const base = 'height: 52px; padding: 0 26px; border: 0; background: transparent; font-family: inherit; font-size: 21px; cursor: pointer; margin-bottom: -2px; ';
+    const areas = ['재정', '세무'].map((n) => ({
+      label: n,
+      selected: n === picked ? 'true' : 'false',
+      style: base + (n === picked
+        ? 'color: ' + brand + '; font-weight: 800; border-bottom: 3px solid ' + brand + ';'
+        : 'color: #4A5668; font-weight: 500; border-bottom: 3px solid transparent;'),
+      pick: () => this.setState({ area: n })
+    }));
+    return { brand: brand, areas: areas, areaName: picked, isFin: picked === '재정', isTax: picked === '세무' };
+  }
+}
+</script>
+</body>
+</html>
