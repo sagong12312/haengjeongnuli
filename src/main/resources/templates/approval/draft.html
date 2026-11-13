@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('기안하기')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('approval')}"></header>
+
+<main class="page narrow">
+  <div>
+    <span class="crumb"><a th:href="@{/approval}">전자결재</a> › 기안하기</span>
+    <h1>기안하기</h1>
+  </div>
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <form th:action="@{/approval/draft}" method="post" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- 결재선 -->
+    <section class="panel" aria-labelledby="line-title">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
+        <h2 id="line-title">결재선</h2>
+        <button type="button" id="add-approver" class="btn btn-outline" style="height:48px; font-size:18px;">+ 결재자 추가</button>
+      </div>
+      <ol id="line" style="list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:10px;">
+        <li class="step"><div class="step-box"><div class="step-role">기안</div><div class="step-body"><b th:text="${loginUser.name}">[사용자명]</b><small th:text="${loginUser.dept}">[소속 부서]</small></div></div></li>
+        <li class="step"><div class="step-box"><div class="step-role">검토</div><div class="step-body"><b>[검토자]</b><small>[부서]</small></div></div></li>
+        <li class="step" id="final-step"><div class="step-box"><div class="step-role">결재</div><div class="step-body"><b>[결재권자]</b><small>[부서]</small></div></div></li>
+      </ol>
+      <p class="hint">검토자는 최대 4명까지 더할 수 있습니다.</p>
+    </section>
+
+    <section class="panel" style="padding:28px; gap:22px;">
+      <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="field">
+          <label for="dkind">문서 종류</label>
+          <select id="dkind" name="kind" class="select"><option>일반 기안</option><option>지출결의</option><option>협조 요청</option><option>보고</option></select>
+        </div>
+        <div class="field">
+          <label for="dkeep">보존기간</label>
+          <select id="dkeep" name="retention" class="select"><option>1년</option><option>3년</option><option>5년</option><option>10년</option><option>30년</option><option>준영구</option><option>영구</option></select>
+        </div>
+        <div class="field">
+          <label for="dopen">공개 여부</label>
+          <select id="dopen" name="disclosure" class="select"><option>공개</option><option>부분공개</option><option>비공개</option></select>
+        </div>
+        <div class="field">
+          <label for="ddate">시행일자</label>
+          <input id="ddate" name="effectiveDate" type="date" class="input">
+        </div>
+      </div>
+
+      <!-- 비공개 사유: 부분공개·비공개일 때 -->
+      <fieldset id="restrict" hidden style="margin:0; border:2px solid var(--orange-line); background:#FFF8F0; border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:12px;">
+        <legend style="padding:0 6px; font-size:19px; font-weight:700; color:var(--orange-fg);">비공개 사유 (정보공개법 제9조 제1항, 하나 이상 선택) <span class="req">*</span></legend>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:8px 16px;">
+          <label class="check"><input type="checkbox" name="reason" value="1">제1호 법령상 비밀·비공개</label>
+          <label class="check"><input type="checkbox" name="reason" value="2">제2호 국가안전보장·국방·통일·외교</label>
+          <label class="check"><input type="checkbox" name="reason" value="3">제3호 국민의 생명·신체·재산 및 공공안전</label>
+          <label class="check"><input type="checkbox" name="reason" value="4">제4호 재판·수사 등</label>
+          <label class="check"><input type="checkbox" name="reason" value="5">제5호 업무의 공정한 수행에 현저한 지장</label>
+          <label class="check"><input type="checkbox" name="reason" value="6">제6호 개인정보 (사생활 침해 우려)</label>
+          <label class="check"><input type="checkbox" name="reason" value="7">제7호 법인 등의 경영·영업상 비밀</label>
+          <label class="check"><input type="checkbox" name="reason" value="8">제8호 부동산 투기·매점매석 등 특정인 이익·불이익 우려</label>
+        </div>
+        <div class="field">
+          <label for="dreason" style="font-size:18px;">제한 범위·사유</label>
+          <input id="dreason" name="reasonDetail" class="input" type="text" placeholder="비공개하는 부분과 사유를 적으세요 (예: 붙임 2 개인정보 포함)">
+        </div>
+      </fieldset>
+
+      <!-- 두문: 수신 · 경유 · 참조 -->
+      <div class="grid-fields">
+        <div class="field">
+          <label for="drecvtype">수신 구분</label>
+          <select id="drecvtype" name="receiverType" class="select"><option value="internal">내부결재</option><option value="external">수신자 지정</option></select>
+        </div>
+        <div class="field external" hidden>
+          <label for="drecv">수신자 <span class="req">*</span></label>
+          <input id="drecv" name="receiver" class="input" type="text" placeholder="기관명 또는 부서명">
+        </div>
+        <div class="field external" hidden>
+          <label for="dvia">경유</label>
+          <input id="dvia" name="via" class="input" type="text" placeholder="경유할 기관이 있을 때">
+        </div>
+        <div class="field external" hidden>
+          <label for="dref">참조</label>
+          <input id="dref" name="reference" class="input" type="text" placeholder="참조할 부서·담당자">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="dtitle">제목 <span class="req">*</span></label>
+        <input id="dtitle" name="title" class="input" type="text" required placeholder="문서 제목을 입력하세요">
+      </div>
+      <div class="field">
+        <label for="dbody">본문 <span class="req">*</span></label>
+        <textarea id="dbody" name="body" class="textarea" rows="14" required placeholder="본문을 입력하세요"></textarea>
+      </div>
+      <div class="field">
+        <label for="dfile">붙임</label>
+        <input id="dfile" name="files" type="file" multiple class="input" style="height:auto; padding:12px; border-style:dashed; background:#F8FAFC;">
+      </div>
+      <div class="field">
+        <label for="dsender">발신 명의</label>
+        <input id="dsender" name="sender" class="input" type="text" placeholder="[기관장 명의] — 내부결재는 비워 둡니다">
+      </div>
+
+      <div class="form-actions">
+        <a class="btn btn-plain btn-lg" th:href="@{/approval}">취소</a>
+        <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <button type="submit" name="action" value="save" class="btn btn-outline btn-lg" formnovalidate>임시저장</button>
+          <button type="submit" name="action" value="send" class="btn btn-primary btn-lg">결재 상신</button>
+        </div>
+      </div>
+    </section>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<style>
+  .step { display:flex; align-items:center; gap:10px; }
+  .step + .step::before { content:'→'; color:#8A96A8; font-size:22px; }
+  .step-box { min-width:150px; border:1px solid var(--line); border-radius:12px; overflow:hidden; text-align:center; }
+  .step-role { background:var(--soft); padding:8px 12px; font-size:17px; font-weight:700; color:var(--text-2); }
+  .step-body { padding:14px 12px; display:flex; flex-direction:column; gap:2px; }
+  .step-body small { color:var(--text-3); font-size:16px; }
+</style>
+<script>
+  (function () {
+    var open = document.getElementById('dopen');
+    var restrict = document.getElementById('restrict');
+    open.addEventListener('change', function () { restrict.hidden = open.value === '공개'; });
+
+    var recvType = document.getElementById('drecvtype');
+    recvType.addEventListener('change', function () {
+      var ext = recvType.value === 'external';
+      document.querySelectorAll('.external').forEach(function (el) { el.hidden = !ext; });
+      document.getElementById('drecv').required = ext;
+    });
+
+    var added = 0;
+    var btn = document.getElementById('add-approver');
+    btn.addEventListener('click', function () {
+      if (added >= 4) { return; }
+      var li = document.createElement('li');
+      li.className = 'step';
+      li.innerHTML = '<div class="step-box"><div class="step-role">검토</div><div class="step-body"><b>[검토자]</b><small>[부서]</small></div></div>';
+      var finalStep = document.getElementById('final-step');
+      finalStep.parentNode.insertBefore(li, finalStep);
+      added++;
+      if (added >= 4) { btn.disabled = true; }
+    });
+  })();
+</script>
+</body>
+</html>

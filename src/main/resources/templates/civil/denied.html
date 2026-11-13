@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('민원 접수')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('civil')}"></header>
+
+<main class="page narrow">
+  <div>
+    <span class="crumb"><a th:href="@{/civil}">민원</a> › 민원 접수</span>
+    <h1>민원 접수</h1>
+  </div>
+  <section class="panel" role="alert" style="border:2px solid var(--orange-line); padding:40px 28px; align-items:center; text-align:center; gap:14px;">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#A6510A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    <h2 style="font-size:24px;">민원 접수는 창구 직원만 할 수 있습니다</h2>
+    <p class="muted" style="margin:0; font-size:19px; line-height:1.6;">접수 권한이 필요하면 시스템 관리자에게 권한을 요청하세요.</p>
+    <a class="btn btn-plain" th:href="@{/civil}">민원 목록으로</a>
+  </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title} + ' | 행정누리'">행정누리</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+
+<header class="site-header" th:fragment="header(active)">
+  <div class="inner">
+    <a class="logo" th:href="@{/}">
+      <span class="logo-mark">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v9h14v-9"/><path d="M10 19v-5h4v5"/></svg>
+      </span>
+      <span><span class="logo-name">행정누리</span><span class="logo-sub">통합 행정업무 시스템</span></span>
+    </a>
+    <nav class="gnb" aria-label="주 메뉴">
+      <a th:href="@{/}" th:attr="aria-current=${active == 'home'} ? 'page' : null">홈</a>
+      <a th:href="@{/approval}" th:attr="aria-current=${active == 'approval'} ? 'page' : null">전자결재</a>
+      <a th:href="@{/civil}" th:attr="aria-current=${active == 'civil'} ? 'page' : null">민원</a>
+      <a th:href="@{/finance}" th:attr="aria-current=${active == 'finance'} ? 'page' : null">재정·세무</a>
+      <a th:href="@{/hr}" th:attr="aria-current=${active == 'hr'} ? 'page' : null">인사</a>
+      <a th:href="@{/board}" th:attr="aria-current=${active == 'board'} ? 'page' : null">게시판</a>
+    </nav>
+    <div class="user-chip">
+      <span class="avatar" th:text="${loginUser.initial()}">홍</span>
+      <span>
+        <b th:text="${loginUser.name} + ' ' + ${loginUser.position}">[사용자명] 주무관</b>
+        <small th:text="${loginUser.dept}">[소속 부서]</small>
+      </span>
+    </div>
+  </div>
+</header>
+
+<div th:fragment="flash" th:if="${message}" class="alert alert-success" role="status" th:text="${message}"></div>
+
+<footer class="site-footer" th:fragment="footer">
+  <div class="inner">
+    <span>행정누리 · [운영 기관명]</span>
+    <span>시스템 문의 [연락처]</span>
+  </div>
+</footer>
+
+</body>
+</html>

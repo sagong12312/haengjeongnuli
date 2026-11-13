@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('인사')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('hr')}"></header>
+
+<main class="page">
+  <div>
+    <span class="crumb"><a th:href="@{/}">홈</a> › 인사</span>
+    <h1>인사</h1>
+  </div>
+
+  <div class="row">
+    <!-- 왼쪽: 내 정보 + 근태 -->
+    <div class="col-side" style="flex: 1 1 340px; gap: 20px;">
+      <section class="panel" aria-labelledby="me-title">
+        <h2 id="me-title">내 인사정보</h2>
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:72px; height:72px; border-radius:999px; background:var(--brand-tint); color:var(--brand); font-size:30px; font-weight:800; display:flex; align-items:center; justify-content:center;" th:text="${loginUser.initial()}">홍</div>
+          <div>
+            <div style="font-size:24px; font-weight:800;" th:text="${loginUser.name}">[사용자명]</div>
+            <div class="muted" th:text="'[직급] · ' + ${loginUser.dept}">[직급] · [소속 부서]</div>
+          </div>
+        </div>
+        <dl style="margin:0; display:grid; grid-template-columns:110px 1fr; gap:12px;">
+          <dt class="muted">사번</dt><dd style="margin:0">[사번]</dd>
+          <dt class="muted">직렬</dt><dd style="margin:0">[직렬]</dd>
+          <dt class="muted">임용일</dt><dd style="margin:0">[임용일]</dd>
+          <dt class="muted">내선번호</dt><dd style="margin:0">[내선번호]</dd>
+        </dl>
+        <a href="#" style="font-weight:700;">인사기록 전체 보기 ›</a>
+      </section>
+
+      <section class="panel" aria-labelledby="att-title">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+          <h2 id="att-title">오늘 근태</h2>
+          <span th:unless="${working}" class="badge badge-gray" style="font-size:17px;"><span class="dot" style="background:#8A96A8"></span>업무 중 아님</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;">
+          <div class="stat"><small>출근 시각</small><strong th:text="${inTime} ?: '--:--'">--:--</strong></div>
+          <div class="stat"><small>퇴근 시각</small><strong th:text="${outTime} ?: '--:--'">--:--</strong></div>
+        </div>
+        <form th:action="@{/attendance}" method="post">
+          <button type="submit" th:class="${working} ? 'btn btn-plain btn-lg' : 'btn btn-primary btn-lg'" style="width:100%;" th:text="${working} ? '퇴근하기' : '출근하기'">출근하기</button>
+        </form>
+      </section>
+    </div>
+
+    <!-- 오른쪽: 신청 + 연가 + 내역 -->
+    <div class="col-main">
+      <section aria-labelledby="req-title" style="display:flex; flex-direction:column; gap:14px;">
+        <h2 id="req-title" style="font-size:24px;">복무 신청</h2>
+        <div class="card-grid" style="grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));">
+          <a class="menu-card" href="#"><b>휴가 신청</b><span>연가, 병가, 공가, 특별휴가</span></a>
+          <a class="menu-card" href="#"><b>출장 신청</b><span>관내·관외 출장, 여비 정산</span></a>
+          <a class="menu-card" href="#"><b>시간외근무</b><span>초과근무 사전 신청·확인</span></a>
+          <a class="menu-card" href="#"><b>증명서 발급</b><span>재직·경력증명서</span></a>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="leave-title">
+        <h2 id="leave-title">올해 연가</h2>
+        <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px;">
+          <div class="stat center"><strong style="font-size:30px">[일수]</strong><small>부여</small></div>
+          <div class="stat center"><strong style="font-size:30px">[일수]</strong><small>사용</small></div>
+          <div class="stat center blue"><strong style="font-size:30px">[일수]</strong><small style="color:#1D3A5F">남은 연가</small></div>
+        </div>
+      </section>
+
+      <section class="panel flush" aria-labelledby="hist-title">
+        <div class="panel-head"><h2 id="hist-title">최근 신청 내역</h2><a href="#" style="font-size:17px;">전체 보기</a></div>
+        <div class="table-wrap">
+          <table class="list" style="min-width:620px">
+            <thead><tr><th scope="col" style="text-align:left">구분</th><th scope="col" style="text-align:left">기간</th><th scope="col">신청일</th><th scope="col">상태</th></tr></thead>
+            <tbody>
+              <tr><td class="left">[신청 구분]</td><td class="left muted">[기간]</td><td>[날짜]</td><td><span class="badge badge-orange">결재 중</span></td></tr>
+              <tr><td class="left">[신청 구분]</td><td class="left muted">[기간]</td><td>[날짜]</td><td><span class="badge badge-green">승인</span></td></tr>
+              <tr><td class="left">[신청 구분]</td><td class="left muted">[기간]</td><td>[날짜]</td><td><span class="badge badge-red">반려</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

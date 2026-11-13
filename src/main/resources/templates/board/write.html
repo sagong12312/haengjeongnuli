@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('글쓰기')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('board')}"></header>
+
+<main class="page narrow">
+  <div>
+    <span class="crumb"><a th:href="@{/board}">게시판</a> › 글쓰기</span>
+    <h1>글쓰기</h1>
+  </div>
+
+  <form class="panel" th:action="@{/board/write}" method="post" enctype="multipart/form-data" style="padding:28px; gap:22px;">
+    <div class="grid-fields">
+      <div class="field">
+        <label for="wb">게시판</label>
+        <select id="wb" name="board" class="select"><option value="notice">공지사항</option><option value="suggest">건의사항</option></select>
+      </div>
+      <div class="field">
+        <label for="wscope">공개 범위</label>
+        <select id="wscope" name="scope" class="select"><option>전체 공개</option><option>우리 부서</option></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="wt">제목 <span class="req">*</span></label>
+      <input id="wt" name="title" class="input" type="text" required placeholder="제목을 입력하세요">
+    </div>
+    <div class="field">
+      <label for="wc">내용 <span class="req">*</span></label>
+      <textarea id="wc" name="content" class="textarea" rows="12" required placeholder="내용을 입력하세요"></textarea>
+    </div>
+    <div class="field">
+      <label for="wf">첨부파일</label>
+      <input id="wf" name="files" type="file" multiple class="input" style="height:auto; padding:12px; border-style:dashed; background:#F8FAFC;">
+    </div>
+    <label class="check" style="font-size:19px;"><input type="checkbox" name="pinned" style="width:22px; height:22px;">상단 공지로 고정</label>
+    <div class="form-actions" style="justify-content:flex-end;">
+      <a class="btn btn-plain btn-lg" th:href="@{/board}">취소</a>
+      <button type="submit" class="btn btn-primary btn-lg">등록</button>
+    </div>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

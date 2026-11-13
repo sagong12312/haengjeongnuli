@@ -1,0 +1,21 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  application:
+    name: haengjeongnuli
+  thymeleaf:
+    cache: false
+
+# 로그인 기능 전까지 쓰는 임시 사용자 정보
+app:
+  user:
+    name: "[사용자명]"
+    position: 주무관
+    dept: "[소속 부서]"
+    # COUNTER(창구 직원) 또는 GENERAL(일반 직원)
+    role: COUNTER

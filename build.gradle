@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    // 전자정부 표준프레임워크 5.0과 같은 Spring Boot 버전
+    id 'org.springframework.boot' version '3.5.6'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'egovframework'
+version = '0.1.0'
+
+java {
+    // 전자정부 표준프레임워크 5.0: JDK 17 이상
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+// 전자정부 프레임워크 라이브러리 사용 여부: ./gradlew bootRun -PuseEgov
+def useEgov = project.hasProperty('useEgov')
+def egovVersion = project.findProperty('egovVersion') ?: '5.0.0'
+
+repositories {
+    mavenCentral()
+    if (useEgov) {
+        maven { url 'https://maven.egovframe.go.kr/maven/' }
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    if (useEgov) {
+        // 아티팩트 이름과 버전은 전자정부 프레임워크 저장소에서 확인 후 조정
+        implementation "org.egovframe.rte:org.egovframe.rte.fdl.cmmn:${egovVersion}"
+        implementation "org.egovframe.rte:org.egovframe.rte.ptl.mvc:${egovVersion}"
+    }
+
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

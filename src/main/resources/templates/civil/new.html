@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('민원 접수')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('civil')}"></header>
+
+<main class="page narrow">
+  <div>
+    <span class="crumb"><a th:href="@{/civil}">민원</a> › 민원 접수</span>
+    <h1>민원 접수</h1>
+  </div>
+
+  <form th:action="@{/civil/new}" method="post" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- 1. 민원 종류 -->
+    <section class="panel" aria-labelledby="s1">
+      <h2 id="s1">1. 민원 종류</h2>
+      <div class="grid-fields">
+        <div class="field">
+          <label for="ckind">민원 종류 <span class="req">*</span></label>
+          <select id="ckind" name="kind" class="select">
+            <option th:each="k : ${kinds}" th:value="${k}" th:text="${k.label}">법정민원</option>
+          </select>
+        </div>
+        <div class="field" id="qtype-field" hidden>
+          <label for="cqtype">질의 내용</label>
+          <select id="cqtype" name="lawInterpretation" class="select">
+            <option value="true">법령 설명·해석</option>
+            <option value="false">제도·절차 등</option>
+          </select>
+        </div>
+        <div class="field" id="affair-field">
+          <label for="caffair">민원 사무 <span class="req">*</span></label>
+          <select id="caffair" name="affair" class="select">
+            <option value="">사무를 선택하세요</option>
+            <optgroup th:each="g : ${affairGroups}" th:label="${g.key}">
+              <option th:each="a : ${g.value}" th:value="${a}" th:text="${a.label}"></option>
+            </optgroup>
+            <optgroup label="기타"><option value="" disabled>[민원처리기준표 나머지 사무]</option></optgroup>
+          </select>
+        </div>
+        <div class="field">
+          <label for="croute">접수 경로</label>
+          <select id="croute" name="route" class="select">
+            <option>방문</option><option>인터넷</option><option>우편</option><option>팩스</option><option>전화</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px;">
+        <div class="stat blue" style="flex:1 1 260px;"><small style="color:#1D3A5F">처리기간</small><strong id="period" style="font-size:24px; color:#1D3A5F">사무를 선택하세요</strong></div>
+        <div class="stat orange" style="flex:1 1 260px;"><small style="color:#6B3A0E">예상 처리기한</small><strong id="deadline" style="font-size:24px; color:var(--orange-fg)">[민원 사무 선택 시 표시]</strong></div>
+      </div>
+      <p class="hint">처리기간은 접수한 날을 포함하고 공휴일은 빼고 셉니다. 현재는 토·일요일만 빼고 계산하며, 공휴일은 아직 반영하지 않습니다.</p>
+    </section>
+
+    <!-- 2. 민원인 정보 -->
+    <section class="panel" aria-labelledby="s2">
+      <h2 id="s2">2. 민원인 정보</h2>
+      <div class="grid-fields">
+        <div class="field">
+          <label for="cname">성명 <span class="req">*</span></label>
+          <input id="cname" name="name" class="input" type="text" required>
+        </div>
+        <div class="field">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+            <label for="ctel" class="field-label">휴대전화 <span class="req" id="tel-req">*</span></label>
+            <label class="check" style="font-size:17px; color:var(--text-2)"><input type="checkbox" id="no-tel" name="noMobile">없음</label>
+          </div>
+          <input id="ctel" name="mobile" class="input" type="tel" required placeholder="010-0000-0000">
+          <div id="home-wrap" hidden style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <label for="chome" class="field-label">집전화 <span class="req" id="home-req">*</span></label>
+              <label class="check" style="font-size:17px; color:var(--text-2)"><input type="checkbox" id="no-home" name="noHome">없음</label>
+            </div>
+            <input id="chome" name="homePhone" class="input" type="tel" placeholder="지역번호 포함 (예: 02-000-0000)">
+            <span id="no-phone-note" class="alert alert-warn" hidden>전화 연락처가 없습니다. 결과는 우편·이메일·방문 수령으로 알려 주세요.</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="cmail">이메일</label>
+          <input id="cmail" name="email" class="input" type="email">
+        </div>
+      </div>
+      <div class="field">
+        <label for="caddr">주소</label>
+        <input id="caddr" name="address" class="input" type="text">
+      </div>
+      <fieldset style="margin:0; border:0; padding:0; display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px;">
+        <legend class="field-label" style="padding:0; margin-bottom:8px;">결과 통지 방법</legend>
+        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="문자" id="notify-sms" checked>문자</label>
+        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="이메일">이메일</label>
+        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="우편" id="notify-post">우편</label>
+        <label class="check" style="font-size:19px"><input type="radio" name="notify" value="방문 수령">방문 수령</label>
+        <span id="sms-note" class="hint" hidden>휴대전화가 없어 문자는 고를 수 없습니다.</span>
+      </fieldset>
+    </section>
+
+    <!-- 3. 민원 내용 -->
+    <section class="panel" aria-labelledby="s3">
+      <h2 id="s3">3. 민원 내용</h2>
+      <div class="field">
+        <label for="ctitle">제목 <span class="req">*</span></label>
+        <input id="ctitle" name="title" class="input" type="text" required>
+      </div>
+      <div class="field">
+        <label for="cbody">내용 <span class="req">*</span></label>
+        <textarea id="cbody" name="content" class="textarea" rows="8" required></textarea>
+      </div>
+      <div class="field">
+        <label for="cfile">구비서류·첨부</label>
+        <input id="cfile" name="files" type="file" multiple class="input" style="height:auto; padding:12px; border-style:dashed; background:#F8FAFC;">
+      </div>
+    </section>
+
+    <!-- 4. 담당 배정 -->
+    <section class="panel" aria-labelledby="s4">
+      <h2 id="s4">4. 담당 배정</h2>
+      <div class="grid-fields">
+        <div class="field">
+          <label for="cdept">처리 부서</label>
+          <select id="cdept" name="dept" class="select"><option>[부서 선택]</option></select>
+        </div>
+        <div class="field">
+          <label for="cstaff">담당자</label>
+          <select id="cstaff" name="staff" class="select"><option>나중에 배정 (접수 대기)</option><option>[담당자 선택]</option></select>
+        </div>
+      </div>
+      <label class="check" style="align-items:flex-start; background:#F8FAFC; border:1px solid var(--line); border-radius:12px; padding:14px 16px;">
+        <input type="checkbox" name="privacyConsent" required style="width:22px; height:22px; margin-top:2px;">
+        <span>민원인에게 개인정보 수집·이용 목적과 항목을 안내하고 동의를 받았습니다. <span class="req">*</span></span>
+      </label>
+      <div class="form-actions">
+        <a class="btn btn-plain btn-lg" th:href="@{/civil}">취소</a>
+        <button type="submit" class="btn btn-primary btn-lg">접수</button>
+      </div>
+    </section>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:inline="javascript">
+  (function () {
+    var api = /*[[@{/civil/api/deadline}]]*/ '/civil/api/deadline';
+    var kind = document.getElementById('ckind');
+    var qtype = document.getElementById('cqtype');
+    var affair = document.getElementById('caffair');
+
+    function refresh() {
+      var k = kind.value;
+      document.getElementById('qtype-field').hidden = k !== 'QUERY';
+      document.getElementById('affair-field').hidden = k !== 'LEGAL';
+      affair.required = k === 'LEGAL';
+      var params = new URLSearchParams({ kind: k, law: qtype.value });
+      if (k === 'LEGAL' && affair.value) { params.set('affair', affair.value); }
+      fetch(api + '?' + params.toString())
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          document.getElementById('period').textContent = d.period;
+          document.getElementById('deadline').textContent = d.deadline;
+        });
+    }
+    [kind, qtype, affair].forEach(function (el) { el.addEventListener('change', refresh); });
+    refresh();
+
+    // 연락처: 휴대전화 없음 → 집전화, 집전화도 없음 → 안내 / 문자 통지 막기
+    var noTel = document.getElementById('no-tel');
+    var noHome = document.getElementById('no-home');
+    var tel = document.getElementById('ctel');
+    var home = document.getElementById('chome');
+    var sms = document.getElementById('notify-sms');
+
+    function contacts() {
+      var mobileNone = noTel.checked;
+      if (!mobileNone) { noHome.checked = false; }
+      var homeNone = mobileNone && noHome.checked;
+      tel.disabled = mobileNone;
+      tel.required = !mobileNone;
+      tel.value = mobileNone ? '' : tel.value;
+      tel.placeholder = mobileNone ? '휴대전화 없음' : '010-0000-0000';
+      document.getElementById('tel-req').hidden = mobileNone;
+      document.getElementById('home-wrap').hidden = !mobileNone;
+      home.disabled = homeNone;
+      home.required = mobileNone && !homeNone;
+      home.placeholder = homeNone ? '집전화 없음' : '지역번호 포함 (예: 02-000-0000)';
+      document.getElementById('home-req').hidden = homeNone;
+      document.getElementById('no-phone-note').hidden = !homeNone;
+      sms.disabled = mobileNone;
+      sms.parentElement.style.textDecoration = mobileNone ? 'line-through' : '';
+      sms.parentElement.style.color = mobileNone ? '#8A96A8' : '';
+      document.getElementById('sms-note').hidden = !mobileNone;
+      if (mobileNone && sms.checked) { document.getElementById('notify-post').checked = true; }
+    }
+    noTel.addEventListener('change', contacts);
+    noHome.addEventListener('change', contacts);
+    contacts();
+  })();
+</script>
+</body>
+</html>
