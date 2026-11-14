@@ -17,28 +17,47 @@
         )
     </insert>
 
-    <sql id="searchWhere">
-        WHERE BOARD_TYPE = #{boardType}
-          AND DELETED_YN = 'N'
-        <if test="q != null">
-            AND (TITLE LIKE '%' || #{q} || '%' OR WRITER LIKE '%' || #{q} || '%')
+    <!-- 볼 수 있는 글: 전체 공개, 또는 '우리 부서'면 같은 부서·글쓴이·관리자 -->
+    <sql id="visible">
+        <if test="!viewerAdmin">
+            AND (P.OPEN_SCOPE = '전체 공개'
+                 OR P.WRITER_ID = #{viewerId}
+                 <if test="viewerDept != null">OR P.WRITER_DEPT = #{viewerDept}</if>)
         </if>
     </sql>
 
-    <select id="selectPostList" resultType="egovframework.haengjeongnuli.board.service.BoardPostVO">
+    <sql id="searchWhere">
+        WHERE P.BOARD_TYPE = #{boardType}
+          AND P.DELETED_YN = 'N'
+        <include refid="visible"/>
+        <if test="q != null">
+            AND (P.TITLE LIKE '%' || #{q} || '%' OR P.WRITER LIKE '%' || #{q} || '%')
+        </if>
+    </sql>
+
+    <!-- ROWNUM 으로 페이지를 자른다 (Oracle·Tibero·H2 공통) -->
+    <select id="selectPostList" parameterType="egovframework.haengjeongnuli.board.service.BoardSearchVO"
+            resultType="egovframework.haengjeongnuli.board.service.BoardPostVO">
         SELECT * FROM (
-            SELECT POST_ID, BOARD_TYPE, TITLE, CATEGORY, OPEN_SCOPE, PINNED_YN, VIEW_COUNT,
-                   WRITER, WRITER_DEPT, CREATED_AT, WRITER_ID, UPDATED_AT
-              FROM BOARD_POST
-            <include refid="searchWhere"/>
-             ORDER BY CASE WHEN PINNED_YN = 'Y' THEN 0 ELSE 1 END, CREATED_AT DESC, POST_ID DESC
-        ) WHERE ROWNUM &lt;= #{limit}
+            SELECT A.*, ROWNUM AS RN FROM (
+                SELECT P.POST_ID, P.BOARD_TYPE, P.TITLE, P.CATEGORY, P.OPEN_SCOPE, P.PINNED_YN, P.VIEW_COUNT,
+                       P.WRITER, P.WRITER_DEPT, P.CREATED_AT, P.WRITER_ID, P.UPDATED_AT,
+                       (SELECT COUNT(*) FROM BOARD_COMMENT C WHERE C.POST_ID = P.POST_ID AND C.DELETED_YN = 'N') AS COMMENT_COUNT
+                  FROM BOARD_POST P
+                <include refid="searchWhere"/>
+                 ORDER BY CASE WHEN P.PINNED_YN = 'Y' THEN 0 ELSE 1 END, P.CREATED_AT DESC, P.POST_ID DESC
+            ) A WHERE ROWNUM &lt;= #{endRow}
+        ) WHERE RN &gt; #{startRow}
     </select>
 
-    <select id="selectPostCount" resultType="int">
-        SELECT COUNT(*) FROM BOARD_POST
+    <select id="selectPostCount" parameterType="egovframework.haengjeongnuli.board.service.BoardSearchVO" resultType="int">
+        SELECT COUNT(*) FROM BOARD_POST P
         <include refid="searchWhere"/>
     </select>
+
+    <update id="increaseViewCount">
+        UPDATE BOARD_POST SET VIEW_COUNT = VIEW_COUNT + 1 WHERE POST_ID = #{postId}
+    </update>
 
     <!-- 첨부파일 -->
     <select id="nextFileId" resultType="long">
@@ -97,6 +116,37 @@
         UPDATE BOARD_POST
            SET DELETED_YN = 'Y', DELETED_AT = #{now}, DELETED_BY = #{deletedBy}
          WHERE POST_ID = #{postId}
+           AND DELETED_YN = 'N'
+    </update>
+
+    <!-- 댓글 -->
+    <select id="nextCommentId" resultType="long">
+        SELECT SEQ_BOARD_COMMENT.NEXTVAL FROM DUAL
+    </select>
+
+    <insert id="insertComment" parameterType="egovframework.haengjeongnuli.board.service.BoardCommentVO">
+        INSERT INTO BOARD_COMMENT (COMMENT_ID, POST_ID, CONTENT, WRITER, WRITER_ID, WRITER_DEPT, CREATED_AT, DELETED_YN)
+        VALUES (#{commentId}, #{postId}, #{content}, #{writer}, #{writerId}, #{writerDept}, #{createdAt}, 'N')
+    </insert>
+
+    <select id="selectComments" resultType="egovframework.haengjeongnuli.board.service.BoardCommentVO">
+        SELECT COMMENT_ID, POST_ID, CONTENT, WRITER, WRITER_ID, WRITER_DEPT, CREATED_AT, DELETED_YN
+          FROM BOARD_COMMENT
+         WHERE POST_ID = #{postId}
+           AND DELETED_YN = 'N'
+         ORDER BY CREATED_AT, COMMENT_ID
+    </select>
+
+    <select id="selectComment" resultType="egovframework.haengjeongnuli.board.service.BoardCommentVO">
+        SELECT COMMENT_ID, POST_ID, CONTENT, WRITER, WRITER_ID, WRITER_DEPT, CREATED_AT, DELETED_YN
+          FROM BOARD_COMMENT
+         WHERE COMMENT_ID = #{commentId}
+    </select>
+
+    <update id="markCommentDeleted">
+        UPDATE BOARD_COMMENT
+           SET DELETED_YN = 'Y', DELETED_AT = #{now}, DELETED_BY = #{deletedBy}
+         WHERE COMMENT_ID = #{commentId}
            AND DELETED_YN = 'N'
     </update>
 

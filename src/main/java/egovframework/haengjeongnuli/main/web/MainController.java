@@ -26,10 +26,12 @@ public class MainController {
     }
 
     @GetMapping("/")
-    public String main(HttpSession session, Model model) {
+    public String main(@org.springframework.security.core.annotation.AuthenticationPrincipal
+                       egovframework.haengjeongnuli.cmm.LoginUser loginUser, HttpSession session, Model model) {
         model.addAttribute("working", isWorking(session));
         model.addAttribute("civilSummary", civilService.summary());
-        model.addAttribute("notices", boardService.list("notice", null, 3));
+        model.addAttribute("notices", boardService.list(
+                egovframework.haengjeongnuli.board.service.BoardSearchVO.of("notice", null, 1, loginUser).size(3)));
         return "main/index";
     }
 

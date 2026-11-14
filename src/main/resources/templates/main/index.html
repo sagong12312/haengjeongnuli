@@ -76,7 +76,7 @@
           <a th:href="@{/board}" style="font-size:17px;">더보기</a>
         </div>
         <p th:if="${#lists.isEmpty(notices)}" class="hint" style="padding:10px 0;">등록된 공지가 없습니다.</p>
-        <a th:each="n : ${notices}" th:href="@{/board}" style="text-decoration:none; color:var(--text); display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #EDF0F4;">
+        <a th:each="n : ${notices}" th:href="@{/board/{id}(id=${n.postId})}" style="text-decoration:none; color:var(--text); display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #EDF0F4;">
           <span th:text="${n.title}">공지 제목</span><span style="color:var(--text-3); white-space:nowrap;" th:text="${#temporals.format(n.createdAt, 'MM-dd')}">날짜</span>
         </a>
       </section>

@@ -26,7 +26,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import egovframework.haengjeongnuli.board.service.BoardCommentVO;
 import egovframework.haengjeongnuli.board.service.BoardPostForm;
+import egovframework.haengjeongnuli.board.service.BoardSearchVO;
 import egovframework.haengjeongnuli.board.service.BoardPostVO;
 import egovframework.haengjeongnuli.board.service.BoardService;
 import egovframework.haengjeongnuli.board.service.impl.BoardServiceImpl;
@@ -34,6 +36,7 @@ import egovframework.haengjeongnuli.cmm.LoginUser;
 import egovframework.haengjeongnuli.cmm.file.AttachFileVO;
 import egovframework.haengjeongnuli.cmm.file.FileStorage;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 /** 게시판: 공지사항·건의사항·자료실, 글쓰기, 자료 올리기, 첨부파일 내려받기 */
 @Controller
@@ -56,15 +59,88 @@ public class BoardController {
     }
 
     @GetMapping
-    public String list(@RequestParam(defaultValue = "notice") String tab,
-                       @RequestParam(required = false) String q, Model model) {
+    public String list(@AuthenticationPrincipal LoginUser loginUser,
+                       @RequestParam(defaultValue = "notice") String tab,
+                       @RequestParam(required = false) String q,
+                       @RequestParam(defaultValue = "1") int page, Model model) {
         Tab current = TABS.stream().filter(t -> t.id().equals(tab)).findFirst().orElse(TABS.get(0));
+        BoardSearchVO search = BoardSearchVO.of(current.id(), q, page, loginUser);
+        int total = boardService.count(search);
+        int totalPages = Math.max(1, (total + search.getSize() - 1) / search.getSize());
+        if (search.getPage() > totalPages) {
+            search = BoardSearchVO.of(current.id(), q, totalPages, loginUser);
+        }
         model.addAttribute("tabs", TABS);
         model.addAttribute("current", current);
-        model.addAttribute("q", q);
-        model.addAttribute("posts", boardService.list(current.id(), q, 50));
-        model.addAttribute("total", boardService.count(current.id(), q));
+        model.addAttribute("q", search.getQ());
+        model.addAttribute("posts", boardService.list(search));
+        model.addAttribute("total", total);
+        model.addAttribute("page", search.getPage());
+        model.addAttribute("totalPages", totalPages);
+        // 쪽 번호는 현재 쪽 앞뒤로 최대 10개
+        int from = Math.max(1, search.getPage() - 4);
+        int to = Math.min(totalPages, from + 9);
+        model.addAttribute("pageFrom", from);
+        model.addAttribute("pageTo", to);
         return "board/list";
+    }
+
+    /** 게시글 상세: 내용·첨부파일·댓글. 같은 로그인 안에서는 조회수를 한 번만 센다. */
+    @GetMapping("/{postId}")
+    public String view(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long postId,
+                       HttpSession session, Model model, RedirectAttributes ra, HttpServletResponse response) {
+        BoardPostVO post = boardService.get(postId);
+        if (post == null) {
+            ra.addFlashAttribute("message", "이미 삭제되었거나 없는 게시물입니다.");
+            return "redirect:/board";
+        }
+        if (!post.canView(loginUser)) {
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            return "error/403";
+        }
+        @SuppressWarnings("unchecked")
+        java.util.Set<Long> seen = (java.util.Set<Long>) session.getAttribute("viewedPosts");
+        if (seen == null) {
+            seen = java.util.concurrent.ConcurrentHashMap.newKeySet();
+            session.setAttribute("viewedPosts", seen);
+        }
+        BoardPostVO viewed = boardService.view(postId, seen.add(postId));
+        model.addAttribute("post", viewed);
+        model.addAttribute("comments", boardService.comments(postId));
+        model.addAttribute("commentMax", BoardCommentVO.MAX_LENGTH);
+        model.addAttribute("tabLabel", TABS.stream().filter(x -> x.id().equals(viewed.getBoardType()))
+                .map(Tab::label).findFirst().orElse("게시판"));
+        return "board/view";
+    }
+
+    @PostMapping("/{postId}/comments")
+    public String addComment(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long postId,
+                             @RequestParam(defaultValue = "") String content,
+                             RedirectAttributes ra, HttpServletResponse response) {
+        BoardService.CommentResult r = boardService.addComment(postId, content, loginUser);
+        return commentResult(r, postId, "댓글을 달았습니다.", ra, response);
+    }
+
+    @PostMapping("/{postId}/comments/{commentId}/delete")
+    public String deleteComment(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long postId,
+                                @PathVariable long commentId, RedirectAttributes ra, HttpServletResponse response) {
+        BoardService.CommentResult r = boardService.deleteComment(postId, commentId, loginUser);
+        return commentResult(r, postId, "댓글을 삭제했습니다.", ra, response);
+    }
+
+    private String commentResult(BoardService.CommentResult r, long postId, String okMessage,
+                                 RedirectAttributes ra, HttpServletResponse response) {
+        switch (r) {
+            case FORBIDDEN -> {
+                response.setStatus(HttpStatus.FORBIDDEN.value());
+                return "error/403";
+            }
+            case NOT_FOUND -> ra.addFlashAttribute("message", "이미 삭제되었거나 없는 글·댓글입니다.");
+            case INVALID -> ra.addFlashAttribute("message",
+                    "댓글은 1~" + BoardCommentVO.MAX_LENGTH + "자로 입력하세요.");
+            case DONE -> ra.addFlashAttribute("message", okMessage);
+        }
+        return "redirect:/board/" + postId + "#comments";
     }
 
     @GetMapping("/write")
@@ -170,7 +246,7 @@ public class BoardController {
             BoardService.UpdateResult r = boardService.update(postId, form, files, removeFileIds, loginUser);
             if (r == BoardService.UpdateResult.UPDATED) {
                 ra.addFlashAttribute("message", "게시물을 수정했습니다.");
-                return "redirect:/board?tab=" + post.getBoardType();
+                return "redirect:/board/" + postId;
             }
             if (r == BoardService.UpdateResult.NEED_FILE) {
                 result.reject("files.required", "자료실 글에는 파일이 하나 이상 있어야 합니다.");
@@ -200,8 +276,8 @@ public class BoardController {
 
     /** 첨부파일 내려받기. 브라우저가 열어 실행하지 않도록 항상 '내려받기'로 보낸다. */
     @GetMapping("/files/{fileId}")
-    public ResponseEntity<Resource> download(@PathVariable long fileId) {
-        AttachFileVO f = boardService.fileForDownload(fileId);
+    public ResponseEntity<Resource> download(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long fileId) {
+        AttachFileVO f = boardService.fileForDownload(fileId, loginUser);
         if (f == null) {
             return ResponseEntity.notFound().build();
         }

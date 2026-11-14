@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${post.title})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('board')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <div>
+    <span class="crumb"><a th:href="@{/board}">게시판</a> › <a th:href="@{/board(tab=${post.boardType})}" th:text="${tabLabel}">공지사항</a></span>
+  </div>
+
+  <article class="panel" style="padding:28px; gap:18px;">
+    <header style="display:flex; flex-direction:column; gap:10px; border-bottom:1px solid var(--line-2); padding-bottom:16px;">
+      <div style="display:flex; flex-wrap:wrap; gap:6px;">
+        <span th:if="${post.pinned}" class="badge badge-brand">공지</span>
+        <span th:if="${post.category}" class="badge badge-gray" th:text="${post.category}">분류</span>
+        <span th:if="${post.openScope == '우리 부서'}" class="badge badge-orange">우리 부서 공개</span>
+      </div>
+      <h1 style="margin:0; font-size:28px; line-height:1.4; word-break:break-word;" th:text="${post.title}">제목</h1>
+      <div class="muted" style="display:flex; flex-wrap:wrap; gap:6px 16px; font-size:17px;">
+        <span th:text="${post.writer} + (${post.writerDept} ? ' · ' + ${post.writerDept} : '')">글쓴이</span>
+        <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}">등록일</span>
+        <span th:if="${post.edited}" th:text="'수정 ' + ${#temporals.format(post.updatedAt, 'yyyy-MM-dd HH:mm')}">수정일</span>
+        <span th:text="'조회 ' + ${post.viewCount}">조회</span>
+      </div>
+    </header>
+
+    <!-- 본문: 글자로만 보여준다 (HTML로 해석하지 않음) -->
+    <div style="font-size:19px; line-height:1.8; white-space:pre-wrap; word-break:break-word; min-height:80px;"
+         th:text="${post.content}">본문</div>
+
+    <section th:unless="${#lists.isEmpty(post.files)}" aria-label="첨부파일"
+             style="background:var(--soft); border-radius:12px; padding:14px 18px; display:flex; flex-direction:column; gap:6px;">
+      <span style="font-weight:700;">첨부파일</span>
+      <a th:each="f : ${post.files}" th:href="@{/board/files/{id}(id=${f.fileId})}"
+         style="display:inline-flex; align-items:center; gap:6px; font-size:17px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+        <span th:text="${f.originalName}">파일</span>
+        <span class="muted" style="font-size:15px;" th:text="'(' + ${f.sizeText} + ')'"></span>
+      </a>
+    </section>
+
+    <div class="form-actions">
+      <a class="btn btn-plain" th:href="@{/board(tab=${post.boardType})}">목록</a>
+      <div style="display:flex; gap:8px;">
+        <a th:if="${post.canEdit(loginUser)}" class="btn btn-outline" th:href="@{/board/{id}/edit(id=${post.postId})}">수정</a>
+        <form th:if="${post.canDelete(loginUser)}" th:action="@{/board/{id}/delete(id=${post.postId})}" method="post"
+              style="margin:0;" onsubmit="return confirm('이 게시물을 삭제할까요?');">
+          <input type="hidden" name="tab" th:value="${post.boardType}">
+          <button type="submit" class="btn btn-plain" style="color:var(--red-fg); border-color:#E8B4B4;">삭제</button>
+        </form>
+      </div>
+    </div>
+  </article>
+
+  <!-- 댓글 -->
+  <section id="comments" class="panel" aria-labelledby="cm-title" style="gap:14px;">
+    <h2 id="cm-title" th:text="'댓글 ' + ${#lists.size(comments)}">댓글</h2>
+
+    <p th:if="${#lists.isEmpty(comments)}" class="hint">첫 댓글을 남겨 보세요.</p>
+    <ul th:unless="${#lists.isEmpty(comments)}" style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column;">
+      <li th:each="c : ${comments}" style="padding:14px 0; border-top:1px solid var(--line-2); display:flex; gap:12px; align-items:flex-start;">
+        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;">
+          <div class="muted" style="font-size:16px;">
+            <b style="color:var(--text);" th:text="${c.writer}">이름</b>
+            <span th:if="${c.writerDept}" th:text="' · ' + ${c.writerDept}"></span>
+            <span th:text="' · ' + ${#temporals.format(c.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+          </div>
+          <div style="font-size:18px; line-height:1.7; white-space:pre-wrap; word-break:break-word;" th:text="${c.content}">댓글</div>
+        </div>
+        <form th:if="${c.canDelete(loginUser)}" th:action="@{/board/{p}/comments/{c}/delete(p=${post.postId},c=${c.commentId})}"
+              method="post" style="margin:0;" onsubmit="return confirm('이 댓글을 삭제할까요?');">
+          <button type="submit" class="btn btn-plain" style="height:36px; font-size:15px; padding:0 10px;">삭제</button>
+        </form>
+      </li>
+    </ul>
+
+    <form th:action="@{/board/{id}/comments(id=${post.postId})}" method="post" style="display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--line-2); padding-top:14px;">
+      <label for="cm" class="field-label" style="font-size:17px;">댓글 쓰기</label>
+      <textarea id="cm" name="content" class="textarea" rows="3" required th:maxlength="${commentMax}" placeholder="댓글을 입력하세요"></textarea>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="hint" th:text="${commentMax} + '자까지'">1000자까지</span>
+        <button type="submit" class="btn btn-primary" style="height:48px;">등록</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

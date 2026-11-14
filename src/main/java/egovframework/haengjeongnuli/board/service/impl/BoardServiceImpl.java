@@ -12,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import egovframework.haengjeongnuli.board.service.BoardCommentVO;
 import egovframework.haengjeongnuli.board.service.BoardPostForm;
+import egovframework.haengjeongnuli.board.service.BoardSearchVO;
 import egovframework.haengjeongnuli.board.service.BoardPostVO;
 import egovframework.haengjeongnuli.board.service.BoardService;
 import egovframework.haengjeongnuli.cmm.LoginUser;
@@ -140,8 +142,8 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    public List<BoardPostVO> list(String boardType, String q, int limit) {
-        List<BoardPostVO> posts = boardMapper.selectPostList(boardType, blankToNull(q), Math.max(1, Math.min(limit, 200)));
+    public List<BoardPostVO> list(BoardSearchVO search) {
+        List<BoardPostVO> posts = boardMapper.selectPostList(search);
         if (!posts.isEmpty()) {
             List<Long> ids = posts.stream().map(BoardPostVO::getPostId).toList();
             Map<Long, List<AttachFileVO>> byPost = boardMapper.selectFilesByPostIds(ids).stream()
@@ -152,15 +154,75 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    public int count(String boardType, String q) {
-        return boardMapper.selectPostCount(boardType, blankToNull(q));
+    public int count(BoardSearchVO search) {
+        return boardMapper.selectPostCount(search);
     }
 
     @Override
     @Transactional
-    public AttachFileVO fileForDownload(long fileId) {
+    public BoardPostVO view(long postId, boolean countView) {
+        BoardPostVO post = get(postId);
+        if (post != null && countView) {
+            boardMapper.increaseViewCount(postId);
+            post.setViewCount(post.getViewCount() + 1);
+        }
+        return post;
+    }
+
+    @Override
+    public List<BoardCommentVO> comments(long postId) {
+        return boardMapper.selectComments(postId);
+    }
+
+    @Override
+    @Transactional
+    public CommentResult addComment(long postId, String content, LoginUser by) {
+        BoardPostVO post = get(postId);
+        if (post == null) {
+            return CommentResult.NOT_FOUND;
+        }
+        if (!post.canView(by)) {
+            return CommentResult.FORBIDDEN;
+        }
+        String text = content == null ? "" : content.strip();
+        if (text.isEmpty() || text.length() > BoardCommentVO.MAX_LENGTH) {
+            return CommentResult.INVALID;
+        }
+        BoardCommentVO c = new BoardCommentVO();
+        c.setCommentId(boardMapper.nextCommentId());
+        c.setPostId(postId);
+        c.setContent(text);
+        c.setWriter(by.name());
+        c.setWriterId(by.getLoginId());
+        c.setWriterDept(by.dept().isEmpty() ? null : by.dept());
+        c.setCreatedAt(LocalDateTime.now());
+        boardMapper.insertComment(c);
+        return CommentResult.DONE;
+    }
+
+    @Override
+    @Transactional
+    public CommentResult deleteComment(long postId, long commentId, LoginUser by) {
+        BoardCommentVO c = boardMapper.selectComment(commentId);
+        if (c == null || c.isDeleted() || c.getPostId() != postId) {
+            return CommentResult.NOT_FOUND;
+        }
+        if (!c.canDelete(by)) {
+            return CommentResult.FORBIDDEN;
+        }
+        boardMapper.markCommentDeleted(commentId, by.getLoginId(), LocalDateTime.now());
+        return CommentResult.DONE;
+    }
+
+    @Override
+    @Transactional
+    public AttachFileVO fileForDownload(long fileId, LoginUser viewer) {
         AttachFileVO f = boardMapper.selectFile(fileId);
         if (f != null) {
+            BoardPostVO post = boardMapper.selectPost(f.getPostId());
+            if (post == null || !post.canView(viewer)) {
+                return null;
+            }
             boardMapper.increaseDownloadCount(fileId);
         }
         return f;

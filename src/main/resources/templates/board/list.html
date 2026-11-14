@@ -36,7 +36,7 @@
 
   <section class="panel flush" aria-label="게시글 목록">
     <div class="panel-head" style="font-size:17px; color:var(--text-2);">
-      <span>전체 <b style="color:var(--text)" th:text="${total}">0</b>건</span><span>최신순 (최대 50건)</span>
+      <span>전체 <b style="color:var(--text)" th:text="${total}">0</b>건</span><span>최신순</span>
     </div>
     <div class="table-wrap">
       <table class="list">
@@ -57,7 +57,10 @@
             </td>
             <td class="left">
               <span th:if="${p.category}" class="badge badge-gray" style="margin-right:6px;" th:text="${p.category}">업무 서식</span>
-              <a href="#" th:text="${p.title}" th:style="${p.pinned} ? 'font-weight:700' : null">제목</a>
+              <a th:href="@{/board/{id}(id=${p.postId})}" th:text="${p.title}" th:style="${p.pinned} ? 'font-weight:700' : null">제목</a>
+              <span th:if="${p.commentCount > 0}" style="color:var(--brand); font-weight:700; font-size:16px;" th:text="'[' + ${p.commentCount} + ']'"
+                    th:attr="aria-label='댓글 ' + ${p.commentCount} + '개'">[3]</span>
+              <span th:if="${p.openScope == '우리 부서'}" class="badge badge-orange" style="font-size:14px; padding:2px 8px;">우리 부서</span>
               <span th:if="${p.edited}" class="muted" style="font-size:15px;">(수정됨)</span>
               <ul th:unless="${#lists.isEmpty(p.files)}" style="list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:4px;">
                 <li th:each="f : ${p.files}">
@@ -89,6 +92,12 @@
     </div>
   </section>
 
+  <nav class="pager" aria-label="페이지" th:if="${totalPages > 1}">
+    <a th:if="${page > 1}" th:href="@{/board(tab=${current.id},q=${q},page=${page - 1})}" aria-label="이전 페이지">‹</a>
+    <a th:each="n : ${#numbers.sequence(pageFrom, pageTo)}" th:href="@{/board(tab=${current.id},q=${q},page=${n})}"
+       th:text="${n}" th:attr="aria-current=${n == page} ? 'page' : null">1</a>
+    <a th:if="${page < totalPages}" th:href="@{/board(tab=${current.id},q=${q},page=${page + 1})}" aria-label="다음 페이지">›</a>
+  </nav>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

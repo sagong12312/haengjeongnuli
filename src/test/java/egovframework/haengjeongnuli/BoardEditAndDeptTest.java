@@ -67,7 +67,7 @@ class BoardEditAndDeptTest {
         author.perform(post("/board/" + id + "/edit").param("scope", "우리 부서")
                         .param("title", newTitle).param("content", "고친 내용")
                         .param("board", "notice"))   // 게시판 종류는 바꿀 수 없어야 한다
-                .andExpect(redirectedUrl("/board?tab=suggest"));
+                .andExpect(redirectedUrl("/board/" + id));
 
         author.perform(get("/board").param("tab", "suggest"))
                 .andExpect(content().string(containsString(newTitle)))
@@ -89,7 +89,7 @@ class BoardEditAndDeptTest {
         MockMvc admin = TestUsers.mvcAs(ctx, TestUsers.admin());
         admin.perform(post("/board/" + id + "/edit").param("scope", "전체 공개")
                 .param("title", "관리자가 고침 " + id).param("content", "x"))
-                .andExpect(redirectedUrl("/board?tab=suggest"));
+                .andExpect(redirectedUrl("/board/" + id));
     }
 
     @Test
@@ -115,7 +115,7 @@ class BoardEditAndDeptTest {
         author.perform(multipart("/board/" + id + "/edit")
                         .file(new MockMultipartFile("files", "new.pdf", "application/pdf", new byte[]{2}))
                         .param("scope", "전체 공개").param("title", title).param("removeFileIds", oldFileId))
-                .andExpect(redirectedUrl("/board?tab=archive"));
+                .andExpect(redirectedUrl("/board/" + id));
 
         author.perform(get("/board/files/" + oldFileId)).andExpect(status().isNotFound());
         author.perform(get("/board").param("tab", "archive"))

@@ -5,7 +5,9 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import egovframework.haengjeongnuli.board.service.BoardCommentVO;
 import egovframework.haengjeongnuli.board.service.BoardPostVO;
+import egovframework.haengjeongnuli.board.service.BoardSearchVO;
 import egovframework.haengjeongnuli.cmm.file.AttachFileVO;
 
 /** 게시판 SQL (egovframework/mapper/board/BoardMapper.xml) */
@@ -16,10 +18,22 @@ public interface BoardMapper {
 
     int insertPost(BoardPostVO vo);
 
-    List<BoardPostVO> selectPostList(@Param("boardType") String boardType, @Param("q") String q,
-                                     @Param("limit") int limit);
+    List<BoardPostVO> selectPostList(BoardSearchVO search);
 
-    int selectPostCount(@Param("boardType") String boardType, @Param("q") String q);
+    int selectPostCount(BoardSearchVO search);
+
+    int increaseViewCount(@Param("postId") long postId);
+
+    long nextCommentId();
+
+    int insertComment(BoardCommentVO comment);
+
+    List<BoardCommentVO> selectComments(@Param("postId") long postId);
+
+    BoardCommentVO selectComment(@Param("commentId") long commentId);
+
+    int markCommentDeleted(@Param("commentId") long commentId, @Param("deletedBy") String deletedBy,
+                           @Param("now") java.time.LocalDateTime now);
 
     long nextFileId();
 

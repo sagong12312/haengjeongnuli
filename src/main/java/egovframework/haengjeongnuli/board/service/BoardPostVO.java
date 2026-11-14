@@ -19,6 +19,7 @@ public class BoardPostVO {
     private String writerId;
     private String deletedYn = "N";
     private LocalDateTime updatedAt;
+    private int commentCount;
     private String updatedBy;
 
     private java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> files = new java.util.ArrayList<>();
@@ -30,6 +31,21 @@ public class BoardPostVO {
     public boolean canDelete(egovframework.haengjeongnuli.cmm.LoginUser user) {
         return user != null && (user.isAdmin() || (writerId != null && writerId.equals(user.getLoginId())));
     }
+
+    /** 볼 수 있는지: 전체 공개, 또는 '우리 부서'면 같은 부서·글쓴이·관리자 */
+    public boolean canView(egovframework.haengjeongnuli.cmm.LoginUser user) {
+        if (user == null) {
+            return false;
+        }
+        if (user.isAdmin() || !"우리 부서".equals(openScope)) {
+            return true;
+        }
+        return (writerId != null && writerId.equals(user.getLoginId()))
+                || (writerDept != null && writerDept.equals(user.dept()));
+    }
+
+    public int getCommentCount() { return commentCount; }
+    public void setCommentCount(int commentCount) { this.commentCount = commentCount; }
 
     /** 수정 권한은 삭제 권한과 같다 */
     public boolean canEdit(egovframework.haengjeongnuli.cmm.LoginUser user) { return canDelete(user); }
