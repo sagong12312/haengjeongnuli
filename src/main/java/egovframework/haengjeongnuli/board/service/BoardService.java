@@ -25,4 +25,16 @@ public interface BoardService {
 
     /** 글을 삭제 표시한다. 글쓴이 본인이나 관리자만 가능 */
     DeleteResult delete(long postId, LoginUser by);
+
+    /** 수정 화면용: 삭제되지 않은 글과 첨부파일. 없으면 null */
+    BoardPostVO get(long postId);
+
+    enum UpdateResult { UPDATED, NOT_FOUND, FORBIDDEN, NEED_FILE }
+
+    /**
+     * 글을 고친다. 글쓴이 본인이나 관리자만 가능.
+     * removeFileIds 의 첨부파일은 지우고 newFiles 는 더한다. 자료실 글은 파일이 하나 이상 남아야 한다.
+     */
+    UpdateResult update(long postId, BoardPostForm form, List<MultipartFile> newFiles,
+                        List<Long> removeFileIds, LoginUser by);
 }

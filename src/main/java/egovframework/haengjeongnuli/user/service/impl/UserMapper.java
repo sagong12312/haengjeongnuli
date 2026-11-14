@@ -33,4 +33,12 @@ public interface UserMapper {
     int updatePassword(@Param("userId") long userId, @Param("passwordHash") String passwordHash);
 
     int updateEnabled(@Param("userId") long userId, @Param("enabledYn") String enabledYn);
+
+    int updateDept(@Param("userId") long userId, @Param("deptName") String deptName);
+
+    int insertDeptHistory(@Param("userId") long userId, @Param("fromDept") String fromDept,
+                          @Param("toDept") String toDept, @Param("movedAt") LocalDateTime movedAt,
+                          @Param("movedBy") String movedBy);
+
+    List<egovframework.haengjeongnuli.user.service.DeptMoveVO> selectRecentDeptMoves(@Param("limit") int limit);
 }

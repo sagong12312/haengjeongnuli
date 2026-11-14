@@ -92,8 +92,31 @@ public class AdminUserController {
         return "redirect:/admin/users";
     }
 
+    /** 부서 이동 */
+    @PostMapping("/{userId}/dept")
+    public String moveDept(@PathVariable long userId, @RequestParam String deptName,
+                           @AuthenticationPrincipal LoginUser me, RedirectAttributes ra) {
+        String dept = deptName.trim();
+        if (dept.isEmpty() || dept.length() > 100) {
+            ra.addFlashAttribute("message", "부서 이름을 1~100자로 입력하세요.");
+            return "redirect:/admin/users";
+        }
+        if (!userService.moveDept(userId, dept, me.getLoginId())) {
+            ra.addFlashAttribute("message", "없는 계정입니다.");
+            return "redirect:/admin/users";
+        }
+        ra.addFlashAttribute("message", "부서를 '" + dept + "'(으)로 옮겼습니다."
+                + (me.getUserId() == userId ? " 머리글의 부서는 다시 로그인하면 바뀝니다." : ""));
+        return "redirect:/admin/users";
+    }
+
     private void addCommon(Model model) {
-        model.addAttribute("users", userService.list());
+        model.addAttribute("deptMoves", userService.recentDeptMoves(20));
+        java.util.List<LoginUser> users = userService.list();
+        model.addAttribute("users", users);
+        // 부서 입력칸 자동완성용: 지금 쓰고 있는 부서 이름들
+        model.addAttribute("depts", users.stream().map(LoginUser::getDeptName)
+                .filter(d -> d != null && !d.isBlank()).distinct().sorted().toList());
         model.addAttribute("roles", LoginUser.Role.values());
         model.addAttribute("rule", PasswordPolicy.DESCRIPTION);
     }

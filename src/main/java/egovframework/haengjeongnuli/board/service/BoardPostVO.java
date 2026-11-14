@@ -18,6 +18,8 @@ public class BoardPostVO {
     private LocalDateTime createdAt;
     private String writerId;
     private String deletedYn = "N";
+    private LocalDateTime updatedAt;
+    private String updatedBy;
 
     private java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> files = new java.util.ArrayList<>();
 
@@ -28,6 +30,15 @@ public class BoardPostVO {
     public boolean canDelete(egovframework.haengjeongnuli.cmm.LoginUser user) {
         return user != null && (user.isAdmin() || (writerId != null && writerId.equals(user.getLoginId())));
     }
+
+    /** 수정 권한은 삭제 권한과 같다 */
+    public boolean canEdit(egovframework.haengjeongnuli.cmm.LoginUser user) { return canDelete(user); }
+
+    public boolean isEdited() { return updatedAt != null; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public String getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
 
     public String getWriterId() { return writerId; }
     public void setWriterId(String writerId) { this.writerId = writerId; }

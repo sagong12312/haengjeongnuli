@@ -28,7 +28,7 @@
     <select id="selectPostList" resultType="egovframework.haengjeongnuli.board.service.BoardPostVO">
         SELECT * FROM (
             SELECT POST_ID, BOARD_TYPE, TITLE, CATEGORY, OPEN_SCOPE, PINNED_YN, VIEW_COUNT,
-                   WRITER, WRITER_DEPT, CREATED_AT, WRITER_ID
+                   WRITER, WRITER_DEPT, CREATED_AT, WRITER_ID, UPDATED_AT
               FROM BOARD_POST
             <include refid="searchWhere"/>
              ORDER BY CASE WHEN PINNED_YN = 'Y' THEN 0 ELSE 1 END, CREATED_AT DESC, POST_ID DESC
@@ -69,10 +69,29 @@
 
     <!-- 게시물 삭제 (표시만 하고 기록은 남긴다) -->
     <select id="selectPost" resultType="egovframework.haengjeongnuli.board.service.BoardPostVO">
-        SELECT POST_ID, BOARD_TYPE, TITLE, WRITER, WRITER_ID, DELETED_YN, CREATED_AT
+        SELECT POST_ID, BOARD_TYPE, TITLE, CONTENT, CATEGORY, OPEN_SCOPE, PINNED_YN, VIEW_COUNT,
+               WRITER, WRITER_DEPT, WRITER_ID, DELETED_YN, CREATED_AT, UPDATED_AT, UPDATED_BY
           FROM BOARD_POST
          WHERE POST_ID = #{postId}
     </select>
+
+    <!-- 게시글 수정 (게시판 종류·글쓴이는 바꾸지 않는다) -->
+    <update id="updatePost" parameterType="egovframework.haengjeongnuli.board.service.BoardPostVO">
+        UPDATE BOARD_POST
+           SET TITLE = #{title},
+               CONTENT = #{content, jdbcType=CLOB},
+               CATEGORY = #{category},
+               OPEN_SCOPE = #{openScope},
+               PINNED_YN = #{pinnedYn},
+               UPDATED_AT = #{updatedAt},
+               UPDATED_BY = #{updatedBy}
+         WHERE POST_ID = #{postId}
+           AND DELETED_YN = 'N'
+    </update>
+
+    <delete id="deleteFile">
+        DELETE FROM ATTACH_FILE WHERE FILE_ID = #{fileId} AND POST_ID = #{postId}
+    </delete>
 
     <update id="markDeleted">
         UPDATE BOARD_POST

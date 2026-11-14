@@ -58,4 +58,23 @@
         UPDATE USER_ACCOUNT SET ENABLED_YN = #{enabledYn} WHERE USER_ID = #{userId}
     </update>
 
+    <!-- 부서 이동 -->
+    <update id="updateDept">
+        UPDATE USER_ACCOUNT SET DEPT_NAME = #{deptName} WHERE USER_ID = #{userId}
+    </update>
+
+    <insert id="insertDeptHistory">
+        INSERT INTO USER_DEPT_HISTORY (HISTORY_ID, USER_ID, FROM_DEPT, TO_DEPT, MOVED_AT, MOVED_BY)
+        VALUES (SEQ_USER_DEPT_HISTORY.NEXTVAL, #{userId}, #{fromDept}, #{toDept}, #{movedAt}, #{movedBy})
+    </insert>
+
+    <select id="selectRecentDeptMoves" resultType="egovframework.haengjeongnuli.user.service.DeptMoveVO">
+        SELECT * FROM (
+            SELECT H.HISTORY_ID, H.USER_ID, U.LOGIN_ID, U.USER_NAME, H.FROM_DEPT, H.TO_DEPT, H.MOVED_AT, H.MOVED_BY
+              FROM USER_DEPT_HISTORY H
+              JOIN USER_ACCOUNT U ON U.USER_ID = H.USER_ID
+             ORDER BY H.MOVED_AT DESC, H.HISTORY_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+
 </mapper>

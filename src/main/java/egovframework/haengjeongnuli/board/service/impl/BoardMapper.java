@@ -35,4 +35,8 @@ public interface BoardMapper {
 
     int markDeleted(@Param("postId") long postId, @Param("deletedBy") String deletedBy,
                     @Param("now") java.time.LocalDateTime now);
+
+    int updatePost(BoardPostVO vo);
+
+    int deleteFile(@Param("fileId") long fileId, @Param("postId") long postId);
 }

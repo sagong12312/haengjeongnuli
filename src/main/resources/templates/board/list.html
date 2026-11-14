@@ -44,7 +44,7 @@
           <th scope="col" style="width:80px">번호</th><th scope="col" style="text-align:left">제목</th>
           <th scope="col" style="width:130px">작성자</th><th scope="col" style="width:150px">부서</th>
           <th scope="col" style="width:130px">등록일</th><th scope="col" style="width:80px">조회</th>
-          <th scope="col" style="width:90px"><span class="sr-only">관리</span></th>
+          <th scope="col" style="width:100px"><span class="sr-only">관리</span></th>
         </tr></thead>
         <tbody>
           <tr th:if="${#lists.isEmpty(posts)}">
@@ -58,6 +58,7 @@
             <td class="left">
               <span th:if="${p.category}" class="badge badge-gray" style="margin-right:6px;" th:text="${p.category}">업무 서식</span>
               <a href="#" th:text="${p.title}" th:style="${p.pinned} ? 'font-weight:700' : null">제목</a>
+              <span th:if="${p.edited}" class="muted" style="font-size:15px;">(수정됨)</span>
               <ul th:unless="${#lists.isEmpty(p.files)}" style="list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:4px;">
                 <li th:each="f : ${p.files}">
                   <a th:href="@{/board/files/{id}(id=${f.fileId})}" style="display:inline-flex; align-items:center; gap:6px; font-size:16px; color:var(--brand);">
@@ -73,6 +74,8 @@
             <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd')}">날짜</td>
             <td th:text="${p.viewCount}">0</td>
             <td>
+              <a th:if="${p.canEdit(loginUser)}" class="btn btn-plain" th:href="@{/board/{id}/edit(id=${p.postId})}"
+                 style="height:40px; font-size:16px; padding:0 12px; margin-bottom:6px;" th:attr="aria-label=${p.title} + ' 수정'">수정</a>
               <form th:if="${p.canDelete(loginUser)}" th:action="@{/board/{id}/delete(id=${p.postId})}" method="post"
                     style="margin:0;" onsubmit="return confirm('이 게시물을 삭제할까요?');">
                 <input type="hidden" name="tab" th:value="${current.id}">

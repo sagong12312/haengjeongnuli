@@ -29,4 +29,9 @@ public interface UserService extends UserDetailsService {
     void recordFailure(String loginId);
 
     void recordSuccess(String loginId);
+
+    /** 부서를 옮기고 기록을 남긴다. 계정이 없으면 false, 같은 부서면 바꾸지 않고 true */
+    boolean moveDept(long userId, String newDept, String movedBy);
+
+    List<DeptMoveVO> recentDeptMoves(int limit);
 }

@@ -108,6 +108,28 @@ public class UserServiceImpl implements UserService {
         userMapper.markLoginSuccess(loginId, LocalDateTime.now());
     }
 
+    @Override
+    @Transactional
+    public boolean moveDept(long userId, String newDept, String movedBy) {
+        LoginUser u = userMapper.selectById(userId);
+        if (u == null) {
+            return false;
+        }
+        String to = blankToNull(newDept);
+        String from = u.getDeptName();
+        if (java.util.Objects.equals(from, to)) {
+            return true;
+        }
+        userMapper.updateDept(userId, to);
+        userMapper.insertDeptHistory(userId, from, to, LocalDateTime.now(), movedBy);
+        return true;
+    }
+
+    @Override
+    public List<egovframework.haengjeongnuli.user.service.DeptMoveVO> recentDeptMoves(int limit) {
+        return userMapper.selectRecentDeptMoves(Math.max(1, Math.min(limit, 200)));
+    }
+
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.trim();
     }

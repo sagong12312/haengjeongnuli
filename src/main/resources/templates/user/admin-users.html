@@ -42,6 +42,12 @@
                   <input type="hidden" name="value" th:value="${!u.enabled}">
                   <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;" th:text="${u.enabled} ? '사용 중지' : '다시 사용'">사용 중지</button>
                 </form>
+                <form th:action="@{/admin/users/{id}/dept(id=${u.userId})}" method="post" style="margin:0; display:flex; gap:6px;">
+                  <label th:for="'dept' + ${u.userId}" class="sr-only" th:text="${u.userName} + ' 새 부서'">새 부서</label>
+                  <input th:id="'dept' + ${u.userId}" name="deptName" type="text" class="input" required maxlength="100"
+                         list="dept-list" placeholder="새 부서" style="height:40px; font-size:16px; width:130px;">
+                  <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;">부서 이동</button>
+                </form>
                 <form th:action="@{/admin/users/{id}/password(id=${u.userId})}" method="post" style="margin:0; display:flex; gap:6px;">
                   <label th:for="'pw' + ${u.userId}" class="sr-only">새 비밀번호</label>
                   <input th:id="'pw' + ${u.userId}" name="newPassword" type="password" class="input" required minlength="9" placeholder="새 비밀번호" autocomplete="new-password" style="height:40px; font-size:16px; width:150px;">
@@ -49,6 +55,30 @@
                 </form>
               </div>
             </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <datalist id="dept-list">
+    <option th:each="d : ${depts}" th:value="${d}"></option>
+  </datalist>
+
+  <!-- 최근 부서 이동 -->
+  <section class="panel flush" aria-labelledby="move-title">
+    <div class="panel-head"><h2 id="move-title">최근 부서 이동</h2><span class="muted" style="font-size:17px;">최근 20건</span></div>
+    <p th:if="${#lists.isEmpty(deptMoves)}" class="hint" style="padding:18px 22px;">부서 이동 기록이 없습니다.</p>
+    <div th:unless="${#lists.isEmpty(deptMoves)}" class="table-wrap">
+      <table class="list" style="min-width:720px">
+        <thead><tr><th scope="col">일시</th><th scope="col">직원</th><th scope="col">이전 부서</th><th scope="col">새 부서</th><th scope="col">처리자</th></tr></thead>
+        <tbody>
+          <tr th:each="m : ${deptMoves}">
+            <td th:text="${#temporals.format(m.movedAt, 'yyyy-MM-dd HH:mm')}">일시</td>
+            <td style="color:var(--text)" th:text="${m.userName} + ' (' + ${m.loginId} + ')'">직원</td>
+            <td th:text="${m.fromDept} ?: '—'">이전</td>
+            <td style="color:var(--text); font-weight:700" th:text="${m.toDept} ?: '—'">새</td>
+            <td th:text="${m.movedBy}">처리자</td>
           </tr>
         </tbody>
       </table>

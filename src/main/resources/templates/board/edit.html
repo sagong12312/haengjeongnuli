@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('게시물 수정')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('board')}"></header>
+
+<main class="page narrow" th:with="archive=${post.boardType == 'archive'}, notice=${post.boardType == 'notice'}">
+  <div>
+    <span class="crumb"><a th:href="@{/board(tab=${post.boardType})}">게시판</a> › 수정</span>
+    <h1>게시물 수정</h1>
+    <p class="hint" style="margin-top:6px;"
+       th:text="'글쓴이 ' + ${post.writer} + ' · 등록 ' + ${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}
+                + (${post.edited} ? ' · 마지막 수정 ' + ${#temporals.format(post.updatedAt, 'yyyy-MM-dd HH:mm')} : '')">글 정보</p>
+  </div>
+
+  <form class="panel" th:action="@{/board/{id}/edit(id=${post.postId})}" th:object="${postForm}" method="post"
+        enctype="multipart/form-data" style="padding:28px; gap:22px;">
+    <div th:replace="~{fragments/form-errors :: errors}"></div>
+
+    <div class="grid-fields">
+      <div class="field">
+        <span class="field-label">게시판</span>
+        <span class="input" style="display:flex; align-items:center; background:var(--gray-bg); color:var(--text-2);"
+              th:text="${post.boardType == 'notice'} ? '공지사항' : (${post.boardType == 'suggest'} ? '건의사항' : '자료실')">공지사항</span>
+      </div>
+      <div class="field" th:if="${archive}">
+        <label for="ecat">분류</label>
+        <select id="ecat" th:field="*{category}" class="select">
+          <option value="업무 서식">업무 서식</option><option value="지침·매뉴얼">지침·매뉴얼</option>
+          <option value="교육 자료">교육 자료</option><option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="escope">공개 범위</label>
+        <select id="escope" th:field="*{scope}" class="select"><option value="전체 공개">전체 공개</option><option value="우리 부서">우리 부서</option></select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="et">제목 <span class="req">*</span></label>
+      <input id="et" th:field="*{title}" class="input" type="text" required maxlength="300">
+    </div>
+    <div class="field">
+      <label for="ec"><span th:text="${archive} ? '설명' : '내용'">내용</span> <span th:unless="${archive}" class="req">*</span></label>
+      <textarea id="ec" th:field="*{content}" class="textarea" th:rows="${archive} ? 5 : 12" th:required="${!archive}"></textarea>
+    </div>
+
+    <!-- 첨부파일 -->
+    <fieldset style="margin:0; border:1px solid var(--line); border-radius:12px; padding:16px 18px; display:flex; flex-direction:column; gap:10px;">
+      <legend class="field-label" style="padding:0 6px;">첨부파일 <span th:if="${archive}" class="hint" style="font-weight:400;">(하나 이상 있어야 합니다)</span></legend>
+      <p th:if="${#lists.isEmpty(post.files)}" class="hint">첨부된 파일이 없습니다.</p>
+      <label th:each="f : ${post.files}" class="check" style="font-size:17px;">
+        <input type="checkbox" name="removeFileIds" th:value="${f.fileId}">
+        <span><span th:text="${f.originalName}">파일</span> <span class="muted" th:text="'(' + ${f.sizeText} + ')'"></span> — 지우기</span>
+      </label>
+      <label for="ef" class="field-label" style="font-size:17px; margin-top:6px;">파일 더하기</label>
+      <input id="ef" name="files" type="file" multiple class="input" style="height:auto; padding:12px; border-style:dashed; background:#F8FAFC;">
+      <p class="hint" th:text="'파일당 20MB까지 · 올릴 수 있는 형식: ' + ${allowedExt}">형식</p>
+    </fieldset>
+
+    <label th:if="${notice}" class="check" style="font-size:19px;"><input type="checkbox" th:field="*{pinned}" style="width:22px; height:22px;">상단 공지로 고정</label>
+
+    <div class="form-actions">
+      <a class="btn btn-plain btn-lg" th:href="@{/board(tab=${post.boardType})}">취소</a>
+      <button type="submit" class="btn btn-primary btn-lg">저장</button>
+    </div>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
