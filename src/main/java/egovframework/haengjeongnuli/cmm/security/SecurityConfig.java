@@ -1,5 +1,6 @@
 package egovframework.haengjeongnuli.cmm.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.DisabledException;
@@ -8,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.session.DisableEncodeUrlFilter;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
@@ -22,9 +24,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+            @Value("${app.access.allowed-networks}") String allowedNetworks) throws Exception {
         AntPathRequestMatcher h2 = new AntPathRequestMatcher("/h2-console/**");
         http
+            // 허용한 네트워크(기본: 이 PC + 집 내부망)가 아니면 로그인 화면조차 보여주지 않는다
+            .addFilterBefore(new AllowedNetworkFilter(allowedNetworks), DisableEncodeUrlFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/error").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")

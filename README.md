@@ -38,6 +38,21 @@
 
 문체부 돋음체 파일을 `src/main/resources/static/fonts/MDotum.ttf`에 두면 적용됩니다. 이용 조건(재배포 허용 여부)을 확인하지 못해 저장소에는 올리지 않았습니다(`.gitignore` 처리). 파일이 없으면 맑은 고딕으로 표시됩니다.
 
+## 접속 허용 범위
+
+기본값으로 **이 PC와 집 공유기 안의 기기(사설 IP: 192.168.x.x, 10.x.x.x, 172.16~31.x.x)**에서만 접속할 수 있고, 인터넷(바깥)에서 오는 접속은 로그인 화면도 보여주지 않고 막습니다. 막힌 접속은 서버 창에 기록됩니다.
+
+- 범위는 `application.yml`의 `app.access.allowed-networks` 또는 환경변수 `APP_ALLOWED_NETWORKS`로 바꿉니다 (CIDR, 쉼표 구분).
+- **이 PC에서만** 쓰려면:
+
+```powershell
+$env:APP_ALLOWED_NETWORKS="127.0.0.1/32,::1/128"
+.\gradlew.bat bootRun
+```
+
+- 접속한 기기의 실제 주소만 보며, 요청 헤더(X-Forwarded-For 등)로 주소를 속여도 통과하지 않습니다.
+- 함께 지킬 것: 공유기에서 8080 포트를 **포트 포워딩하지 않기**, Windows 방화벽에서 Java를 **'개인 네트워크'만 허용**하기.
+
 ## 데이터베이스
 
 데이터 접근은 MyBatis(SQL은 `src/main/resources/egovframework/mapper/`)로 하며, Oracle·Tibero·H2에서 모두 도는 Oracle 문법만 씁니다.
