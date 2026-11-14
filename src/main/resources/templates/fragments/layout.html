@@ -23,6 +23,7 @@
       <a th:href="@{/finance}" th:attr="aria-current=${active == 'finance'} ? 'page' : null">재정·세무</a>
       <a th:href="@{/hr}" th:attr="aria-current=${active == 'hr'} ? 'page' : null">인사</a>
       <a th:href="@{/board}" th:attr="aria-current=${active == 'board'} ? 'page' : null">게시판</a>
+      <a th:if="${loginUser != null and loginUser.admin}" th:href="@{/admin/users}" th:attr="aria-current=${active == 'admin'} ? 'page' : null">계정 관리</a>
     </nav>
     <div th:if="${loginUser}" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       <a class="user-chip" th:href="@{/mypage/password}" style="color:#fff; text-decoration:none;" title="내 정보 · 비밀번호 변경">

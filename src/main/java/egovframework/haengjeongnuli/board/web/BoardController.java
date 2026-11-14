@@ -89,7 +89,7 @@ public class BoardController {
             addFileRules(model);
             return "board/write";
         }
-        boardService.write(form, files, loginUser.name(), loginUser.dept());
+        boardService.write(form, files, loginUser);
         ra.addFlashAttribute("message", "게시글이 등록되었습니다.");
         return "redirect:/board?tab=" + form.getBoard();
     }
@@ -114,9 +114,25 @@ public class BoardController {
             addFileRules(model);
             return "board/upload";
         }
-        boardService.write(form, files, loginUser.name(), loginUser.dept());
+        boardService.write(form, files, loginUser);
         ra.addFlashAttribute("message", "자료가 등록되었습니다.");
         return "redirect:/board?tab=archive";
+    }
+
+    /** 게시물 삭제 (글쓴이 본인·관리자) */
+    @PostMapping("/{postId}/delete")
+    public String delete(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long postId,
+                         @RequestParam(defaultValue = "notice") String tab,
+                         RedirectAttributes ra, HttpServletResponse response) {
+        BoardService.DeleteResult r = boardService.delete(postId, loginUser);
+        if (r == BoardService.DeleteResult.FORBIDDEN) {
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            return "error/403";
+        }
+        ra.addFlashAttribute("message", r == BoardService.DeleteResult.DELETED
+                ? "게시물을 삭제했습니다." : "이미 삭제되었거나 없는 게시물입니다.");
+        String safeTab = TABS.stream().anyMatch(x -> x.id().equals(tab)) ? tab : "notice";
+        return "redirect:/board?tab=" + safeTab;
     }
 
     /** 첨부파일 내려받기. 브라우저가 열어 실행하지 않도록 항상 '내려받기'로 보낸다. */

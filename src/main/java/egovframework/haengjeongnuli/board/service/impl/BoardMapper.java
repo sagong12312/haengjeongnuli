@@ -30,4 +30,9 @@ public interface BoardMapper {
     AttachFileVO selectFile(@Param("fileId") long fileId);
 
     int increaseDownloadCount(@Param("fileId") long fileId);
+
+    BoardPostVO selectPost(@Param("postId") long postId);
+
+    int markDeleted(@Param("postId") long postId, @Param("deletedBy") String deletedBy,
+                    @Param("now") java.time.LocalDateTime now);
 }

@@ -10,15 +10,16 @@
     <insert id="insertPost" parameterType="egovframework.haengjeongnuli.board.service.BoardPostVO">
         INSERT INTO BOARD_POST (
             POST_ID, BOARD_TYPE, TITLE, CONTENT, CATEGORY, OPEN_SCOPE, PINNED_YN,
-            VIEW_COUNT, WRITER, WRITER_DEPT, CREATED_AT
+            VIEW_COUNT, WRITER, WRITER_DEPT, CREATED_AT, WRITER_ID, DELETED_YN
         ) VALUES (
             #{postId}, #{boardType}, #{title}, #{content, jdbcType=CLOB}, #{category}, #{openScope}, #{pinnedYn},
-            0, #{writer}, #{writerDept}, #{createdAt}
+            0, #{writer}, #{writerDept}, #{createdAt}, #{writerId}, 'N'
         )
     </insert>
 
     <sql id="searchWhere">
         WHERE BOARD_TYPE = #{boardType}
+          AND DELETED_YN = 'N'
         <if test="q != null">
             AND (TITLE LIKE '%' || #{q} || '%' OR WRITER LIKE '%' || #{q} || '%')
         </if>
@@ -27,7 +28,7 @@
     <select id="selectPostList" resultType="egovframework.haengjeongnuli.board.service.BoardPostVO">
         SELECT * FROM (
             SELECT POST_ID, BOARD_TYPE, TITLE, CATEGORY, OPEN_SCOPE, PINNED_YN, VIEW_COUNT,
-                   WRITER, WRITER_DEPT, CREATED_AT
+                   WRITER, WRITER_DEPT, CREATED_AT, WRITER_ID
               FROM BOARD_POST
             <include refid="searchWhere"/>
              ORDER BY CASE WHEN PINNED_YN = 'Y' THEN 0 ELSE 1 END, CREATED_AT DESC, POST_ID DESC
@@ -57,11 +58,28 @@
          ORDER BY POST_ID, FILE_ID
     </select>
 
+    <!-- 삭제된 글의 파일은 내려받을 수 없다 -->
     <select id="selectFile" resultType="egovframework.haengjeongnuli.cmm.file.AttachFileVO">
-        SELECT FILE_ID, POST_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, DOWNLOAD_COUNT, CREATED_AT
-          FROM ATTACH_FILE
-         WHERE FILE_ID = #{fileId}
+        SELECT F.FILE_ID, F.POST_ID, F.ORIGINAL_NAME, F.STORED_NAME, F.FILE_SIZE, F.DOWNLOAD_COUNT, F.CREATED_AT
+          FROM ATTACH_FILE F
+          JOIN BOARD_POST P ON P.POST_ID = F.POST_ID
+         WHERE F.FILE_ID = #{fileId}
+           AND P.DELETED_YN = 'N'
     </select>
+
+    <!-- 게시물 삭제 (표시만 하고 기록은 남긴다) -->
+    <select id="selectPost" resultType="egovframework.haengjeongnuli.board.service.BoardPostVO">
+        SELECT POST_ID, BOARD_TYPE, TITLE, WRITER, WRITER_ID, DELETED_YN, CREATED_AT
+          FROM BOARD_POST
+         WHERE POST_ID = #{postId}
+    </select>
+
+    <update id="markDeleted">
+        UPDATE BOARD_POST
+           SET DELETED_YN = 'Y', DELETED_AT = #{now}, DELETED_BY = #{deletedBy}
+         WHERE POST_ID = #{postId}
+           AND DELETED_YN = 'N'
+    </update>
 
     <update id="increaseDownloadCount">
         UPDATE ATTACH_FILE SET DOWNLOAD_COUNT = DOWNLOAD_COUNT + 1 WHERE FILE_ID = #{fileId}

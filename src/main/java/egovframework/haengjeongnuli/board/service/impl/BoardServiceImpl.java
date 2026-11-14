@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import egovframework.haengjeongnuli.board.service.BoardPostForm;
 import egovframework.haengjeongnuli.board.service.BoardPostVO;
 import egovframework.haengjeongnuli.board.service.BoardService;
+import egovframework.haengjeongnuli.cmm.LoginUser;
 import egovframework.haengjeongnuli.cmm.file.AttachFileVO;
 import egovframework.haengjeongnuli.cmm.file.FileStorage;
 
@@ -31,7 +32,7 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional
-    public BoardPostVO write(BoardPostForm form, List<MultipartFile> files, String writer, String writerDept) {
+    public BoardPostVO write(BoardPostForm form, List<MultipartFile> files, LoginUser writer) {
         LocalDateTime now = LocalDateTime.now();
         BoardPostVO vo = new BoardPostVO();
         vo.setPostId(boardMapper.nextId());
@@ -42,8 +43,9 @@ public class BoardServiceImpl implements BoardService {
         vo.setOpenScope(form.getScope());
         // 상단 고정은 공지사항에서만
         vo.setPinnedYn("notice".equals(form.getBoard()) && form.isPinned() ? "Y" : "N");
-        vo.setWriter(writer);
-        vo.setWriterDept(writerDept);
+        vo.setWriter(writer.name());
+        vo.setWriterDept(writer.dept().isEmpty() ? null : writer.dept());
+        vo.setWriterId(writer.getLoginId());
         vo.setCreatedAt(now);
         boardMapper.insertPost(vo);
 
@@ -97,6 +99,20 @@ public class BoardServiceImpl implements BoardService {
             boardMapper.increaseDownloadCount(fileId);
         }
         return f;
+    }
+
+    @Override
+    @Transactional
+    public DeleteResult delete(long postId, LoginUser by) {
+        BoardPostVO post = boardMapper.selectPost(postId);
+        if (post == null || post.isDeleted()) {
+            return DeleteResult.NOT_FOUND;
+        }
+        if (!post.canDelete(by)) {
+            return DeleteResult.FORBIDDEN;
+        }
+        boardMapper.markDeleted(postId, by.getLoginId(), LocalDateTime.now());
+        return DeleteResult.DELETED;
     }
 
     /** 이름 없이 비어 있는 파일 입력칸은 건너뛴다 */

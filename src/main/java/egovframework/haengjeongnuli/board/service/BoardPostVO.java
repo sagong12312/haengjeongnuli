@@ -16,10 +16,23 @@ public class BoardPostVO {
     private String writer;
     private String writerDept;
     private LocalDateTime createdAt;
+    private String writerId;
+    private String deletedYn = "N";
 
     private java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> files = new java.util.ArrayList<>();
 
     public boolean isPinned() { return "Y".equals(pinnedYn); }
+    public boolean isDeleted() { return "Y".equals(deletedYn); }
+
+    /** 이 직원이 이 글을 지울 수 있는지: 관리자이거나 글쓴이 본인 */
+    public boolean canDelete(egovframework.haengjeongnuli.cmm.LoginUser user) {
+        return user != null && (user.isAdmin() || (writerId != null && writerId.equals(user.getLoginId())));
+    }
+
+    public String getWriterId() { return writerId; }
+    public void setWriterId(String writerId) { this.writerId = writerId; }
+    public String getDeletedYn() { return deletedYn; }
+    public void setDeletedYn(String deletedYn) { this.deletedYn = deletedYn; }
 
     public java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> getFiles() { return files; }
     public void setFiles(java.util.List<egovframework.haengjeongnuli.cmm.file.AttachFileVO> files) { this.files = files; }

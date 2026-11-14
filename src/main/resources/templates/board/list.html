@@ -44,10 +44,11 @@
           <th scope="col" style="width:80px">번호</th><th scope="col" style="text-align:left">제목</th>
           <th scope="col" style="width:130px">작성자</th><th scope="col" style="width:150px">부서</th>
           <th scope="col" style="width:130px">등록일</th><th scope="col" style="width:80px">조회</th>
+          <th scope="col" style="width:90px"><span class="sr-only">관리</span></th>
         </tr></thead>
         <tbody>
           <tr th:if="${#lists.isEmpty(posts)}">
-            <td colspan="6" style="padding:40px 12px;">등록된 글이 없습니다.</td>
+            <td colspan="7" style="padding:40px 12px;">등록된 글이 없습니다.</td>
           </tr>
           <tr th:each="p : ${posts}" th:classappend="${p.pinned} ? 'pinned'">
             <td>
@@ -71,6 +72,14 @@
             <td th:text="${p.writerDept} ?: '—'">부서</td>
             <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd')}">날짜</td>
             <td th:text="${p.viewCount}">0</td>
+            <td>
+              <form th:if="${p.canDelete(loginUser)}" th:action="@{/board/{id}/delete(id=${p.postId})}" method="post"
+                    style="margin:0;" onsubmit="return confirm('이 게시물을 삭제할까요?');">
+                <input type="hidden" name="tab" th:value="${current.id}">
+                <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px; color:var(--red-fg); border-color:#E8B4B4;"
+                        th:attr="aria-label=${p.title} + ' 삭제'">삭제</button>
+              </form>
+            </td>
           </tr>
         </tbody>
       </table>

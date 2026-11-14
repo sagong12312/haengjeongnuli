@@ -68,6 +68,7 @@ $env:APP_ALLOWED_NETWORKS="127.0.0.1/32,::1/128"
 ### Oracle / Tibero 연결 순서
 
 1. DBA가 `src/main/resources/db/oracle/schema.sql`로 테이블과 시퀀스를 만듭니다. (Oracle·Tibero 공통)
+   - 이미 예전 `schema.sql`로 만든 DB라면 `db/oracle/migration/` 안의 파일을 번호 순서대로 한 번씩 실행합니다. (로컬 H2는 자동)
 2. Tibero라면 Tibero 설치 폴더의 `client/lib/jar/tibero7-jdbc.jar`(Tibero 6은 `tibero6-jdbc.jar`)를 프로젝트의 `libs/` 폴더에 복사합니다.
 3. 접속 정보를 환경변수로 넣고 실행합니다. 비밀번호는 파일에 적지 않습니다.
 
@@ -86,6 +87,7 @@ Tibero는 `DB_URL="jdbc:tibero:thin:@DB주소:8629:DB명"`, 프로필은 `tibero
 
 - **민원**: 접수(접수번호 `연도-일련번호` 자동 부여, 처리기한 계산), 목록·검색, 처리 현황 숫자
 - **게시판**: 글쓰기, 자료 올리기, 목록·검색, 메인메뉴 공지사항
+- **게시물 삭제**: 글쓴이 본인과 시스템 관리자만 목록의 '삭제' 버튼으로 지울 수 있습니다. 실제로 지우지 않고 `DELETED_YN='Y'`로 표시(누가·언제 지웠는지 기록)하며, 목록에서 빠지고 첨부파일도 내려받을 수 없게 됩니다. 이 기능 전에 쓴 글은 글쓴이 아이디가 없어 관리자만 지울 수 있습니다.
 - **첨부파일**: 게시판·자료실 첨부파일. 파일 자체는 `app.file.upload-dir`(기본 `./uploads`)에, 원래 이름·크기·받은 횟수는 `ATTACH_FILE` 테이블에 저장. 목록의 파일 이름을 누르면 내려받습니다.
   - 파일당 20MB, 한 번에 100MB까지 (`spring.servlet.multipart`)
   - 올릴 수 있는 형식은 `app.file.allowed-extensions`에서 정합니다 (실행 파일 등은 거부)
