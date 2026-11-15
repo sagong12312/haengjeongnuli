@@ -20,3 +20,6 @@ app:
     upload-dir: build/test-uploads
   init-admin:
     password: "Test-first-1!"
+  # 테스트 중에는 아침 알림 일정을 끈다 (run() 을 직접 불러 확인)
+  reminder:
+    cron: "-"
