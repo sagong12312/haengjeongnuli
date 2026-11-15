@@ -45,9 +45,15 @@ public class CivilController {
     private final egovframework.haengjeongnuli.civil.service.CivilProcessService process;
     private final CivilService civilService;
     private final AuditService auditService;
+    private final egovframework.haengjeongnuli.civil.service.CivilFileService civilFiles;
+    private final egovframework.haengjeongnuli.cmm.file.FileStorage fileStorage;
 
     public CivilController(DeadlineCalculator deadlineCalculator, CivilService civilService, AuditService auditService,
-                           egovframework.haengjeongnuli.civil.service.CivilProcessService process) {
+                           egovframework.haengjeongnuli.civil.service.CivilProcessService process,
+                           egovframework.haengjeongnuli.civil.service.CivilFileService civilFiles,
+                           egovframework.haengjeongnuli.cmm.file.FileStorage fileStorage) {
+        this.civilFiles = civilFiles;
+        this.fileStorage = fileStorage;
         this.process = process;
         this.auditService = auditService;
         this.deadlineCalculator = deadlineCalculator;
@@ -84,10 +90,15 @@ public class CivilController {
     /** 접수. 화면과 별개로 서버에서도 권한과 입력값을 확인한다. */
     @PostMapping("/new")
     public String submit(@AuthenticationPrincipal LoginUser loginUser, @Validated @ModelAttribute("civilForm") CivilForm form, BindingResult result,
-                         Model model, RedirectAttributes ra, HttpServletResponse response) {
+                         @org.springframework.web.bind.annotation.RequestParam(value = "files", required = false) java.util.List<org.springframework.web.multipart.MultipartFile> files,
+                         Model model, RedirectAttributes ra, HttpServletResponse response) throws java.io.IOException {
         if (!loginUser.isCounterStaff()) {
             response.setStatus(HttpStatus.FORBIDDEN.value());
             return "civil/denied";
+        }
+        String fileProblem = civilFiles.check(files);
+        if (fileProblem != null) {
+            result.reject("files", fileProblem);
         }
         if (result.hasErrors()) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
@@ -101,11 +112,13 @@ public class CivilController {
             form.setDept(staff.getDeptName());
         }
         CivilComplaintVO saved = civilService.receive(form, loginUser.getLoginId());
+        int saved_files = civilFiles.save(saved.getComplaintId(), files, loginUser.getLoginId());
         if (staff != null && !staff.getLoginId().equals(loginUser.getLoginId())) {
             process.assign(saved.getComplaintId(), saved.getDept(), staff.getLoginId(), loginUser);
         }
         auditService.record(AuditAction.CIVIL_RECEIVE, "민원 " + saved.getReceiptNo(), saved.getKind().getLabel());
-        ra.addFlashAttribute("message", "민원이 접수되었습니다. 접수번호: " + saved.getReceiptNo());
+        ra.addFlashAttribute("message", "민원이 접수되었습니다. 접수번호: " + saved.getReceiptNo()
+                + (saved_files > 0 ? " (구비서류 " + saved_files + "개 저장)" : ""));
         return "redirect:/civil/" + saved.getComplaintId();
     }
 
@@ -115,6 +128,53 @@ public class CivilController {
                 .collect(Collectors.groupingBy(LegalAffair::getGroup, LinkedHashMap::new, Collectors.toList()));
         model.addAttribute("affairGroups", groups);
         model.addAttribute("staffList", process.staffList());
+    }
+
+    /** 구비서류 추가 (처리할 수 있는 직원) */
+    @PostMapping("/{id:\\d+}/files")
+    public String addFiles(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                           @org.springframework.web.bind.annotation.RequestParam(value = "files", required = false) java.util.List<org.springframework.web.multipart.MultipartFile> files,
+                           RedirectAttributes ra) throws java.io.IOException {
+        CivilComplaintVO c = visible(id, me);
+        if (!process.canProcess(c, me)) {
+            ra.addFlashAttribute("message", "처리 담당·부서 직원만 구비서류를 추가할 수 있습니다.");
+            return "redirect:/civil/" + id;
+        }
+        String problem = civilFiles.check(files);
+        if (problem == null && (files == null || files.stream().allMatch(f -> f == null || f.isEmpty()))) {
+            problem = "올릴 파일을 고르세요.";
+        }
+        if (problem != null) {
+            ra.addFlashAttribute("message", problem);
+            return "redirect:/civil/" + id;
+        }
+        int n = civilFiles.save(id, files, me.getLoginId());
+        auditService.record(AuditAction.CIVIL_FILE_ADD, "민원 " + c.getReceiptNo(), n + "개");
+        ra.addFlashAttribute("message", "구비서류 " + n + "개를 추가했습니다.");
+        return "redirect:/civil/" + id;
+    }
+
+    /** 구비서류 내려받기 (민원 상세를 볼 수 있는 직원만, 개인정보이므로 기록) */
+    @GetMapping("/files/{fileId:\\d+}")
+    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> download(
+            @AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long fileId) {
+        egovframework.haengjeongnuli.civil.service.CivilFileVO f = civilFiles.get(fileId);
+        if (f == null) {
+            return org.springframework.http.ResponseEntity.notFound().build();
+        }
+        CivilComplaintVO c = process.get(f.getComplaintId());
+        java.nio.file.Path path = fileStorage.path(f.getStoredName());
+        if (c == null || !process.canView(c, me) || !java.nio.file.Files.isReadable(path)) {
+            return org.springframework.http.ResponseEntity.notFound().build();
+        }
+        auditService.record(AuditAction.FILE_DOWNLOAD, "민원 " + c.getReceiptNo() + " 구비서류 " + fileId, f.getOriginalName());
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(f.getFileSize())
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment()
+                        .filename(f.getOriginalName(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(new org.springframework.core.io.FileSystemResource(path));
     }
 
     // ===== 민원 처리 =====
@@ -127,6 +187,7 @@ public class CivilController {
         auditService.record(AuditAction.CIVIL_VIEW, "민원 " + c.getReceiptNo(), null);
         model.addAttribute("c", c);
         model.addAttribute("history", process.history(id));
+        model.addAttribute("files", civilFiles.list(id));
         model.addAttribute("canProcess", process.canProcess(c, me));
         model.addAttribute("staffList", process.staffList());
         model.addAttribute("reasons", egovframework.haengjeongnuli.civil.service.ExtendReason.values());

@@ -37,6 +37,7 @@ public enum AuditAction {
 
     CIVIL_RECEIVE("민원 접수"),
     CIVIL_VIEW("민원 상세 열람(개인정보)"),
+    CIVIL_FILE_ADD("민원 구비서류 추가"),
     CIVIL_ASSIGN("민원 배정"),
     CIVIL_EXTEND("민원 처리기간 연장"),
     CIVIL_PROGRESS("민원 진행상황 통지"),

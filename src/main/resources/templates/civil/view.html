@@ -53,6 +53,21 @@
     <div style="white-space:pre-wrap; font-size:19px; line-height:1.8;" th:text="${c.content}">내용</div>
   </section>
 
+  <section class="panel" aria-labelledby="files-title">
+    <h2 id="files-title">구비서류·첨부</h2>
+    <p th:if="${#lists.isEmpty(files)}" class="hint" style="margin:0;">올린 구비서류가 없습니다.</p>
+    <ul th:unless="${#lists.isEmpty(files)}" style="margin:0; padding-left:22px;">
+      <li th:each="f : ${files}"><a th:href="@{/civil/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a>
+        <small class="muted" th:text="' · ' + ${#temporals.format(f.createdAt, 'MM-dd HH:mm')}">시각</small></li>
+    </ul>
+    <form th:if="${canProcess}" th:action="@{/civil/{id}/files(id=${c.complaintId})}" method="post" enctype="multipart/form-data"
+          style="display:flex; gap:10px; flex-wrap:wrap; margin:0;">
+      <label for="addfiles" class="sr-only">구비서류 추가</label>
+      <input id="addfiles" name="files" type="file" multiple class="input" style="height:auto; padding:10px; flex:1;">
+      <button type="submit" class="btn btn-outline">구비서류 추가</button>
+    </form>
+  </section>
+
   <section class="panel" th:if="${c.done}" aria-labelledby="res-title" style="border:2px solid var(--green-fg, #1E7B3C);">
     <h2 id="res-title">처리 결과</h2>
     <dl class="kv">
