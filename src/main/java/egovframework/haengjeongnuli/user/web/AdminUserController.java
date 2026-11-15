@@ -87,6 +87,57 @@ public class AdminUserController {
         return "redirect:/admin/users";
     }
 
+    /** 인사정보 (이름·직급·사번·직렬·임용일·내선번호) */
+    @GetMapping("/{userId}/profile")
+    public String profileForm(@PathVariable long userId, Model model) {
+        LoginUser u = userService.findById(userId);
+        if (u == null) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        model.addAttribute("u", u);
+        return "user/admin-profile";
+    }
+
+    @PostMapping("/{userId}/profile")
+    public String profile(@PathVariable long userId, @RequestParam String userName,
+                          @RequestParam(required = false) String positionName, @RequestParam(required = false) String empNo,
+                          @RequestParam(required = false) String jobSeries,
+                          @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate hiredOn,
+                          @RequestParam(required = false) String extension, RedirectAttributes ra) {
+        LoginUser u = userService.findById(userId);
+        if (u == null) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        String name = userName.trim();
+        if (name.isEmpty() || name.length() > 100 || len(positionName) > 50 || len(empNo) > 20 || len(jobSeries) > 50
+                || len(extension) > 20) {
+            ra.addFlashAttribute("message", "입력 길이를 확인하세요 (이름 100자, 직급·직렬 50자, 사번·내선번호 20자).");
+            return "redirect:/admin/users/" + userId + "/profile";
+        }
+        if (hiredOn != null && hiredOn.isAfter(java.time.LocalDate.now())) {
+            ra.addFlashAttribute("message", "임용일은 오늘 이전이어야 합니다.");
+            return "redirect:/admin/users/" + userId + "/profile";
+        }
+        u.setUserName(name);
+        u.setPositionName(blank(positionName));
+        u.setEmpNo(blank(empNo));
+        u.setJobSeries(blank(jobSeries));
+        u.setHiredOn(hiredOn);
+        u.setExtension(blank(extension));
+        userService.updateProfile(u);
+        auditService.record(AuditAction.USER_PROFILE, u.getLoginId(), null);
+        ra.addFlashAttribute("message", u.getUserName() + "(" + u.getLoginId() + ")의 인사정보를 저장했습니다.");
+        return "redirect:/admin/users";
+    }
+
+    private static int len(String s) {
+        return s == null ? 0 : s.trim().length();
+    }
+
+    private static String blank(String s) {
+        return s == null || s.isBlank() ? null : s.trim();
+    }
+
     /** 세입 담당 지정·해제 (세입 화면은 지정된 직원만 연다) */
     @PostMapping("/{userId}/revenue")
     public String revenue(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {

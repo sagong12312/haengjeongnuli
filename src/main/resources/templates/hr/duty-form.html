@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('복무 신청')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('hr')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div>
+    <span class="crumb"><a th:href="@{/hr}">인사</a> › 복무 신청</span>
+    <h1>복무 신청</h1>
+  </div>
+
+  <nav class="tabs" aria-label="신청 종류">
+    <a th:each="k : ${kinds}" th:href="@{/hr/duty/new(kind=${k})}" th:text="${k.label}"
+       th:attr="aria-current=${k == kind} ? 'page' : null">연가</a>
+  </nav>
+
+  <div class="stat-grid" th:if="${kind.name() == 'ANNUAL' or kind.name() == 'SICK'}">
+    <th:block th:if="${kind.name() == 'ANNUAL'}">
+      <div class="stat"><small>올해 연가</small><strong th:text="(${leave.granted()} ?: '—') + '일'">0일</strong></div>
+      <div class="stat"><small>사용·결재 중</small><strong th:text="${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(leave.used() + leave.pending())} + '일'">0일</strong></div>
+      <div class="stat blue"><small style="color:#1D3A5F">남은 연가</small><strong th:text="${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(leave.remaining())} + '일'">0일</strong></div>
+    </th:block>
+    <th:block th:if="${kind.name() == 'SICK'}">
+      <div class="stat"><small>올해 병가(결재 중 포함)</small><strong th:text="${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(sickUsed)} + '일'">0일</strong></div>
+      <div class="stat blue"><small style="color:#1D3A5F">한도</small><strong>연 60일</strong></div>
+    </th:block>
+  </div>
+
+  <form class="panel" th:action="@{/hr/duty}" method="post" style="gap:18px;">
+    <input type="hidden" name="kind" th:value="${kind}">
+    <div class="grid-fields">
+      <div class="field"><label for="dstart" th:text="${kind.name() == 'OVERTIME'} ? '근무일' : '시작일'">시작일</label>
+        <input id="dstart" name="start" type="date" class="input" required th:value="${today}"></div>
+      <div class="field" th:if="${kind.name() != 'OVERTIME'}"><label for="dend">종료일</label>
+        <input id="dend" name="end" type="date" class="input" th:value="${today}"></div>
+      <div class="field" th:if="${kind.leave}"><label for="dhalf">반일</label>
+        <select id="dhalf" name="halfDay" class="select"><option value="">하루 전체</option><option value="AM">오전 (반일)</option><option value="PM">오후 (반일)</option></select></div>
+      <th:block th:if="${kind.name() == 'OVERTIME'}">
+        <div class="field"><label for="dfrom">시작 시각</label><input id="dfrom" name="startTime" type="time" class="input" value="18:00" required></div>
+        <div class="field"><label for="dto">끝 시각</label><input id="dto" name="endTime" type="time" class="input" value="20:00" required></div>
+      </th:block>
+      <div class="field" th:if="${kind.name() == 'TRIP'}"><label for="ddest">출장지 <span class="req">*</span></label>
+        <input id="ddest" name="destination" class="input" maxlength="200" required placeholder="예: 세종 정부청사"></div>
+    </div>
+    <div class="field"><label for="dreason">사유 <span class="req">*</span></label>
+      <textarea id="dreason" name="reason" class="textarea" rows="3" maxlength="1000" required></textarea></div>
+    <div class="field"><label for="dappr">결재권자 <span class="req">*</span></label>
+      <select id="dappr" name="approver" class="select" required>
+        <option value="">선택</option>
+        <option th:each="u : ${approvers}" th:value="${u.loginId}" th:text="${u.userName} + ' ' + ${u.position()} + (${u.deptName} ? ' · ' + ${u.deptName} : '')">직원</option>
+      </select></div>
+    <p class="hint" style="margin:0;" th:switch="${kind.name()}">
+      <span th:case="'ANNUAL'">휴가 일수는 토요일·일요일·공휴일을 빼고 셉니다. 남은 연가를 넘겨 신청할 수 없습니다.</span>
+      <span th:case="'SICK'">병가는 연 60일 범위이며, 연 6일을 넘으면 의사의 진단서를 첨부해야 합니다(지방공무원 복무규정 제7조의5). 진단서는 결재 문서에서 첨부하세요.</span>
+      <span th:case="'OFFICIAL'">공가는 병역 소집, 투표, 건강검진, 헌혈 등 복무규정 제7조의6의 사유에 해당할 때 신청합니다.</span>
+      <span th:case="*">신청하면 전자결재로 올라가고, 결재 결과가 신청 결과가 됩니다.</span>
+    </p>
+    <div class="form-actions">
+      <a class="btn btn-plain btn-lg" th:href="@{/hr}">취소</a>
+      <button type="submit" class="btn btn-primary btn-lg">결재 올리기</button>
+    </div>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

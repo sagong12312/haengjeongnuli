@@ -40,6 +40,11 @@ public class LoginUser implements UserDetails {
     private LocalDateTime passwordChangedAt;
     /** 세입 담당 직원 (Y/N) */
     private String revenueYn = "N";
+    // 인사정보
+    private String empNo;
+    private String jobSeries;
+    private java.time.LocalDate hiredOn;
+    private String extension;
 
     // 화면에서 쓰는 이름들
     public String name() { return userName; }
@@ -88,6 +93,14 @@ public class LoginUser implements UserDetails {
     public void setDeptName(String deptName) { this.deptName = deptName; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+    public String getEmpNo() { return empNo; }
+    public void setEmpNo(String empNo) { this.empNo = empNo; }
+    public String getJobSeries() { return jobSeries; }
+    public void setJobSeries(String jobSeries) { this.jobSeries = jobSeries; }
+    public java.time.LocalDate getHiredOn() { return hiredOn; }
+    public void setHiredOn(java.time.LocalDate hiredOn) { this.hiredOn = hiredOn; }
+    public String getExtension() { return extension; }
+    public void setExtension(String extension) { this.extension = extension; }
     public String getRevenueYn() { return revenueYn; }
     public void setRevenueYn(String revenueYn) { this.revenueYn = revenueYn; }
     public String getEnabledYn() { return enabledYn; }

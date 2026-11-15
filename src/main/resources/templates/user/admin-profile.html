@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('인사정보')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div>
+    <span class="crumb"><a th:href="@{/admin/users}">직원 계정 관리</a> › 인사정보</span>
+    <h1 th:text="${u.userName} + ' (' + ${u.loginId} + ')'">직원</h1>
+  </div>
+  <form class="panel" th:action="@{/admin/users/{id}/profile(id=${u.userId})}" method="post" style="gap:18px;">
+    <div class="grid-fields">
+      <div class="field"><label for="pname">이름 <span class="req">*</span></label><input id="pname" name="userName" class="input" required maxlength="100" th:value="${u.userName}"></div>
+      <div class="field"><label for="ppos">직급</label><input id="ppos" name="positionName" class="input" maxlength="50" th:value="${u.positionName}" placeholder="예: 주무관, 팀장"></div>
+      <div class="field"><label for="pemp">사번</label><input id="pemp" name="empNo" class="input" maxlength="20" th:value="${u.empNo}"></div>
+      <div class="field"><label for="pseries">직렬</label><input id="pseries" name="jobSeries" class="input" maxlength="50" th:value="${u.jobSeries}" placeholder="예: 행정, 세무, 사회복지"></div>
+      <div class="field"><label for="phired">임용일</label><input id="phired" name="hiredOn" type="date" class="input" th:value="${u.hiredOn}">
+        <p class="hint" style="margin:0;">연가 일수를 재직기간으로 계산하는 데 씁니다 (지방공무원 복무규정 제7조).</p></div>
+      <div class="field"><label for="pext">내선번호</label><input id="pext" name="extension" class="input" maxlength="20" th:value="${u.extension}"></div>
+    </div>
+    <p class="hint" th:text="'부서: ' + (${u.deptName} ?: '없음') + ' — 부서는 계정 관리의 부서 이동으로 바꿉니다(이동 기록이 남습니다).'">부서</p>
+    <div class="form-actions">
+      <a class="btn btn-plain btn-lg" th:href="@{/admin/users}">취소</a>
+      <button type="submit" class="btn btn-primary btn-lg">저장</button>
+    </div>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

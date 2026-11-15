@@ -72,6 +72,22 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public void updateProfile(LoginUser u) {
+        userMapper.updateProfile(u);
+    }
+
+    @Override
+    public LoginUser findByLoginId(String loginId) {
+        return userMapper.selectByLoginId(loginId);
+    }
+
+    @Override
+    public LoginUser findById(long userId) {
+        return userMapper.selectById(userId);
+    }
+
+    @Override
+    @Transactional
     public void setRevenueStaff(long userId, boolean value) {
         userMapper.updateRevenue(userId, value ? "Y" : "N");
     }

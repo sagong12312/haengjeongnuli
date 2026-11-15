@@ -20,6 +20,15 @@ public interface UserService extends UserDetailsService {
 
     void setEnabled(long userId, boolean enabled);
 
+    /** 이름·직급·사번·직렬·임용일·내선번호를 고친다 (부서는 부서 이동으로만 바꾼다) */
+    void updateProfile(LoginUser u);
+
+    /** 아이디로 찾는다. 없으면 null */
+    LoginUser findByLoginId(String loginId);
+
+    /** 계정 번호로 찾는다. 없으면 null */
+    LoginUser findById(long userId);
+
     /** 세입 담당 표시를 켜고 끈다 */
     void setRevenueStaff(long userId, boolean value);
 

@@ -19,9 +19,26 @@ import egovframework.haengjeongnuli.hr.service.AttendanceVO;
 public class HrController {
 
     private final AttendanceService attendanceService;
+    private final egovframework.haengjeongnuli.hr.service.DutyService dutyService;
+    private final egovframework.haengjeongnuli.user.service.UserService userService;
+    private final egovframework.haengjeongnuli.approval.service.ApprovalService approvalService;
+    private final egovframework.haengjeongnuli.cmm.audit.AuditService auditService;
 
-    public HrController(AttendanceService attendanceService) {
+    public HrController(AttendanceService attendanceService, egovframework.haengjeongnuli.hr.service.DutyService dutyService,
+                        egovframework.haengjeongnuli.user.service.UserService userService,
+                        egovframework.haengjeongnuli.approval.service.ApprovalService approvalService,
+                        egovframework.haengjeongnuli.cmm.audit.AuditService auditService) {
         this.attendanceService = attendanceService;
+        this.dutyService = dutyService;
+        this.userService = userService;
+        this.approvalService = approvalService;
+        this.auditService = auditService;
+    }
+
+    /** 관리자가 바꾼 인사정보가 바로 보이도록 DB에서 다시 읽는다 */
+    private LoginUser fresh(LoginUser me) {
+        LoginUser u = userService.findByLoginId(me.getLoginId());
+        return u == null ? me : u;
     }
 
     @GetMapping("/hr")
@@ -49,6 +66,54 @@ public class HrController {
         model.addAttribute("nextMonth", ym.isBefore(YearMonth.now()) ? ym.plusMonths(1).toString() : null);
         model.addAttribute("records", records);
         model.addAttribute("daysWorked", records.size());
+        LoginUser profile = fresh(me);
+        int thisYear = YearMonth.now().getYear();
+        model.addAttribute("profile", profile);
+        model.addAttribute("leave", dutyService.leave(profile, thisYear));
+        model.addAttribute("sickUsed", dutyService.sickUsed(profile, thisYear));
+        model.addAttribute("requests", dutyService.list(profile, null, 5));
+        model.addAttribute("kinds", egovframework.haengjeongnuli.hr.service.DutyKind.values());
         return "hr/index";
+    }
+
+    @GetMapping("/hr/duty")
+    public String dutyList(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Integer year, Model model) {
+        int y = year == null ? YearMonth.now().getYear() : year;
+        model.addAttribute("year", y);
+        model.addAttribute("requests", dutyService.list(me, y, 500));
+        return "hr/duty-list";
+    }
+
+    @GetMapping("/hr/duty/new")
+    public String dutyForm(@AuthenticationPrincipal LoginUser me,
+                           @RequestParam(defaultValue = "ANNUAL") egovframework.haengjeongnuli.hr.service.DutyKind kind, Model model) {
+        LoginUser profile = fresh(me);
+        model.addAttribute("kind", kind);
+        model.addAttribute("kinds", egovframework.haengjeongnuli.hr.service.DutyKind.values());
+        model.addAttribute("leave", dutyService.leave(profile, YearMonth.now().getYear()));
+        model.addAttribute("sickUsed", dutyService.sickUsed(profile, YearMonth.now().getYear()));
+        model.addAttribute("approvers", approvalService.approverCandidates(me));
+        model.addAttribute("today", java.time.LocalDate.now());
+        return "hr/duty-form";
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/hr/duty")
+    public String apply(@AuthenticationPrincipal LoginUser me,
+                        @RequestParam(required = false) egovframework.haengjeongnuli.hr.service.DutyKind kind,
+                        @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate start,
+                        @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate end,
+                        @RequestParam(required = false) String halfDay, @RequestParam(required = false) String startTime,
+                        @RequestParam(required = false) String endTime, @RequestParam(required = false) String destination,
+                        @RequestParam(required = false) String reason, @RequestParam(required = false) String approver,
+                        org.springframework.web.servlet.mvc.support.RedirectAttributes ra) throws java.io.IOException {
+        egovframework.haengjeongnuli.hr.service.DutyService.Result r = dutyService.apply(kind, start, end, halfDay, startTime,
+                endTime, destination, reason, approver, fresh(me));
+        ra.addFlashAttribute("message", r.message());
+        if (!r.ok()) {
+            return "redirect:/hr/duty/new" + (kind == null ? "" : "?kind=" + kind);
+        }
+        auditService.record(egovframework.haengjeongnuli.cmm.audit.AuditAction.APPROVAL_SUBMIT, "결재 " + r.docId(),
+                kind.getLabel() + " 신청");
+        return "redirect:/hr";
     }
 }

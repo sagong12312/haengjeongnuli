@@ -36,6 +36,7 @@
             <td th:text="${u.lastLoginAt} ? ${#temporals.format(u.lastLoginAt, 'yyyy-MM-dd HH:mm')} : '—'">—</td>
             <td style="text-align:left;">
               <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                <a class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;" th:href="@{/admin/users/{id}/profile(id=${u.userId})}">인사정보</a>
                 <form th:if="${u.locked}" th:action="@{/admin/users/{id}/unlock(id=${u.userId})}" method="post" style="margin:0;">
                   <button type="submit" class="btn btn-outline" style="height:40px; font-size:16px; padding:0 12px;">잠금 해제</button>
                 </form>

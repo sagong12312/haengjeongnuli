@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('복무 신청 내역')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('hr')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div class="page-head">
+    <div>
+      <span class="crumb"><a th:href="@{/hr}">인사</a> › 신청 내역</span>
+      <h1 th:text="${year} + '년 복무 신청 내역'">신청 내역</h1>
+    </div>
+    <nav style="display:flex; gap:8px;">
+      <a class="btn btn-plain" th:href="@{/hr/duty(year=${year - 1})}">‹ 이전 해</a>
+      <a class="btn btn-plain" th:href="@{/hr/duty(year=${year + 1})}">다음 해 ›</a>
+      <a class="btn btn-primary" th:href="@{/hr/duty/new}">새 신청</a>
+    </nav>
+  </div>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(requests)}" class="hint" style="padding:18px 22px;">신청 내역이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(requests)}">
+      <table class="list" style="min-width:760px">
+        <thead><tr><th scope="col">구분</th><th scope="col" style="text-align:left">기간</th><th scope="col" style="text-align:left">사유</th><th scope="col">신청일</th><th scope="col">상태</th></tr></thead>
+        <tbody>
+          <tr th:each="r : ${requests}">
+            <td><a th:href="@{/approval/{id}(id=${r.docId})}" th:text="${r.kind.label}">연가</a></td>
+            <td class="left" th:text="${r.periodText} + (${r.destination} ? ' · ' + ${r.destination} : '')">기간</td>
+            <td class="left muted" th:text="${#strings.abbreviate(r.reason, 40)}">사유</td>
+            <td th:text="${#temporals.format(r.createdAt, 'yyyy-MM-dd')}">날짜</td>
+            <td><span th:class="'badge ' + ${r.statusBadge}" th:text="${r.statusLabel}">상태</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

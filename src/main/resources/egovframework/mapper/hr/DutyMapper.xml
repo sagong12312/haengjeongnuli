@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 복무 신청. 결재 상태는 전자결재 문서를 따른다. Oracle / Tibero / H2(Oracle 모드) 공통 문법 -->
+<mapper namespace="egovframework.haengjeongnuli.hr.service.impl.DutyMapper">
+
+    <select id="nextId" resultType="long">SELECT SEQ_DUTY_REQUEST.NEXTVAL FROM DUAL</select>
+
+    <insert id="insert" parameterType="egovframework.haengjeongnuli.hr.service.DutyRequestVO">
+        INSERT INTO DUTY_REQUEST (REQ_ID, LOGIN_ID, USER_NAME, DEPT_NAME, KIND, START_DATE, END_DATE, HALF_DAY,
+                                  START_TIME, END_TIME, DAYS, HOURS, DESTINATION, REASON, DOC_ID, CREATED_AT)
+        VALUES (#{reqId}, #{loginId}, #{userName}, #{deptName}, #{kind}, #{startDate, jdbcType=DATE}, #{endDate, jdbcType=DATE},
+                #{halfDay}, #{startTime}, #{endTime}, #{days, jdbcType=NUMERIC}, #{hours, jdbcType=NUMERIC},
+                #{destination}, #{reason}, #{docId}, #{createdAt})
+    </insert>
+
+    <select id="selectByUser" resultType="egovframework.haengjeongnuli.hr.service.DutyRequestVO">
+        SELECT * FROM (
+            SELECT R.REQ_ID, R.LOGIN_ID, R.USER_NAME, R.DEPT_NAME, R.KIND, R.START_DATE, R.END_DATE, R.HALF_DAY,
+                   R.START_TIME, R.END_TIME, R.DAYS, R.HOURS, R.DESTINATION, R.REASON, R.DOC_ID, R.CREATED_AT,
+                   D.STATUS AS DOC_STATUS
+              FROM DUTY_REQUEST R JOIN APPROVAL_DOC D ON D.DOC_ID = R.DOC_ID
+             WHERE R.LOGIN_ID = #{loginId} AND D.DELETED_YN = 'N'
+               <if test="year != null">AND EXTRACT(YEAR FROM R.START_DATE) = #{year}</if>
+             ORDER BY R.START_DATE DESC, R.REQ_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+
+    <select id="countOverlap" resultType="int">
+        SELECT COUNT(*) FROM DUTY_REQUEST R JOIN APPROVAL_DOC D ON D.DOC_ID = R.DOC_ID
+         WHERE R.LOGIN_ID = #{loginId} AND D.STATUS IN ('PROG', 'DONE') AND D.DELETED_YN = 'N'
+           AND R.START_DATE &lt;= #{to, jdbcType=DATE} AND R.END_DATE &gt;= #{from, jdbcType=DATE}
+           <if test="overtime">AND R.KIND = 'OVERTIME'</if>
+           <if test="!overtime">AND R.KIND &lt;&gt; 'OVERTIME'</if>
+    </select>
+
+    <select id="sumDays" resultType="java.lang.Double">
+        SELECT NVL(SUM(R.DAYS), 0) FROM DUTY_REQUEST R JOIN APPROVAL_DOC D ON D.DOC_ID = R.DOC_ID
+         WHERE R.LOGIN_ID = #{loginId} AND R.KIND = #{kind} AND EXTRACT(YEAR FROM R.START_DATE) = #{year}
+           AND D.STATUS = #{status} AND D.DELETED_YN = 'N'
+    </select>
+</mapper>

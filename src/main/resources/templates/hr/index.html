@@ -18,19 +18,19 @@
       <section class="panel" aria-labelledby="me-title">
         <h2 id="me-title">내 인사정보</h2>
         <div style="display:flex; align-items:center; gap:16px;">
-          <div style="width:72px; height:72px; border-radius:999px; background:var(--brand-tint); color:var(--brand); font-size:30px; font-weight:800; display:flex; align-items:center; justify-content:center;" th:text="${loginUser.initial()}">홍</div>
+          <div style="width:72px; height:72px; border-radius:999px; background:var(--brand-tint); color:var(--brand); font-size:30px; font-weight:800; display:flex; align-items:center; justify-content:center;" th:text="${profile.initial()}">홍</div>
           <div>
-            <div style="font-size:24px; font-weight:800;" th:text="${loginUser.name()}">[사용자명]</div>
-            <div class="muted" th:text="${loginUser.position()} + ' · ' + ${loginUser.dept()}">[직급] · [소속 부서]</div>
+            <div style="font-size:24px; font-weight:800;" th:text="${profile.name()}">이름</div>
+            <div class="muted" th:text="${#strings.isEmpty(profile.position()) ? '' : profile.position() + ' · '} + ${profile.dept()}">직급 · 부서</div>
           </div>
         </div>
         <dl style="margin:0; display:grid; grid-template-columns:110px 1fr; gap:12px;">
-          <dt class="muted">사번</dt><dd style="margin:0">[사번]</dd>
-          <dt class="muted">직렬</dt><dd style="margin:0">[직렬]</dd>
-          <dt class="muted">임용일</dt><dd style="margin:0">[임용일]</dd>
-          <dt class="muted">내선번호</dt><dd style="margin:0">[내선번호]</dd>
+          <dt class="muted">사번</dt><dd style="margin:0" th:text="${profile.empNo} ?: '—'">사번</dd>
+          <dt class="muted">직렬</dt><dd style="margin:0" th:text="${profile.jobSeries} ?: '—'">직렬</dd>
+          <dt class="muted">임용일</dt><dd style="margin:0" th:text="${profile.hiredOn} ? ${#temporals.format(profile.hiredOn, 'yyyy-MM-dd')} : '—'">임용일</dd>
+          <dt class="muted">내선번호</dt><dd style="margin:0" th:text="${profile.extension} ?: '—'">내선</dd>
         </dl>
-        <a href="#" style="font-weight:700;">인사기록 전체 보기 ›</a>
+        <p class="hint" style="margin:0;">인사정보는 시스템 관리자가 계정 관리에서 고칩니다.</p>
       </section>
 
       <section class="panel" aria-labelledby="att-title">
@@ -80,31 +80,36 @@
       <section aria-labelledby="req-title" style="display:flex; flex-direction:column; gap:14px;">
         <h2 id="req-title" style="font-size:24px;">복무 신청</h2>
         <div class="card-grid" style="grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));">
-          <a class="menu-card" href="#"><b>휴가 신청</b><span>연가, 병가, 공가, 특별휴가</span></a>
-          <a class="menu-card" href="#"><b>출장 신청</b><span>관내·관외 출장, 여비 정산</span></a>
-          <a class="menu-card" href="#"><b>시간외근무</b><span>초과근무 사전 신청·확인</span></a>
-          <a class="menu-card" href="#"><b>증명서 발급</b><span>재직·경력증명서</span></a>
+          <a class="menu-card" th:href="@{/hr/duty/new(kind='ANNUAL')}"><b>휴가 신청</b><span>연가, 병가, 공가, 특별휴가</span></a>
+          <a class="menu-card" th:href="@{/hr/duty/new(kind='TRIP')}"><b>출장 신청</b><span>출장 기간·출장지</span></a>
+          <a class="menu-card" th:href="@{/hr/duty/new(kind='OVERTIME')}"><b>시간외근무</b><span>시간외근무 사전 신청</span></a>
+          <a class="menu-card" th:href="@{/hr/duty}"><b>신청 내역</b><span>올해 복무 신청과 결재 상태</span></a>
         </div>
       </section>
 
       <section class="panel" aria-labelledby="leave-title">
         <h2 id="leave-title">올해 연가</h2>
+        <p th:if="${leave.granted() == null}" class="hint" style="margin:0;">임용일이 등록되지 않아 연가 일수를 계산하지 못했습니다. 관리자에게 인사정보 등록을 요청하세요.</p>
         <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px;">
-          <div class="stat center"><strong style="font-size:30px">[일수]</strong><small>부여</small></div>
-          <div class="stat center"><strong style="font-size:30px">[일수]</strong><small>사용</small></div>
-          <div class="stat center blue"><strong style="font-size:30px">[일수]</strong><small style="color:#1D3A5F">남은 연가</small></div>
+          <div class="stat center"><strong style="font-size:30px" th:text="${leave.granted()} ?: '—'">0</strong><small>부여</small></div>
+          <div class="stat center"><strong style="font-size:30px" th:text="${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(leave.used())}">0</strong><small th:text="${leave.pending() > 0} ? '사용 (결재 중 ' + ${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(leave.pending())} + ')' : '사용'">사용</small></div>
+          <div class="stat center blue"><strong style="font-size:30px" th:text="${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(leave.remaining())}">0</strong><small style="color:#1D3A5F">남은 연가</small></div>
         </div>
       </section>
 
       <section class="panel flush" aria-labelledby="hist-title">
-        <div class="panel-head"><h2 id="hist-title">최근 신청 내역</h2><a href="#" style="font-size:17px;">전체 보기</a></div>
-        <div class="table-wrap">
+        <div class="panel-head"><h2 id="hist-title">최근 신청 내역</h2><a th:href="@{/hr/duty}" style="font-size:17px;">전체 보기</a></div>
+        <p th:if="${#lists.isEmpty(requests)}" class="hint" style="padding:18px 22px;">신청 내역이 없습니다.</p>
+        <div class="table-wrap" th:unless="${#lists.isEmpty(requests)}">
           <table class="list" style="min-width:620px">
             <thead><tr><th scope="col" style="text-align:left">구분</th><th scope="col" style="text-align:left">기간</th><th scope="col">신청일</th><th scope="col">상태</th></tr></thead>
             <tbody>
-              <tr><td class="left">[신청 구분]</td><td class="left muted">[기간]</td><td>[날짜]</td><td><span class="badge badge-orange">결재 중</span></td></tr>
-              <tr><td class="left">[신청 구분]</td><td class="left muted">[기간]</td><td>[날짜]</td><td><span class="badge badge-green">승인</span></td></tr>
-              <tr><td class="left">[신청 구분]</td><td class="left muted">[기간]</td><td>[날짜]</td><td><span class="badge badge-red">반려</span></td></tr>
+              <tr th:each="r : ${requests}">
+                <td class="left"><a th:href="@{/approval/{id}(id=${r.docId})}" th:text="${r.kind.label}">연가</a></td>
+                <td class="left muted" th:text="${r.periodText}">기간</td>
+                <td th:text="${#temporals.format(r.createdAt, 'yyyy-MM-dd')}">날짜</td>
+                <td><span th:class="'badge ' + ${r.statusBadge}" th:text="${r.statusLabel}">상태</span></td>
+              </tr>
             </tbody>
           </table>
         </div>

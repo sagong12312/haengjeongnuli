@@ -14,6 +14,7 @@ public enum AuditAction {
     USER_PASSWORD_RESET("비밀번호 재설정"),
     USER_DEPT_MOVE("부서 이동"),
     USER_REVENUE("세입 담당 지정·해제"),
+    USER_PROFILE("인사정보 수정"),
 
     POST_CREATE("게시글 등록"),
     POST_UPDATE("게시글 수정"),

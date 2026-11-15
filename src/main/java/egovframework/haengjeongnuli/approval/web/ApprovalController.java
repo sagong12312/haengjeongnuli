@@ -154,6 +154,10 @@ public class ApprovalController {
             ra.addFlashAttribute("message", "임시저장 문서만 고칠 수 있습니다.");
             return "redirect:/approval/" + docId;
         }
+        if (ApprovalForm.DUTY.equals(d.getKind())) {
+            ra.addFlashAttribute("message", "회수한 복무 신청은 인사 화면에서 새로 신청하세요.");
+            return "redirect:/hr";
+        }
         model.addAttribute("approvalForm", ApprovalForm.from(d));
         return formView(me, d, model);
     }

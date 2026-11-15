@@ -15,6 +15,13 @@ public class ApprovalForm {
     /** 정보공개법 제9조 제1항 각 호 */
     public static final List<String> REASONS = List.of("1", "2", "3", "4", "5", "6", "7", "8");
     public static final int MAX_REVIEWERS = 4;
+    /** 인사 화면의 복무 신청이 만드는 문서 종류 (기안하기 화면에서는 고르지 않는다) */
+    public static final String DUTY = "복무 신청";
+
+    public static boolean isValidKind(String k) {
+        return k != null && (KINDS.contains(k) || DUTY.equals(k));
+    }
+
     /** 지출결의 문서 종류 */
     public static final String SPENDING = "지출결의";
     /** 지급 방법 (지방회계법 시행령 제36조·제37조: 계좌 지급이 원칙, 현금은 제52조의 경우) */

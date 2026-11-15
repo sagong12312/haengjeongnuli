@@ -58,7 +58,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         } else if (f.getTitle().trim().length() > 300) {
             err.put("title", "제목은 300자 이내로 입력하세요.");
         }
-        if (f.getKind() == null || !ApprovalForm.KINDS.contains(f.getKind())) {
+        if (!ApprovalForm.isValidKind(f.getKind())) {
             err.put("kind", "문서 종류를 고르세요.");
         }
         if (f.getRetention() == null || !ApprovalForm.RETENTIONS.contains(f.getRetention())) {
