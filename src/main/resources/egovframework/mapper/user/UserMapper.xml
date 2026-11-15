@@ -5,7 +5,7 @@
 
     <sql id="cols">
         USER_ID, LOGIN_ID, PASSWORD_HASH, USER_NAME, POSITION_NAME, DEPT_NAME, ROLE,
-        ENABLED_YN, FAILED_COUNT, LAST_LOGIN_AT, CREATED_AT, PASSWORD_CHANGED_AT, NVL(REVENUE_YN, 'N') AS REVENUE_YN, EMP_NO, JOB_SERIES, HIRED_ON, EXTENSION
+        ENABLED_YN, FAILED_COUNT, LAST_LOGIN_AT, CREATED_AT, PASSWORD_CHANGED_AT, NVL(REVENUE_YN, 'N') AS REVENUE_YN, NVL(WELFARE_YN, 'N') AS WELFARE_YN, EMP_NO, JOB_SERIES, HIRED_ON, EXTENSION
     </sql>
 
     <select id="nextId" resultType="long">
@@ -64,6 +64,10 @@
            SET USER_NAME = #{userName}, POSITION_NAME = #{positionName}, EMP_NO = #{empNo}, JOB_SERIES = #{jobSeries},
                HIRED_ON = #{hiredOn, jdbcType=DATE}, EXTENSION = #{extension}
          WHERE USER_ID = #{userId}
+    </update>
+
+    <update id="updateWelfare">
+        UPDATE USER_ACCOUNT SET WELFARE_YN = #{welfareYn} WHERE USER_ID = #{userId}
     </update>
 
     <update id="updateRevenue">

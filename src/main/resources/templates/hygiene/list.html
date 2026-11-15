@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('환경·위생')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div class="page-head">
+    <div><span class="crumb"><a th:href="@{/}">홈</a> › 환경·위생</span><h1>환경·위생</h1></div>
+    <a class="btn btn-outline" th:href="@{/civil/new}">영업신고 민원 접수 (창구)</a>
+  </div>
+
+  <section class="panel flush" aria-labelledby="c-title">
+    <div class="panel-head"><h2 id="c-title">처리 중인 영업신고</h2><span class="muted" style="font-size:16px;">3일 안에 통지하지 않으면 수리 간주 (식품위생법 제37조 제12항·제13항)</span></div>
+    <p th:if="${#lists.isEmpty(complaints)}" class="hint" style="padding:18px 22px;">처리 중인 영업신고가 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(complaints)}"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">접수번호</th><th scope="col" style="text-align:left">제목</th><th scope="col">처리기한</th><th scope="col">담당</th></tr></thead>
+      <tbody><tr th:each="c : ${complaints}" th:classappend="${c.imminent} ? 'warn'">
+        <td th:text="${c.receiptNo}">번호</td>
+        <td class="left"><a th:href="@{/civil/{id}(id=${c.complaintId})}" th:text="${c.title}">제목</a></td>
+        <td th:text="${#temporals.format(c.deadlineAt, 'MM-dd HH:mm')}">기한</td>
+        <td th:text="${c.assignee} ?: '—'">담당</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush" aria-labelledby="b-title">
+    <div class="panel-head" style="flex-wrap:wrap; gap:10px;">
+      <h2 id="b-title">식품 영업소 대장</h2>
+      <form th:action="@{/hygiene}" method="get" role="search" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <label for="htype" class="sr-only">업종</label>
+        <select id="htype" name="type" class="select" style="height:44px; font-size:16px;"><option value="">전체 업종</option>
+          <option th:each="t : ${types}" th:value="${t}" th:text="${t}" th:selected="${t == type}">업종</option></select>
+        <label for="hq" class="sr-only">검색</label>
+        <input id="hq" name="q" class="input" type="search" th:value="${q}" placeholder="상호, 소재지, 대표자" style="height:44px; font-size:16px;">
+        <button type="submit" class="btn btn-outline" style="height:44px;">검색</button>
+      </form>
+    </div>
+    <p th:if="${#lists.isEmpty(businesses)}" class="hint" style="padding:18px 22px;">대장에 올린 영업소가 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(businesses)}"><table class="list" style="min-width:900px">
+      <thead><tr><th scope="col" style="text-align:left">상호</th><th scope="col">업종</th><th scope="col" style="text-align:left">소재지</th>
+        <th scope="col">신고일</th><th scope="col">최근 점검</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="b : ${businesses}">
+        <td class="left"><a th:href="@{/hygiene/{id}(id=${b.bizId})}" th:text="${b.bizName}">상호</a></td>
+        <td th:text="${b.bizType}">업종</td>
+        <td class="left" th:text="${b.address}">소재지</td>
+        <td th:text="${b.reportedOn}">날짜</td>
+        <td><span th:if="${b.lastCheckedOn}" th:text="${b.lastCheckedOn} + ' ' + ${b.lastResult}">점검</span><span th:unless="${b.lastCheckedOn}" class="muted">점검 없음</span></td>
+        <td><span th:class="${b.open} ? 'badge badge-green' : 'badge badge-gray'" th:text="${b.open} ? '영업' : '폐업'">영업</span></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canEdit}" class="panel" th:action="@{/hygiene}" method="post" style="gap:14px;">
+    <h2>영업소 올리기 (영업신고 수리)</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="hname">상호 <span class="req">*</span></label><input id="hname" name="name" class="input" maxlength="200" required></div>
+      <div class="field"><label for="howner">대표자 <span class="req">*</span></label><input id="howner" name="owner" class="input" maxlength="100" required></div>
+      <div class="field"><label for="htype2">업종 <span class="req">*</span></label><select id="htype2" name="type" class="select" required>
+        <option value="">선택</option><option th:each="t : ${types}" th:value="${t}" th:text="${t}">업종</option></select></div>
+      <div class="field"><label for="hdate">신고일 <span class="req">*</span></label><input id="hdate" name="reportedOn" type="date" class="input" required th:max="${today}"></div>
+      <div class="field" style="grid-column:span 2;"><label for="haddr">소재지 <span class="req">*</span></label><input id="haddr" name="address" class="input" maxlength="300" required></div>
+      <div class="field"><label for="hreceipt">민원 접수번호</label><input id="hreceipt" name="receiptNo" class="input" maxlength="20"></div>
+    </div>
+    <p class="hint" style="margin:0;">업종은 영업신고 대상 업종입니다 (식품위생법 시행령 제25조 제1항). 단란주점·유흥주점은 영업허가 대상이라 여기에 없습니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">올리기</button></div>
+  </form>
+  <p th:unless="${canEdit}" class="hint" th:text="'대장과 점검 기록은 ' + ${depts} + ' 직원과 관리자가 고칩니다.'">안내</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

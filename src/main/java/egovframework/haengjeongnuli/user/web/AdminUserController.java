@@ -138,6 +138,16 @@ public class AdminUserController {
         return s == null || s.isBlank() ? null : s.trim();
     }
 
+    /** 사회복지 담당 지정·해제 (복지 급여 신청 화면은 지정된 직원만 연다) */
+    @PostMapping("/{userId}/welfare")
+    public String welfare(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {
+        userService.setWelfareStaff(userId, value);
+        auditService.record(AuditAction.USER_WELFARE, "사용자 " + userId, value ? "지정" : "해제");
+        ra.addFlashAttribute("message", value ? "사회복지 담당으로 지정했습니다. 다시 로그인하면 반영됩니다."
+                : "사회복지 담당을 해제했습니다. 다시 로그인하면 반영됩니다.");
+        return "redirect:/admin/users";
+    }
+
     /** 세입 담당 지정·해제 (세입 화면은 지정된 직원만 연다) */
     @PostMapping("/{userId}/revenue")
     public String revenue(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {

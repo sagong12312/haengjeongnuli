@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('사회복지')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › 사회복지</span><h1>사회복지 · 기초생활보장 급여</h1></div>
+
+  <section th:if="${denied}" class="panel" role="alert">
+    <h2>사회복지 담당 직원만 볼 수 있습니다</h2>
+    <p class="muted" style="margin:0;">급여 신청에는 소득·가구 등 민감한 개인정보가 있어, 시스템 관리자가 <b>복지 담당</b>으로 지정한 직원만 열 수 있습니다.</p>
+  </section>
+
+  <th:block th:unless="${denied}">
+    <nav class="tabs" aria-label="상태">
+      <a th:each="s : ${ {'OPEN|처리 중','GRANTED|지급 결정','DENIED|부적합 결정','WITHDRAWN|취하','ALL|전체'} }"
+         th:with="v=${#strings.substringBefore(s,'|')}" th:href="@{/welfare(status=${v},q=${q})}"
+         th:attr="aria-current=${v == status} ? 'page' : null" th:text="${#strings.substringAfter(s,'|')}">처리 중</a>
+    </nav>
+    <section class="panel flush">
+      <div class="panel-head" style="flex-wrap:wrap; gap:10px;">
+        <h2>급여 신청</h2>
+        <form th:action="@{/welfare}" method="get" role="search" style="display:flex; gap:8px;">
+          <input type="hidden" name="status" th:value="${status}">
+          <label for="wq" class="sr-only">검색</label>
+          <input id="wq" name="q" class="input" type="search" th:value="${q}" placeholder="접수번호, 신청인" style="height:44px; font-size:16px;">
+          <button type="submit" class="btn btn-outline" style="height:44px;">검색</button>
+        </form>
+      </div>
+      <p th:if="${#lists.isEmpty(cases)}" class="hint" style="padding:18px 22px;">신청이 없습니다.</p>
+      <div class="table-wrap" th:unless="${#lists.isEmpty(cases)}"><table class="list" style="min-width:860px">
+        <thead><tr><th scope="col">접수번호</th><th scope="col">신청인</th><th scope="col" style="text-align:left">신청 급여</th>
+          <th scope="col">신청일</th><th scope="col">통지 기한</th><th scope="col">담당</th><th scope="col">상태</th></tr></thead>
+        <tbody><tr th:each="c : ${cases}">
+          <td><a th:href="@{/welfare/{id}(id=${c.caseId})}" th:text="${c.caseNo}">번호</a></td>
+          <td th:text="${c.applicantName}">신청인</td>
+          <td class="left" th:text="${c.benefits}">급여</td>
+          <td th:text="${c.appliedOn}">신청일</td>
+          <td th:text="${c.deadline} + (${c.extendReason} ? ' (연장)' : '')">기한</td>
+          <td th:text="${c.assigneeName}">담당</td>
+          <td><span th:class="'badge ' + ${c.statusBadge}" th:text="${c.statusLabel}">상태</span></td>
+        </tr></tbody>
+      </table></div>
+    </section>
+
+    <form class="panel" th:action="@{/welfare}" method="post" style="gap:14px;">
+      <h2>급여 신청 접수</h2>
+      <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="field"><label for="wname">신청인 <span class="req">*</span></label><input id="wname" name="name" class="input" maxlength="100" required></div>
+        <div class="field"><label for="wbirth">생년월일</label><input id="wbirth" name="birth" type="date" class="input" th:max="${today}"></div>
+        <div class="field"><label for="wphone">연락처</label><input id="wphone" name="phone" class="input" maxlength="20"></div>
+        <div class="field"><label for="wapplied">신청일 <span class="req">*</span></label><input id="wapplied" name="appliedOn" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+        <div class="field" style="grid-column:span 2;"><label for="waddr">주소</label><input id="waddr" name="address" class="input" maxlength="300"></div>
+      </div>
+      <fieldset style="border:1px solid var(--line); border-radius:12px; padding:12px 16px; margin:0;">
+        <legend style="font-weight:700; padding:0 6px;">신청하는 급여 (국민기초생활 보장법 제7조) <span class="req">*</span></legend>
+        <div style="display:flex; flex-wrap:wrap; gap:8px 18px;">
+          <label class="check" th:each="b : ${benefits}"><input type="checkbox" name="benefits" th:value="${b}"><span th:text="${b}">급여</span></label>
+        </div>
+      </fieldset>
+      <p class="hint" style="margin:0;">결정은 신청일부터 30일 안에 서면으로 통지해야 합니다(제26조 제4항). 주민등록번호는 이 화면에 적지 마세요.</p>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">접수</button></div>
+    </form>
+  </th:block>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

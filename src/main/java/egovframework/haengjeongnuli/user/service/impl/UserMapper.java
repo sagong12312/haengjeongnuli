@@ -38,6 +38,8 @@ public interface UserMapper {
 
     int updateProfile(egovframework.haengjeongnuli.cmm.LoginUser u);
 
+    int updateWelfare(@Param("userId") long userId, @Param("welfareYn") String welfareYn);
+
     int updateRevenue(@Param("userId") long userId, @Param("revenueYn") String revenueYn);
 
     int updateDept(@Param("userId") long userId, @Param("deptName") String deptName);

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('급여 신청')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/welfare}">사회복지</a> › <span th:text="${c.caseNo}">번호</span></span><h1 th:text="${c.applicantName} + ' 급여 신청'">신청</h1></div>
+
+  <div th:if="${c.overdue}" class="alert" role="alert" style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg);"
+       th:text="'통지 기한(' + ${c.deadline} + ')이 지났습니다.'">기한</div>
+
+  <section class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;"><h2>신청 내용 <span class="muted" style="font-size:15px; font-weight:400;">(개인정보 — 열람이 기록됩니다)</span></h2>
+      <span th:class="'badge ' + ${c.statusBadge}" th:text="${c.statusLabel}">상태</span></div>
+    <dl class="kv">
+      <div><dt>신청인</dt><dd th:text="${c.applicantName} + (${c.birthDate} ? ' (' + ${c.birthDate} + ')' : '')">이름</dd></div>
+      <div><dt>연락처·주소</dt><dd th:text="(${c.phone} ?: '연락처 없음') + ' · ' + (${c.address} ?: '주소 없음')">연락처</dd></div>
+      <div><dt>신청일</dt><dd th:text="${c.appliedOn}">날짜</dd></div>
+      <div><dt>신청 급여</dt><dd th:text="${c.benefits}">급여</dd></div>
+      <div><dt>통지 기한</dt><dd th:text="${c.deadline} + (${c.extendReason} ? ' — 연장: ' + ${c.extendReason} : ' (신청일부터 30일)')">기한</dd></div>
+      <div><dt>담당</dt><dd th:text="${c.assigneeName}">담당</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel" th:unless="${c.open}" style="border:2px solid var(--line);">
+    <h2 th:text="${c.statusLabel}">결정</h2>
+    <dl class="kv">
+      <div th:if="${c.grantedBenefits}"><dt>지급 급여</dt><dd th:text="${c.grantedBenefits}">급여</dd></div>
+      <div th:if="${c.benefitMethod}"><dt>급여 방법</dt><dd th:text="${c.benefitMethod}">방법</dd></div>
+      <div th:if="${c.benefitStart}"><dt>급여 개시</dt><dd th:text="${c.benefitStart}">개시</dd></div>
+      <div th:if="${c.decidedOn}"><dt>결정일</dt><dd th:text="${c.decidedOn}">결정일</dd></div>
+      <div th:if="${c.notifiedOn}"><dt>서면 통지</dt><dd th:text="${c.notifiedOn} + (${c.notifiedOn.isAfter(c.deadline)} ? ' (기한 지남)' : ' (기한 내)')">통지</dd></div>
+    </dl>
+    <div style="white-space:pre-wrap;" th:text="${c.decisionSummary}">요지</div>
+    <p th:if="${c.status == 'GRANTED' or c.status == 'DENIED'}" class="hint" style="margin:0;" th:text="${objection}">이의신청</p>
+  </section>
+
+  <th:block th:if="${c.open}">
+    <form class="panel" th:action="@{/welfare/{id}/survey(id=${c.caseId})}" method="post" style="gap:12px;">
+      <h2>조사 (사회보장 요구·수급자격, 제22조)</h2>
+      <textarea name="note" class="textarea" rows="5" th:text="${c.surveyNote}" required placeholder="가구 구성, 소득·재산, 부양의무자, 생활 실태 등 조사 내용"></textarea>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">저장</button></div>
+    </form>
+
+    <form class="panel" th:action="@{/welfare/{id}/decide(id=${c.caseId})}" method="post" style="gap:12px;">
+      <h2>결정과 서면 통지 (제26조)</h2>
+      <div style="display:flex; gap:18px;">
+        <label class="check"><input type="radio" name="grant" value="true" checked>지급</label>
+        <label class="check"><input type="radio" name="grant" value="false">부적합</label>
+      </div>
+      <fieldset style="border:1px solid var(--line); border-radius:12px; padding:10px 14px; margin:0;">
+        <legend style="font-weight:700; padding:0 6px;">지급할 급여</legend>
+        <label class="check" th:each="b : ${c.benefitList}" style="margin-right:14px;"><input type="checkbox" name="granted" th:value="${b}"><span th:text="${b}">급여</span></label>
+      </fieldset>
+      <div class="field"><label for="dsum">결정의 요지 (급여의 산출 근거 포함) <span class="req">*</span></label><textarea id="dsum" name="summary" class="textarea" rows="4" maxlength="4000" required></textarea></div>
+      <div class="grid-fields">
+        <div class="field"><label for="dmethod">급여 방법</label><input id="dmethod" name="method" class="input" maxlength="500" placeholder="예: 매월 20일 신청인 계좌 입금"></div>
+        <div class="field"><label for="dstart">급여 개시일</label><input id="dstart" name="start" type="date" class="input" th:value="${c.appliedOn}">
+          <p class="hint" style="margin:0;">급여는 신청일부터 시작합니다 (제27조 제1항).</p></div>
+        <div class="field"><label for="dnotified">서면 통지일 <span class="req">*</span></label><input id="dnotified" name="notifiedOn" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">결정</button></div>
+    </form>
+
+    <form th:unless="${c.extendReason}" class="panel" th:action="@{/welfare/{id}/extend(id=${c.caseId})}" method="post" style="gap:12px;">
+      <h2>통지 기한 연장 (신청일부터 60일)</h2>
+      <div class="field"><label for="ereason">사유</label><select id="ereason" name="reason" class="select" required>
+        <option value="">선택</option><option th:each="r, i : ${reasons}" th:value="${i.index}" th:text="${r}">사유</option></select></div>
+      <div class="field"><label for="edetail">통지서에 적을 구체적인 사유</label><input id="edetail" name="detail" class="input" maxlength="300" required></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">연장</button></div>
+    </form>
+
+    <form class="panel" th:action="@{/welfare/{id}/withdraw(id=${c.caseId})}" method="post" style="gap:12px;" onsubmit="return confirm('취하로 처리할까요?');">
+      <h2>취하</h2>
+      <div class="field"><label for="wnote">사유</label><input id="wnote" name="note" class="input" maxlength="500" required></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">취하 처리</button></div>
+    </form>
+  </th:block>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<style>
+  .kv { margin:0; display:flex; flex-direction:column; }
+  .kv div { display:flex; gap:16px; border-bottom:1px solid var(--line); padding:10px 0; }
+  .kv dt { width:130px; flex:none; color:var(--text-3); font-weight:700; }
+  .kv dd { margin:0; color:var(--text); }
+</style>
+</body>
+</html>

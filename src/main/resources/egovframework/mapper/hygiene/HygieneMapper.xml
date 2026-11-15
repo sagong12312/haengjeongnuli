@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.haengjeongnuli.hygiene.service.impl.HygieneMapper">
+    <sql id="bizCols">B.BIZ_ID, B.BIZ_NAME, B.OWNER_NAME, B.ADDRESS, B.BIZ_TYPE, B.REPORTED_ON, B.RECEIPT_NO, B.STATUS, B.CLOSED_ON,
+        B.CREATED_BY, B.CREATED_AT,
+        (SELECT MAX(C.CHECKED_ON) FROM HYGIENE_CHECK C WHERE C.BIZ_ID = B.BIZ_ID) AS LAST_CHECKED_ON,
+        (SELECT COUNT(*) FROM HYGIENE_CHECK C WHERE C.BIZ_ID = B.BIZ_ID) AS CHECK_COUNT,
+        (SELECT C.RESULT FROM HYGIENE_CHECK C WHERE C.BIZ_ID = B.BIZ_ID
+            AND C.CHECK_ID = (SELECT MAX(C2.CHECK_ID) FROM HYGIENE_CHECK C2 WHERE C2.BIZ_ID = B.BIZ_ID)) AS LAST_RESULT</sql>
+    <select id="nextBizId" resultType="long">SELECT SEQ_FOOD_BUSINESS.NEXTVAL FROM DUAL</select>
+    <select id="nextCheckId" resultType="long">SELECT SEQ_HYGIENE_CHECK.NEXTVAL FROM DUAL</select>
+    <insert id="insertBusiness" parameterType="egovframework.haengjeongnuli.hygiene.service.FoodBusinessVO">
+        INSERT INTO FOOD_BUSINESS (BIZ_ID, BIZ_NAME, OWNER_NAME, ADDRESS, BIZ_TYPE, REPORTED_ON, RECEIPT_NO, STATUS, CREATED_BY, CREATED_AT)
+        VALUES (#{bizId}, #{bizName}, #{ownerName}, #{address}, #{bizType}, #{reportedOn, jdbcType=DATE}, #{receiptNo}, 'OPEN',
+                #{createdBy}, #{createdAt})
+    </insert>
+    <select id="selectBusiness" resultType="egovframework.haengjeongnuli.hygiene.service.FoodBusinessVO">
+        SELECT <include refid="bizCols"/> FROM FOOD_BUSINESS B WHERE B.BIZ_ID = #{id}
+    </select>
+    <select id="selectBusinesses" resultType="egovframework.haengjeongnuli.hygiene.service.FoodBusinessVO">
+        SELECT * FROM (
+            SELECT <include refid="bizCols"/> FROM FOOD_BUSINESS B
+            <where>
+                <if test="q != null">(B.BIZ_NAME LIKE '%' || #{q} || '%' OR B.ADDRESS LIKE '%' || #{q} || '%' OR B.OWNER_NAME LIKE '%' || #{q} || '%')</if>
+                <if test="type != null">AND B.BIZ_TYPE = #{type}</if>
+            </where>
+             ORDER BY CASE WHEN B.STATUS = 'OPEN' THEN 0 ELSE 1 END, B.BIZ_NAME
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+    <update id="closeBusiness">
+        UPDATE FOOD_BUSINESS SET STATUS = 'CLOSED', CLOSED_ON = #{on, jdbcType=DATE} WHERE BIZ_ID = #{id} AND STATUS = 'OPEN'
+    </update>
+    <insert id="insertCheck" parameterType="egovframework.haengjeongnuli.hygiene.service.HygieneCheckVO">
+        INSERT INTO HYGIENE_CHECK (CHECK_ID, BIZ_ID, CHECKED_ON, RESULT, VIOLATION, ACTION, INSPECTOR_ID, INSPECTOR, CREATED_AT)
+        VALUES (#{checkId}, #{bizId}, #{checkedOn, jdbcType=DATE}, #{result}, #{violation}, #{action}, #{inspectorId}, #{inspector}, #{createdAt})
+    </insert>
+    <select id="selectChecks" resultType="egovframework.haengjeongnuli.hygiene.service.HygieneCheckVO">
+        SELECT CHECK_ID, BIZ_ID, CHECKED_ON, RESULT, VIOLATION, ACTION, INSPECTOR_ID, INSPECTOR, CREATED_AT
+          FROM HYGIENE_CHECK WHERE BIZ_ID = #{bizId} ORDER BY CHECKED_ON DESC, CHECK_ID DESC
+    </select>
+</mapper>

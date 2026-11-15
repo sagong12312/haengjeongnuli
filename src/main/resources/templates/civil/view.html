@@ -16,6 +16,9 @@
   <div th:if="${c.progressNoticeDue}" class="alert" role="status" style="background:#FFF8F0; border:1px solid var(--orange-line); color:var(--orange-fg);"
        th:text="'접수 ' + ${c.daysSinceReceived} + '일이 지났습니다. 30일이 지날 때마다 처리진행상황과 처리완료 예정일을 민원인에게 알려야 합니다 (민원처리법 시행령 제23조).'">안내</div>
 
+  <div th:if="${c.legalAffair != null and c.legalAffair.deemed and !c.done}" class="alert" role="status" style="background:#FFF8F0; border:1px solid var(--orange-line); color:var(--orange-fg);"
+       th:text="'처리기한(' + ${#temporals.format(c.deadlineAt, 'MM-dd HH:mm')} + ')까지 수리 여부나 처리기간 연장을 통지하지 않으면 그다음 날 신고를 수리한 것으로 봅니다 (' + ${c.legalAffair.basis} + ').'">간주 안내</div>
+
   <section class="panel" aria-labelledby="info-title">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
       <h2 id="info-title">민원 정보</h2>

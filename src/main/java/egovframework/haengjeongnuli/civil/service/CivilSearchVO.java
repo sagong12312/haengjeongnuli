@@ -7,6 +7,15 @@ public class CivilSearchVO {
     private CivilStatus status;
     private String q;
     private int limit = 50;
+    /** 이 법정민원 사무들만 (업무 화면에서 쓴다) */
+    private java.util.List<String> affairs;
+    /** 처리 완료 제외 */
+    private boolean openOnly;
+
+    public java.util.List<String> getAffairs() { return affairs; }
+    public void setAffairs(java.util.List<String> affairs) { this.affairs = affairs; }
+    public boolean isOpenOnly() { return openOnly; }
+    public void setOpenOnly(boolean openOnly) { this.openOnly = openOnly; }
 
     public CivilKind getKind() { return kind; }
     public void setKind(CivilKind kind) { this.kind = kind; }

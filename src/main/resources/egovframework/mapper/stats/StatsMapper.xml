@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 업무 통계. 합계·건수만 돌려준다. Oracle / Tibero / H2(Oracle 모드) 공통 문법 -->
+<mapper namespace="egovframework.haengjeongnuli.stats.service.impl.StatsMapper">
+
+    <select id="civilMonthly" resultType="map">
+        SELECT EXTRACT(MONTH FROM RECEIVED_AT) AS "month", COUNT(*) AS "received",
+               SUM(CASE WHEN STATUS = 'DONE' THEN 1 ELSE 0 END) AS "done",
+               SUM(CASE WHEN STATUS = 'DONE' AND (DEADLINE_AT IS NULL OR COMPLETED_AT &lt;= DEADLINE_AT) THEN 1 ELSE 0 END) AS "onTime"
+          FROM CIVIL_COMPLAINT WHERE EXTRACT(YEAR FROM RECEIVED_AT) = #{year}
+         GROUP BY EXTRACT(MONTH FROM RECEIVED_AT) ORDER BY 1
+    </select>
+
+    <select id="civilByKind" resultType="map">
+        SELECT KIND AS "kind", COUNT(*) AS "received",
+               SUM(CASE WHEN STATUS = 'DONE' THEN 1 ELSE 0 END) AS "done",
+               SUM(CASE WHEN STATUS = 'DONE' AND (DEADLINE_AT IS NULL OR COMPLETED_AT &lt;= DEADLINE_AT) THEN 1 ELSE 0 END) AS "onTime",
+               SUM(CASE WHEN NVL(EXTEND_COUNT, 0) &gt; 0 THEN 1 ELSE 0 END) AS "extended"
+          FROM CIVIL_COMPLAINT WHERE EXTRACT(YEAR FROM RECEIVED_AT) = #{year}
+         GROUP BY KIND ORDER BY 2 DESC
+    </select>
+
+    <select id="approvalByStatus" resultType="map">
+        SELECT STATUS AS "status", COUNT(*) AS "cnt" FROM APPROVAL_DOC
+         WHERE DELETED_YN = 'N' AND EXTRACT(YEAR FROM CREATED_AT) = #{year}
+         GROUP BY STATUS
+    </select>
+
+    <select id="financeByDept" resultType="map">
+        SELECT B.DEPT_NAME AS "dept", SUM(B.AMOUNT) AS "budget",
+               NVL(SUM((SELECT NVL(SUM(T.AMOUNT), 0) FROM FIN_TXN T WHERE T.BUDGET_ID = B.BUDGET_ID AND T.CANCELLED_YN = 'N')), 0) AS "used"
+          FROM FIN_BUDGET B
+         WHERE B.KIND = 'EXP' AND B.FISCAL_YEAR = #{year} AND B.STATUS = 'APPROVED' AND B.DELETED_YN = 'N'
+         GROUP BY B.DEPT_NAME ORDER BY 2 DESC
+    </select>
+
+    <select id="welfareByStatus" resultType="map">
+        SELECT STATUS AS "status", COUNT(*) AS "cnt",
+               SUM(CASE WHEN NOTIFIED_ON IS NOT NULL AND NOTIFIED_ON &lt;= DEADLINE THEN 1 ELSE 0 END) AS "onTime"
+          FROM WELFARE_CASE WHERE EXTRACT(YEAR FROM APPLIED_ON) = #{year}
+         GROUP BY STATUS
+    </select>
+
+    <select id="hygieneByResult" resultType="map">
+        SELECT RESULT AS "result", COUNT(*) AS "cnt" FROM HYGIENE_CHECK
+         WHERE EXTRACT(YEAR FROM CHECKED_ON) = #{year} GROUP BY RESULT
+    </select>
+
+    <select id="buildingByStatus" resultType="map">
+        SELECT KIND AS "kind", STATUS AS "status", COUNT(*) AS "cnt",
+               SUM(CASE WHEN STATUS = 'VALID' AND START_DEADLINE &lt; CURRENT_DATE THEN 1 ELSE 0 END) AS "overdue"
+          FROM BUILDING_CASE GROUP BY KIND, STATUS
+    </select>
+
+    <select id="dutyByKind" resultType="map">
+        SELECT R.KIND AS "kind", COUNT(*) AS "cnt", NVL(SUM(R.DAYS), 0) AS "days", NVL(SUM(R.HOURS), 0) AS "hours"
+          FROM DUTY_REQUEST R JOIN APPROVAL_DOC D ON D.DOC_ID = R.DOC_ID
+         WHERE D.STATUS = 'DONE' AND EXTRACT(YEAR FROM R.START_DATE) = #{year}
+         GROUP BY R.KIND
+    </select>
+</mapper>

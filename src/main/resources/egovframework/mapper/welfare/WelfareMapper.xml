@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.haengjeongnuli.welfare.service.impl.WelfareMapper">
+    <sql id="cols">CASE_ID, CASE_NO, APPLICANT_NAME, BIRTH_DATE, ADDRESS, PHONE, APPLIED_ON, BENEFITS, DEADLINE, EXTEND_REASON,
+        STATUS, ASSIGNEE_ID, ASSIGNEE_NAME, SURVEY_NOTE, GRANTED_BENEFITS, DECISION_SUMMARY, BENEFIT_METHOD, BENEFIT_START,
+        DECIDED_ON, NOTIFIED_ON, CREATED_BY, CREATED_AT</sql>
+    <select id="nextId" resultType="long">SELECT SEQ_WELFARE_CASE.NEXTVAL FROM DUAL</select>
+    <insert id="insert" parameterType="egovframework.haengjeongnuli.welfare.service.WelfareCaseVO">
+        INSERT INTO WELFARE_CASE (CASE_ID, CASE_NO, APPLICANT_NAME, BIRTH_DATE, ADDRESS, PHONE, APPLIED_ON, BENEFITS, DEADLINE,
+                                  STATUS, ASSIGNEE_ID, ASSIGNEE_NAME, CREATED_BY, CREATED_AT)
+        VALUES (#{caseId}, #{caseNo}, #{applicantName}, #{birthDate, jdbcType=DATE}, #{address}, #{phone},
+                #{appliedOn, jdbcType=DATE}, #{benefits}, #{deadline, jdbcType=DATE}, 'RECEIVED', #{assigneeId}, #{assigneeName},
+                #{createdBy}, #{createdAt})
+    </insert>
+    <select id="select" resultType="egovframework.haengjeongnuli.welfare.service.WelfareCaseVO">
+        SELECT <include refid="cols"/> FROM WELFARE_CASE WHERE CASE_ID = #{id}
+    </select>
+    <select id="selectList" resultType="egovframework.haengjeongnuli.welfare.service.WelfareCaseVO">
+        SELECT * FROM (
+            SELECT CASE_ID, CASE_NO, APPLICANT_NAME, APPLIED_ON, BENEFITS, DEADLINE, EXTEND_REASON, STATUS, ASSIGNEE_NAME, DECIDED_ON
+              FROM WELFARE_CASE
+            <where>
+                <if test="status == 'OPEN'">STATUS IN ('RECEIVED', 'SURVEY')</if>
+                <if test="status != null and status != 'OPEN'">STATUS = #{status}</if>
+                <if test="q != null">AND (CASE_NO LIKE '%' || #{q} || '%' OR APPLICANT_NAME LIKE '%' || #{q} || '%')</if>
+            </where>
+             ORDER BY CASE WHEN STATUS IN ('RECEIVED', 'SURVEY') THEN 0 ELSE 1 END, DEADLINE, CASE_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+    <update id="updateSurvey">
+        UPDATE WELFARE_CASE SET SURVEY_NOTE = #{note, jdbcType=CLOB}, STATUS = 'SURVEY'
+         WHERE CASE_ID = #{id} AND STATUS IN ('RECEIVED', 'SURVEY')
+    </update>
+    <update id="extend" parameterType="egovframework.haengjeongnuli.welfare.service.WelfareCaseVO">
+        UPDATE WELFARE_CASE SET DEADLINE = #{deadline, jdbcType=DATE}, EXTEND_REASON = #{extendReason}
+         WHERE CASE_ID = #{caseId} AND STATUS IN ('RECEIVED', 'SURVEY') AND EXTEND_REASON IS NULL
+    </update>
+    <update id="decide" parameterType="egovframework.haengjeongnuli.welfare.service.WelfareCaseVO">
+        UPDATE WELFARE_CASE
+           SET STATUS = #{status}, GRANTED_BENEFITS = #{grantedBenefits}, DECISION_SUMMARY = #{decisionSummary},
+               BENEFIT_METHOD = #{benefitMethod}, BENEFIT_START = #{benefitStart, jdbcType=DATE},
+               DECIDED_ON = #{decidedOn, jdbcType=DATE}, NOTIFIED_ON = #{notifiedOn, jdbcType=DATE}
+         WHERE CASE_ID = #{caseId} AND STATUS IN ('RECEIVED', 'SURVEY')
+    </update>
+    <update id="withdraw">
+        UPDATE WELFARE_CASE SET STATUS = 'WITHDRAWN', DECISION_SUMMARY = #{note}
+         WHERE CASE_ID = #{id} AND STATUS IN ('RECEIVED', 'SURVEY')
+    </update>
+</mapper>

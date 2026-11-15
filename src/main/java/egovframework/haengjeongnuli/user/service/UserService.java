@@ -29,6 +29,9 @@ public interface UserService extends UserDetailsService {
     /** 계정 번호로 찾는다. 없으면 null */
     LoginUser findById(long userId);
 
+    /** 사회복지 담당 표시를 켜고 끈다 */
+    void setWelfareStaff(long userId, boolean value);
+
     /** 세입 담당 표시를 켜고 끈다 */
     void setRevenueStaff(long userId, boolean value);
 

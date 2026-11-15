@@ -42,7 +42,10 @@
         <a class="menu-card" th:href="@{/hr}"><b>인사</b><span>인사정보, 근태, 휴가·출장·시간외근무 신청</span></a>
         <a class="menu-card" th:href="@{/board}"><b>게시판</b><span>공지사항, 건의사항, 자료실</span></a>
         <a th:if="${loginUser.admin}" class="menu-card" th:href="@{/admin/users}"><b>시스템 관리</b><span>직원 계정·권한, 인사정보, 공휴일, 접속 기록</span></a>
-        <div class="menu-card" aria-disabled="true" style="opacity:.6; cursor:default;"><b>사회복지 · 건축·토지 · 환경·위생 · 통계</b><span>준비 중입니다</span></div>
+        <a class="menu-card" th:href="@{/welfare}"><b>사회복지</b><span>기초생활보장 급여 신청·조사·결정 (복지 담당)</span></a>
+        <a class="menu-card" th:href="@{/building}"><b>건축·토지</b><span>건축신고·허가 민원, 인허가 대장, 착수기한</span></a>
+        <a class="menu-card" th:href="@{/hygiene}"><b>환경·위생</b><span>식품 영업신고, 영업소 대장, 위생 점검</span></a>
+        <a class="menu-card" th:href="@{/stats}"><b>통계·보고</b><span>민원·결재·예산·복무 통계, CSV 내려받기</span></a>
       </div>
     </section>
 

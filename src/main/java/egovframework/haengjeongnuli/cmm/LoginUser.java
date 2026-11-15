@@ -40,6 +40,8 @@ public class LoginUser implements UserDetails {
     private LocalDateTime passwordChangedAt;
     /** 세입 담당 직원 (Y/N) */
     private String revenueYn = "N";
+    /** 사회복지 담당 직원 (Y/N) */
+    private String welfareYn = "N";
     // 인사정보
     private String empNo;
     private String jobSeries;
@@ -54,6 +56,10 @@ public class LoginUser implements UserDetails {
     public boolean isAdmin() { return role == Role.ADMIN; }
     /** 세입 화면을 쓸 수 있는 세입 담당 직원 */
     public boolean isRevenueStaff() { return "Y".equals(revenueYn); }
+    /** 복지 급여 신청(민감한 개인정보)을 다루는 사회복지 담당 직원 */
+    public boolean isWelfareStaff() { return "Y".equals(welfareYn); }
+    public String getWelfareYn() { return welfareYn; }
+    public void setWelfareYn(String welfareYn) { this.welfareYn = welfareYn; }
     public boolean isLocked() { return failedCount >= MAX_FAILED; }
 
     /**

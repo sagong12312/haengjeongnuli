@@ -45,7 +45,9 @@ public class CivilProcessService {
         CivilComplaintVO c = mapper.selectComplaint(id);
         if (c != null && c.getPeriodDays() == null) {
             // 이 기능 전에 접수한 민원은 종류로 처리기간을 다시 구한다
-            c.setPeriodDays(c.getKind() == CivilKind.LEGAL ? 0 : c.getKind().periodDays("Y".equals(c.getLawInterpretYn())));
+            c.setPeriodDays(c.getKind() == CivilKind.LEGAL
+                    ? (c.getLegalAffair() == null ? 0 : c.getLegalAffair().periodDays())
+                    : c.getKind().periodDays("Y".equals(c.getLawInterpretYn())));
         }
         return c;
     }

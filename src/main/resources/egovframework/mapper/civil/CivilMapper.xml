@@ -23,6 +23,10 @@
         <where>
             <if test="kind != null">AND KIND = #{kind}</if>
             <if test="status != null">AND STATUS = #{status}</if>
+            <if test="openOnly">AND STATUS &lt;&gt; 'DONE'</if>
+            <if test="affairs != null and affairs.size() > 0">
+                AND LEGAL_AFFAIR IN <foreach collection="affairs" item="a" open="(" separator="," close=")">#{a}</foreach>
+            </if>
             <if test="q != null">
                 AND (RECEIPT_NO LIKE '%' || #{q} || '%'
                      OR TITLE LIKE '%' || #{q} || '%'

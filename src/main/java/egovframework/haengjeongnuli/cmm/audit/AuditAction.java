@@ -15,6 +15,7 @@ public enum AuditAction {
     USER_DEPT_MOVE("부서 이동"),
     USER_REVENUE("세입 담당 지정·해제"),
     USER_PROFILE("인사정보 수정"),
+    USER_WELFARE("사회복지 담당 지정·해제"),
 
     POST_CREATE("게시글 등록"),
     POST_UPDATE("게시글 수정"),
@@ -46,6 +47,11 @@ public enum AuditAction {
     FIN_EXECUTE("예산 집행"),
     FIN_RECEIPT("세입 수납"),
     FIN_TXN_CANCEL("집행·수납 취소"),
+
+    BUILDING_EDIT("건축 인허가 대장 수정"),
+    HYGIENE_EDIT("영업소·위생 점검 기록"),
+    WELFARE_VIEW("복지 신청 열람(개인정보)"),
+    WELFARE_EDIT("복지 신청 처리"),
 
     HOLIDAY_ADD("공휴일 추가"),
     HOLIDAY_DELETE("공휴일 삭제"),

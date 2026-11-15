@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('통계·보고')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page">
+  <div class="page-head">
+    <div><span class="crumb"><a th:href="@{/}">홈</a> › 통계·보고</span><h1 th:text="${year} + '년 업무 통계'">업무 통계</h1></div>
+    <form th:action="@{/stats}" method="get" style="display:flex; gap:10px; align-items:center;">
+      <label for="syear" style="font-weight:700;">연도</label>
+      <select id="syear" name="year" class="select" style="height:52px;" onchange="this.form.submit()">
+        <option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option></select>
+      <a class="btn btn-outline" th:href="@{/stats/civil.csv(year=${year})}">민원 통계 내려받기 (CSV)</a>
+    </form>
+  </div>
+  <p class="hint">합계만 보여 주며 개인을 알아볼 수 있는 정보는 없습니다.</p>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>월별 민원</h2></div>
+    <div class="table-wrap"><table class="list" style="min-width:640px">
+      <thead><tr><th scope="col">월</th><th scope="col" style="text-align:right">접수</th><th scope="col" style="text-align:right">처리</th>
+        <th scope="col" style="text-align:right">기한 내 처리</th><th scope="col" style="text-align:right">기한 내 처리율</th></tr></thead>
+      <tbody><tr th:each="r : ${civilMonthly}">
+        <td th:text="${r.label}">월</td>
+        <td class="right" th:text="${r.values[0]}">0</td><td class="right" th:text="${r.values[1]}">0</td>
+        <td class="right" th:text="${r.values[2]}">0</td><td class="right" th:text="${r.values[3]} + '%'">0%</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>종류별 민원</h2></div>
+    <p th:if="${#lists.isEmpty(civilByKind)}" class="hint" style="padding:18px 22px;">민원이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(civilByKind)}"><table class="list" style="min-width:640px">
+      <thead><tr><th scope="col">종류</th><th scope="col" style="text-align:right">접수</th><th scope="col" style="text-align:right">처리</th>
+        <th scope="col" style="text-align:right">기한 내 처리율</th><th scope="col" style="text-align:right">처리기간 연장</th></tr></thead>
+      <tbody><tr th:each="r : ${civilByKind}">
+        <td th:text="${r.label}">종류</td><td class="right" th:text="${r.values[0]}">0</td><td class="right" th:text="${r.values[1]}">0</td>
+        <td class="right" th:text="${r.values[3]} + '%'">0%</td><td class="right" th:text="${r.values[4]}">0</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <div class="stat-grid">
+    <div class="stat"><small>결재 진행 중</small><strong th:text="${approval['PROG']}">0</strong></div>
+    <div class="stat"><small>결재 완료</small><strong th:text="${approval['DONE']}">0</strong></div>
+    <div class="stat"><small>반려</small><strong th:text="${approval['REJECTED']}">0</strong></div>
+    <div class="stat"><small>위생 점검 (적합/부적합)</small><strong th:text="${hygiene['적합']} + ' / ' + ${hygiene['부적합']}">0</strong></div>
+    <div class="stat"><small>급여 결정 (지급/부적합)</small><strong th:text="${welfare['GRANTED']} + ' / ' + ${welfare['DENIED']}">0</strong></div>
+    <div class="stat"><small>급여 처리 중</small><strong th:text="${welfare['RECEIVED'] + welfare['SURVEY']}">0</strong></div>
+    <div class="stat"><small>건축 착공 전 (허가/신고)</small><strong th:text="${building['PERMIT_VALID']} + ' / ' + ${building['REPORT_VALID']}">0</strong></div>
+    <div class="stat red"><small style="color:#7A1E1E">건축 착수기한 지남</small><strong th:text="${building['OVERDUE']}">0</strong></div>
+  </div>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>부서별 세출 예산 집행</h2></div>
+    <p th:if="${#lists.isEmpty(finance)}" class="hint" style="padding:18px 22px;">승인된 예산이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(finance)}"><table class="list" style="min-width:640px">
+      <thead><tr><th scope="col">부서</th><th scope="col" style="text-align:right">예산액</th><th scope="col" style="text-align:right">집행액</th>
+        <th scope="col" style="text-align:right">잔액</th><th scope="col" style="text-align:right">집행률</th></tr></thead>
+      <tbody><tr th:each="r : ${finance}">
+        <td th:text="${r.label}">부서</td>
+        <td class="right" th:text="${#numbers.formatInteger(r.values[0], 1, 'COMMA')}">0</td>
+        <td class="right" th:text="${#numbers.formatInteger(r.values[1], 1, 'COMMA')}">0</td>
+        <td class="right" th:text="${#numbers.formatInteger(r.values[2], 1, 'COMMA')}">0</td>
+        <td class="right" th:text="${r.values[3]} + '%'">0%</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>승인된 복무</h2></div>
+    <p th:if="${#lists.isEmpty(duty)}" class="hint" style="padding:18px 22px;">승인된 복무 신청이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(duty)}"><table class="list" style="min-width:520px">
+      <thead><tr><th scope="col">종류</th><th scope="col" style="text-align:right">건수</th><th scope="col" style="text-align:right">일수</th><th scope="col" style="text-align:right">시간</th></tr></thead>
+      <tbody><tr th:each="r : ${duty}">
+        <td th:text="${r.label}">종류</td><td class="right" th:text="${r.values[0]}">0</td>
+        <td class="right" th:text="${r.values[1]}">0</td><td class="right" th:text="${r.values[2]}">0</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

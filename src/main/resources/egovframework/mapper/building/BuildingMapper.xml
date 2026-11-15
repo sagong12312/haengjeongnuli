@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.haengjeongnuli.building.service.impl.BuildingMapper">
+    <sql id="cols">CASE_ID, KIND, RECEIPT_NO, OWNER_NAME, SITE, BUILDING_USE, FLOOR_AREA, FLOORS, FACTORY_YN, DECIDED_ON,
+        START_DEADLINE, EXTENDED_YN, STARTED_ON, STATUS, NOTE, CREATED_BY, CREATED_AT</sql>
+    <select id="nextId" resultType="long">SELECT SEQ_BUILDING_CASE.NEXTVAL FROM DUAL</select>
+    <insert id="insert" parameterType="egovframework.haengjeongnuli.building.service.BuildingCaseVO">
+        INSERT INTO BUILDING_CASE (<include refid="cols"/>)
+        VALUES (#{caseId}, #{kind}, #{receiptNo}, #{ownerName}, #{site}, #{buildingUse}, #{floorArea, jdbcType=NUMERIC},
+                #{floors, jdbcType=NUMERIC}, #{factoryYn}, #{decidedOn, jdbcType=DATE}, #{startDeadline, jdbcType=DATE},
+                'N', NULL, 'VALID', #{note}, #{createdBy}, #{createdAt})
+    </insert>
+    <select id="select" resultType="egovframework.haengjeongnuli.building.service.BuildingCaseVO">
+        SELECT <include refid="cols"/> FROM BUILDING_CASE WHERE CASE_ID = #{id}
+    </select>
+    <select id="selectList" resultType="egovframework.haengjeongnuli.building.service.BuildingCaseVO">
+        SELECT * FROM (
+            SELECT <include refid="cols"/> FROM BUILDING_CASE
+            <where>
+                <if test="q != null">(SITE LIKE '%' || #{q} || '%' OR OWNER_NAME LIKE '%' || #{q} || '%' OR RECEIPT_NO LIKE '%' || #{q} || '%')</if>
+            </where>
+             ORDER BY CASE WHEN STATUS = 'VALID' THEN 0 ELSE 1 END, START_DEADLINE, CASE_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+    <update id="markStarted">
+        UPDATE BUILDING_CASE SET STATUS = 'STARTED', STARTED_ON = #{on, jdbcType=DATE} WHERE CASE_ID = #{id} AND STATUS = 'VALID'
+    </update>
+    <update id="extend">
+        UPDATE BUILDING_CASE SET START_DEADLINE = #{deadline, jdbcType=DATE}, EXTENDED_YN = 'Y'
+         WHERE CASE_ID = #{id} AND STATUS = 'VALID' AND EXTENDED_YN = 'N'
+    </update>
+    <update id="updateNote">UPDATE BUILDING_CASE SET NOTE = #{note} WHERE CASE_ID = #{id}</update>
+    <update id="cancel">
+        UPDATE BUILDING_CASE SET STATUS = 'CANCELLED', NOTE = #{note} WHERE CASE_ID = #{id} AND STATUS = 'VALID'
+    </update>
+</mapper>

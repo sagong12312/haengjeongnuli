@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('건축·토지')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div class="page-head">
+    <div><span class="crumb"><a th:href="@{/}">홈</a> › 건축·토지</span><h1>건축·토지</h1></div>
+    <a class="btn btn-outline" th:href="@{/civil/new}">건축 민원 접수 (창구)</a>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><small>처리 중인 건축 민원</small><strong th:text="${#lists.size(complaints)} + '건'">0</strong></div>
+    <div class="stat"><small>대장 (전체)</small><strong th:text="${#lists.size(cases)} + '건'">0</strong></div>
+    <div class="stat orange"><small style="color:#6B3A0E">착수기한 30일 이내</small><strong th:text="${near} + '건'">0</strong></div>
+    <div class="stat red"><small style="color:#7A1E1E">착수기한 지남</small><strong th:text="${overdue} + '건'">0</strong></div>
+  </div>
+
+  <section class="panel flush" aria-labelledby="c-title">
+    <div class="panel-head"><h2 id="c-title">처리 중인 건축 민원</h2><span class="muted" style="font-size:16px;">건축신고 5일·심의 등 20일 (건축법 제14조 제3항), 건축허가는 기관 민원편람 기준</span></div>
+    <p th:if="${#lists.isEmpty(complaints)}" class="hint" style="padding:18px 22px;">처리 중인 건축 민원이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(complaints)}"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">접수번호</th><th scope="col" style="text-align:left">제목</th><th scope="col">처리기한</th><th scope="col">담당</th></tr></thead>
+      <tbody><tr th:each="c : ${complaints}" th:classappend="${c.imminent} ? 'warn'">
+        <td th:text="${c.receiptNo}">번호</td>
+        <td class="left"><a th:href="@{/civil/{id}(id=${c.complaintId})}" th:text="${c.title}">제목</a></td>
+        <td th:text="${#temporals.format(c.deadlineAt, 'MM-dd HH:mm')}">기한</td>
+        <td th:text="${c.assignee} ?: '—'">담당</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush" aria-labelledby="l-title">
+    <div class="panel-head" style="flex-wrap:wrap; gap:10px;">
+      <h2 id="l-title">건축 인허가 대장</h2>
+      <form th:action="@{/building}" method="get" role="search" style="display:flex; gap:8px;">
+        <label for="bq" class="sr-only">검색</label>
+        <input id="bq" name="q" class="input" type="search" th:value="${q}" placeholder="대지위치, 건축주, 접수번호" style="height:44px; font-size:17px;">
+        <button type="submit" class="btn btn-outline" style="height:44px;">검색</button>
+      </form>
+    </div>
+    <p th:if="${#lists.isEmpty(cases)}" class="hint" style="padding:18px 22px;">대장에 올린 건이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(cases)}"><table class="list" style="min-width:980px">
+      <thead><tr><th scope="col">구분</th><th scope="col" style="text-align:left">대지위치</th><th scope="col">건축주</th><th scope="col">용도</th>
+        <th scope="col">허가·수리일</th><th scope="col">착수기한</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="c : ${cases}">
+        <td th:text="${c.kindLabel}">구분</td>
+        <td class="left"><a th:href="@{/building/{id}(id=${c.caseId})}" th:text="${c.site}">대지</a></td>
+        <td th:text="${c.ownerName}">건축주</td>
+        <td th:text="${c.buildingUse}">용도</td>
+        <td th:text="${c.decidedOn}">날짜</td>
+        <td th:text="${c.startDeadline} + (${c.extendedYn == 'Y'} ? ' (연장)' : '')">기한</td>
+        <td><span th:class="'badge ' + ${c.statusBadge}" th:text="${c.statusLabel}">상태</span></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canEdit}" class="panel" th:action="@{/building}" method="post" style="gap:14px;">
+    <h2>대장에 올리기</h2>
+    <p class="hint" style="margin:0;">착수기한은 건축허가는 허가일부터 2년(공장은 3년), 건축신고는 신고일부터 1년으로 정합니다 (건축법 제11조 제7항, 제14조 제5항).</p>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="bkind">구분</label><select id="bkind" name="kind" class="select"><option value="REPORT">건축신고</option><option value="PERMIT">건축허가</option></select></div>
+      <div class="field"><label for="bdate">허가일·수리일 <span class="req">*</span></label><input id="bdate" name="decidedOn" type="date" class="input" required th:max="${today}"></div>
+      <div class="field"><label for="breceipt">민원 접수번호</label><input id="breceipt" name="receiptNo" class="input" maxlength="20" placeholder="예: 2026-000123"></div>
+      <div class="field"><label for="bowner">건축주 <span class="req">*</span></label><input id="bowner" name="owner" class="input" maxlength="100" required></div>
+      <div class="field" style="grid-column:span 2;"><label for="bsite">대지위치 <span class="req">*</span></label><input id="bsite" name="site" class="input" maxlength="300" required></div>
+      <div class="field"><label for="buse">용도 <span class="req">*</span></label><input id="buse" name="use" class="input" maxlength="100" required placeholder="예: 단독주택"></div>
+      <div class="field"><label for="barea">연면적(㎡)</label><input id="barea" name="area" type="number" step="0.01" min="0" class="input"></div>
+      <div class="field"><label for="bfloors">층수</label><input id="bfloors" name="floors" type="number" min="1" class="input"></div>
+    </div>
+    <label class="check"><input type="checkbox" name="factory" value="true">공장 신설·증설·업종변경 승인을 받은 공장 (건축허가 착수기한 3년)</label>
+    <div class="field"><label for="bnote">비고</label><input id="bnote" name="note" class="input" maxlength="1000"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">올리기</button></div>
+  </form>
+  <p th:unless="${canEdit}" class="hint" th:text="'대장은 ' + ${depts} + ' 직원과 관리자가 고칩니다.'">안내</p>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

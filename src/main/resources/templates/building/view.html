@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('건축 인허가')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/building}">건축·토지</a> › 인허가 대장</span><h1 th:text="${c.site}">대지</h1></div>
+  <section class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <h2 th:text="${c.kindLabel}">구분</h2><span th:class="'badge ' + ${c.statusBadge}" th:text="${c.statusLabel}">상태</span>
+    </div>
+    <dl class="kv">
+      <div><dt>건축주</dt><dd th:text="${c.ownerName}">건축주</dd></div>
+      <div><dt>용도·규모</dt><dd th:text="${c.buildingUse} + (${c.floorArea} ? ' · 연면적 ' + ${c.floorArea} + '㎡' : '') + (${c.floors} ? ' · ' + ${c.floors} + '층' : '') + (${c.factoryYn == 'Y'} ? ' · 공장' : '')">용도</dd></div>
+      <div><dt>허가·수리일</dt><dd th:text="${c.decidedOn}">날짜</dd></div>
+      <div><dt>착수기한</dt><dd th:text="${c.startDeadline} + (${c.extendedYn == 'Y'} ? ' (연장함)' : '')">기한</dd></div>
+      <div th:if="${c.startedOn}"><dt>착공일</dt><dd th:text="${c.startedOn}">착공</dd></div>
+      <div th:if="${c.receiptNo}"><dt>민원 접수번호</dt><dd th:text="${c.receiptNo}">번호</dd></div>
+      <div th:if="${c.note}"><dt>비고</dt><dd th:text="${c.note}">비고</dd></div>
+    </dl>
+  </section>
+  <th:block th:if="${canEdit and c.status == 'VALID'}">
+    <form class="panel" th:action="@{/building/{id}/start(id=${c.caseId})}" method="post" style="gap:12px;">
+      <h2>착공 기록</h2>
+      <div class="field"><label for="son">착공일</label><input id="son" name="on" type="date" class="input" required th:max="${today}"></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">기록</button></div>
+    </form>
+    <form th:if="${c.extendedYn == 'N'}" class="panel" th:action="@{/building/{id}/extend(id=${c.caseId})}" method="post" style="gap:12px;">
+      <h2>착수기한 연장</h2>
+      <p class="hint" style="margin:0;">건축주의 요청에 정당한 사유가 있으면 1년 범위에서 연장할 수 있습니다.</p>
+      <div class="grid-fields">
+        <div class="field"><label for="emonths">연장 개월</label><input id="emonths" name="months" type="number" min="1" max="12" value="12" class="input" required></div>
+        <div class="field"><label for="ereason">정당한 사유</label><input id="ereason" name="reason" class="input" maxlength="500" required></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">연장</button></div>
+    </form>
+    <form class="panel" th:action="@{/building/{id}/cancel(id=${c.caseId})}" method="post" style="gap:12px;"
+          onsubmit="return confirm('처리할까요? 되돌릴 수 없습니다.');">
+      <h2 th:text="${c.kind == 'PERMIT'} ? '허가 취소' : '신고 효력 상실 처리'">취소</h2>
+      <div class="field"><label for="creason">사유</label><input id="creason" name="reason" class="input" maxlength="500" required placeholder="예: 착수기한 내 미착공"></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">처리</button></div>
+    </form>
+  </th:block>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<style>
+  .kv { margin:0; display:flex; flex-direction:column; }
+  .kv div { display:flex; gap:16px; border-bottom:1px solid var(--line); padding:10px 0; }
+  .kv dt { width:130px; flex:none; color:var(--text-3); font-weight:700; }
+  .kv dd { margin:0; color:var(--text); }
+</style>
+</body>
+</html>

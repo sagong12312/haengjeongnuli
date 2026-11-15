@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('영업소')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/hygiene}">환경·위생</a> › 영업소</span><h1 th:text="${b.bizName}">상호</h1></div>
+  <section class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;"><h2>영업소 정보</h2>
+      <span th:class="${b.open} ? 'badge badge-green' : 'badge badge-gray'" th:text="${b.open} ? '영업' : '폐업 ' + ${b.closedOn}">영업</span></div>
+    <dl class="kv">
+      <div><dt>업종</dt><dd th:text="${b.bizType}">업종</dd></div>
+      <div><dt>대표자</dt><dd th:text="${b.ownerName}">대표자</dd></div>
+      <div><dt>소재지</dt><dd th:text="${b.address}">소재지</dd></div>
+      <div><dt>신고일</dt><dd th:text="${b.reportedOn}">날짜</dd></div>
+      <div th:if="${b.receiptNo}"><dt>민원 접수번호</dt><dd th:text="${b.receiptNo}">번호</dd></div>
+    </dl>
+  </section>
+
+  <form th:if="${canEdit and b.open}" class="panel" th:action="@{/hygiene/{id}/check(id=${b.bizId})}" method="post" style="gap:12px;">
+    <h2>위생 점검 기록</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="field"><label for="con">점검일</label><input id="con" name="on" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="cres">결과</label><select id="cres" name="result" class="select"><option>적합</option><option>부적합</option></select></div>
+      <div class="field"><label for="cact">조치</label><select id="cact" name="action" class="select"><option th:each="a : ${actions}" th:text="${a}" th:value="${a}">조치</option></select></div>
+    </div>
+    <div class="field"><label for="cvio">위반 내용 <span class="muted" style="font-size:16px;">(부적합이면 꼭 적습니다)</span></label><textarea id="cvio" name="violation" class="textarea" rows="3" maxlength="1000"></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">기록</button></div>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>점검 이력</h2><span class="muted" th:text="${#lists.size(checks)} + '건'">0건</span></div>
+    <p th:if="${#lists.isEmpty(checks)}" class="hint" style="padding:18px 22px;">점검 기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(checks)}"><table class="list" style="min-width:640px">
+      <thead><tr><th scope="col">점검일</th><th scope="col">결과</th><th scope="col" style="text-align:left">위반 내용</th><th scope="col">조치</th><th scope="col">점검자</th></tr></thead>
+      <tbody><tr th:each="k : ${checks}">
+        <td th:text="${k.checkedOn}">날짜</td>
+        <td><span th:class="${k.result == '적합'} ? 'badge badge-green' : 'badge badge-red'" th:text="${k.result}">적합</span></td>
+        <td class="left" th:text="${k.violation} ?: '—'">위반</td>
+        <td th:text="${k.action}">조치</td>
+        <td th:text="${k.inspector}">점검자</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canEdit and b.open}" class="panel" th:action="@{/hygiene/{id}/close(id=${b.bizId})}" method="post" style="gap:12px;"
+        onsubmit="return confirm('폐업으로 처리할까요?');">
+    <h2>폐업 처리</h2>
+    <div class="field"><label for="clo">폐업일</label><input id="clo" name="on" type="date" class="input" required th:max="${today}"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">폐업 처리</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<style>
+  .kv { margin:0; display:flex; flex-direction:column; }
+  .kv div { display:flex; gap:16px; border-bottom:1px solid var(--line); padding:10px 0; }
+  .kv dt { width:130px; flex:none; color:var(--text-3); font-weight:700; }
+  .kv dd { margin:0; color:var(--text); }
+</style>
+</body>
+</html>

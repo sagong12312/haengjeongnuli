@@ -27,7 +27,7 @@
             <td style="color:var(--text)" th:text="${u.userName}">이름</td>
             <td th:text="${u.positionName} ?: '—'">직급</td>
             <td th:text="${u.deptName} ?: '—'">부서</td>
-            <td><span th:text="${u.role.label}">권한</span><span th:if="${u.revenueStaff}" class="badge badge-blue" style="margin-left:6px;">세입 담당</span></td>
+            <td><span th:text="${u.role.label}">권한</span><span th:if="${u.revenueStaff}" class="badge badge-blue" style="margin-left:6px;">세입 담당</span><span th:if="${u.welfareStaff}" class="badge badge-green" style="margin-left:6px;">복지 담당</span></td>
             <td>
               <span th:if="${!u.enabled}" class="badge badge-gray">사용 중지</span>
               <span th:if="${u.enabled and u.locked}" class="badge badge-red">잠김</span>
@@ -43,6 +43,10 @@
                 <form th:action="@{/admin/users/{id}/enabled(id=${u.userId})}" method="post" style="margin:0;">
                   <input type="hidden" name="value" th:value="${!u.enabled}">
                   <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;" th:text="${u.enabled} ? '사용 중지' : '다시 사용'">사용 중지</button>
+                </form>
+                <form th:action="@{/admin/users/{id}/welfare(id=${u.userId})}" method="post" style="margin:0;">
+                  <input type="hidden" name="value" th:value="${!u.welfareStaff}">
+                  <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;" th:text="${u.welfareStaff} ? '복지 담당 해제' : '복지 담당 지정'">복지 담당 지정</button>
                 </form>
                 <form th:action="@{/admin/users/{id}/revenue(id=${u.userId})}" method="post" style="margin:0;">
                   <input type="hidden" name="value" th:value="${!u.revenueStaff}">
