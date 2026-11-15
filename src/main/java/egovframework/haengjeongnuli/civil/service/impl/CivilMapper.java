@@ -38,6 +38,6 @@ public interface CivilMapper {
 
     List<egovframework.haengjeongnuli.civil.service.CivilHistoryVO> selectHistory(@Param("id") long id);
 
-    CivilSummaryVO selectSummary(@Param("imminentUntil") LocalDate imminentUntil,
+    CivilSummaryVO selectSummary(@Param("search") CivilSearchVO viewer, @Param("imminentUntil") LocalDate imminentUntil,
                                  @Param("monthStart") LocalDate monthStart);
 }

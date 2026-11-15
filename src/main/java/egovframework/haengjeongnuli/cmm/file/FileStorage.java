@@ -24,6 +24,15 @@ public class FileStorage {
 
     private final Path root;
     private final Set<String> allowedExtensions;
+    /** 한 번에 올릴 수 있는 파일 수 */
+    private int maxCount = 10;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setMaxCount(@Value("${app.file.max-count:10}") int maxCount) {
+        this.maxCount = maxCount;
+    }
+
+    public int getMaxCount() { return maxCount; }
 
     public FileStorage(@Value("${app.file.upload-dir:./uploads}") String uploadDir,
                        @Value("${app.file.allowed-extensions}") String allowed) throws IOException {
@@ -45,8 +54,36 @@ public class FileStorage {
         return allowedExtensions;
     }
 
-    /** 파일을 저장하고 저장 이름을 돌려준다 */
+    /**
+     * 올릴 수 있는 파일인지 확인한다: 허용 확장자이고, 내용이 그 확장자의 실제 형식과 맞아야 한다.
+     *
+     * @return 문제가 있으면 안내 문구, 없으면 null
+     */
+    public String check(MultipartFile file) {
+        String name = cleanName(file.getOriginalFilename());
+        String ext = extension(name);
+        if (ext == null || !allowedExtensions.contains(ext)) {
+            return "올릴 수 없는 형식입니다: " + name;
+        }
+        if (file.isEmpty()) {
+            return "빈 파일은 올릴 수 없습니다: " + name;
+        }
+        try {
+            if (!FileTypeChecker.matches(ext, file::getInputStream)) {
+                return "파일 내용이 확장자(" + ext + ")와 맞지 않아 올릴 수 없습니다: " + name;
+            }
+        } catch (IOException e) {
+            return "파일을 읽지 못했습니다: " + name;
+        }
+        return null;
+    }
+
+    /** 파일을 저장하고 저장 이름을 돌려준다. 형식 확인을 통과하지 못한 파일은 저장하지 않는다. */
     public String save(MultipartFile file) throws IOException {
+        String problem = check(file);
+        if (problem != null) {
+            throw new IllegalArgumentException(problem);
+        }
         String storedName = UUID.randomUUID().toString().replace("-", "");
         try (InputStream in = file.getInputStream()) {
             Files.copy(in, resolve(storedName), StandardCopyOption.REPLACE_EXISTING);

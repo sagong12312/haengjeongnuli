@@ -1,5 +1,13 @@
 server:
   port: 8080
+  # 오류 화면에 내부 정보(스택 트레이스, 예외 이름·메시지, 검증 오류)를 내보내지 않는다
+  error:
+    include-stacktrace: never
+    include-exception: false
+    include-message: never
+    include-binding-errors: never
+    whitelabel:
+      enabled: false
   servlet:
     encoding:
       charset: UTF-8
@@ -53,3 +61,5 @@ app:
     upload-dir: ./uploads
     # 올릴 수 있는 확장자
     allowed-extensions: hwp,hwpx,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,jpg,jpeg,png,gif,zip
+    # 한 번에 올릴 수 있는 파일 수 (파일 내용도 확장자와 맞는지 확인한다)
+    max-count: 10

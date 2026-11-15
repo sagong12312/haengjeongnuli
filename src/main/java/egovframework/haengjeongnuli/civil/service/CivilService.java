@@ -12,5 +12,6 @@ public interface CivilService {
 
     int count(CivilSearchVO search);
 
-    CivilSummaryVO summary();
+    /** 처리 현황 숫자 (보는 사람이 볼 수 있는 민원만 센다) */
+    CivilSummaryVO summary(egovframework.haengjeongnuli.cmm.LoginUser viewer);
 }

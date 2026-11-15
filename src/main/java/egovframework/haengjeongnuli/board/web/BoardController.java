@@ -322,10 +322,14 @@ public class BoardController {
         if (required && real.isEmpty()) {
             result.reject("files.required", "올릴 파일을 하나 이상 선택하세요.");
         }
+        if (real.size() > fileStorage.getMaxCount()) {
+            result.reject("files.count", "파일은 한 번에 " + fileStorage.getMaxCount() + "개까지 올릴 수 있습니다.");
+            return;
+        }
         for (MultipartFile f : real) {
-            String name = FileStorage.cleanName(f.getOriginalFilename());
-            if (!fileStorage.isAllowed(name)) {
-                result.reject("files.ext", "올릴 수 없는 형식의 파일입니다: " + name);
+            String problem = fileStorage.check(f);
+            if (problem != null) {
+                result.reject("files.type", problem);
             }
         }
     }

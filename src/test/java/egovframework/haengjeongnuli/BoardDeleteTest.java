@@ -91,7 +91,7 @@ class BoardDeleteTest {
         MockMvc author = TestUsers.mvcAs(ctx, TestUsers.counter());
         String title = "지울 자료 " + UUID.randomUUID();
         author.perform(multipart("/board/upload")
-                        .file(new MockMultipartFile("files", "a.pdf", "application/pdf", new byte[]{1, 2, 3}))
+                        .file(new MockMultipartFile("files", "a.pdf", "application/pdf", "%PDF-1.7 test".getBytes(java.nio.charset.StandardCharsets.US_ASCII)))
                         .param("scope", "전체 공개").param("title", title))
                 .andExpect(redirectedUrl("/board?tab=archive"));
         String html = author.perform(get("/board").param("tab", "archive"))

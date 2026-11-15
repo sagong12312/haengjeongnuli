@@ -99,9 +99,9 @@ public class CivilServiceImpl implements CivilService {
     }
 
     @Override
-    public CivilSummaryVO summary() {
+    public CivilSummaryVO summary(egovframework.haengjeongnuli.cmm.LoginUser viewer) {
         LocalDate today = LocalDate.now(clock);
-        return civilMapper.selectSummary(today.plusDays(imminentDays), today.withDayOfMonth(1));
+        return civilMapper.selectSummary(CivilSearchVO.forViewer(viewer), today.plusDays(imminentDays), today.withDayOfMonth(1));
     }
 
     private static String blankToNull(String s) {

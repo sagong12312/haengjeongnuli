@@ -53,6 +53,7 @@
     <button type="submit" class="btn btn-outline">검색</button>
   </form>
 
+  <p th:unless="${seeAll}" class="hint">개인정보 보호를 위해 내가 담당하거나 접수한 민원, 우리 부서가 처리하는 민원만 보입니다.</p>
   <section class="panel flush" aria-label="민원 목록">
     <div class="panel-head" style="font-size:17px; color:var(--text-2);">
       <span>전체 <b style="color:var(--text)" th:text="${total}">0</b>건</span><span>처리기한 빠른 순 (최대 50건)</span>

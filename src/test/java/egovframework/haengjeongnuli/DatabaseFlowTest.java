@@ -117,14 +117,14 @@ class DatabaseFlowTest {
         assertThat(saved.getMobile()).isNull();
         assertThat(saved.getHomePhone()).isEqualTo("02-123-4567");
 
-        CivilSearchVO search = new CivilSearchVO();
+        CivilSearchVO search = CivilSearchVO.forViewer(TestUsers.admin());
         search.setQ(form.getTitle());
         assertThat(civilService.search(search)).singleElement()
                 .satisfies(c -> {
                     assertThat(c.getLegalAffair()).isEqualTo(LegalAffair.SEAL);
                     assertThat(c.isImminent()).isTrue();
                 });
-        assertThat(civilService.summary().getInProgress()).isGreaterThanOrEqualTo(1);
+        assertThat(civilService.summary(TestUsers.admin()).getInProgress()).isGreaterThanOrEqualTo(1);
     }
 
     @Test
@@ -144,7 +144,8 @@ class DatabaseFlowTest {
     @Test
     void 자료를_올리고_내려받는다() throws Exception {
         String title = "서식 " + UUID.randomUUID();
-        byte[] data = "가나다 hwp 내용".getBytes(StandardCharsets.UTF_8);
+        // 실제 HWP(OLE2 복합 문서) 표지로 시작하는 내용
+        byte[] data = new byte[] {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0, (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 1, 2, 3};
         MockMultipartFile file = new MockMultipartFile("files", "출장 신청서.hwp", "application/octet-stream", data);
 
         mvc.perform(multipart("/board/upload").file(file)
@@ -177,7 +178,7 @@ class DatabaseFlowTest {
         MockMultipartFile exe = new MockMultipartFile("files", "virus.exe", "application/octet-stream", new byte[]{1, 2});
         mvc.perform(multipart("/board/upload").file(exe).param("scope", "전체 공개").param("title", "실행 파일"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(containsString("올릴 수 없는 형식의 파일입니다: virus.exe")));
+                .andExpect(content().string(containsString("올릴 수 없는 형식입니다: virus.exe")));
     }
 
     @Test

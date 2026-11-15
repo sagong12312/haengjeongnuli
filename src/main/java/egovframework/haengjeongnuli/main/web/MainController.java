@@ -41,7 +41,7 @@ public class MainController {
     public String main(@org.springframework.security.core.annotation.AuthenticationPrincipal
                        LoginUser loginUser, Model model) {
         model.addAttribute("working", attendanceService.isWorking(loginUser.getLoginId()));
-        model.addAttribute("civilSummary", civilService.summary());
+        model.addAttribute("civilSummary", civilService.summary(loginUser));
         model.addAttribute("approvalWait", approvalService.count(ApprovalSearchVO.of("wait", loginUser)));
         model.addAttribute("notices", boardService.list(
                 egovframework.haengjeongnuli.board.service.BoardSearchVO.of("notice", null, 1, loginUser).size(3)));

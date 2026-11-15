@@ -40,7 +40,7 @@ public class BuildingController {
     @GetMapping("/building")
     public String list(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String q, Model model) {
         List<BuildingCaseVO> cases = service.list(q);
-        CivilSearchVO s = new CivilSearchVO();
+        CivilSearchVO s = CivilSearchVO.forViewer(me);
         s.setAffairs(List.of("BUILD_REPORT", "BUILD_REPORT_REVIEW", "BUILD_PERMIT"));
         s.setOpenOnly(true);
         s.setLimit(50);

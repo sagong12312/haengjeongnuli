@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>요청 오류 | 행정누리</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<!-- 오류 안내 화면: 내부 정보(경로, 클래스, 메시지)는 보여 주지 않는다 -->
+<main class="page" style="max-width:640px; padding-top:80px;">
+  <section class="panel" role="alert" style="align-items:center; text-align:center; padding:40px 28px; gap:14px;">
+    <h1 style="margin:0; font-size:26px;">요청을 처리할 수 없습니다</h1>
+    <p class="muted" style="margin:0;">입력한 값이나 주소를 다시 확인해 주세요.</p>
+    <a class="btn btn-plain" th:href="@{/}">홈으로</a>
+  </section>
+</main>
+</body>
+</html>

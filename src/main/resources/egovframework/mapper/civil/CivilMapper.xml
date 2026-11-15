@@ -24,6 +24,11 @@
             <if test="kind != null">AND KIND = #{kind}</if>
             <if test="status != null">AND STATUS = #{status}</if>
             <if test="openOnly">AND STATUS &lt;&gt; 'DONE'</if>
+            <!-- 접근통제: 창구 직원·관리자가 아니면 내가 담당·접수했거나 우리 부서가 처리하는 민원만 -->
+            <if test="!viewerAll">
+                AND (ASSIGNEE_ID = #{viewerId} OR REGISTER_ID = #{viewerId}
+                     <if test="viewerDept != null">OR DEPT = #{viewerDept}</if>)
+            </if>
             <if test="affairs != null and affairs.size() > 0">
                 AND LEGAL_AFFAIR IN <foreach collection="affairs" item="a" open="(" separator="," close=")">#{a}</foreach>
             </if>
@@ -98,6 +103,10 @@
                NVL(SUM(CASE WHEN STATUS &lt;&gt; 'DONE' AND DEADLINE &lt;= #{imminentUntil} THEN 1 ELSE 0 END), 0) AS IMMINENT,
                NVL(SUM(CASE WHEN STATUS = 'DONE' AND COMPLETED_AT &gt;= #{monthStart} THEN 1 ELSE 0 END), 0)    AS DONE_THIS_MONTH
           FROM CIVIL_COMPLAINT
+         <if test="!search.viewerAll">
+          WHERE (ASSIGNEE_ID = #{search.viewerId} OR REGISTER_ID = #{search.viewerId}
+                 <if test="search.viewerDept != null">OR DEPT = #{search.viewerDept}</if>)
+         </if>
     </select>
 
 </mapper>

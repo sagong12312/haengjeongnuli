@@ -298,9 +298,15 @@ public class ApprovalController {
             result.rejectValue(e.getKey(), e.getKey(), e.getValue());
         }
         if (files != null) {
-            for (MultipartFile f : files) {
-                if (f != null && !f.isEmpty() && !fileStorage.isAllowed(FileStorage.cleanName(f.getOriginalFilename()))) {
-                    result.reject("files", "올릴 수 없는 형식입니다: " + FileStorage.cleanName(f.getOriginalFilename()));
+            List<MultipartFile> real = files.stream().filter(f -> f != null && !f.isEmpty()).toList();
+            if (real.size() > fileStorage.getMaxCount()) {
+                result.reject("files", "파일은 한 번에 " + fileStorage.getMaxCount() + "개까지 올릴 수 있습니다.");
+                return;
+            }
+            for (MultipartFile f : real) {
+                String problem = fileStorage.check(f);
+                if (problem != null) {
+                    result.reject("files", problem);
                 }
             }
         }

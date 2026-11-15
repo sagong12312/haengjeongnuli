@@ -86,7 +86,7 @@ public class SearchController {
         }
         model.addAttribute("docs", new ArrayList<>(docs.values()).subList(0, Math.min(20, docs.size())));
 
-        CivilSearchVO cs = new CivilSearchVO();
+        CivilSearchVO cs = CivilSearchVO.forViewer(me);
         cs.setQ(query);
         cs.setLimit(20);
         model.addAttribute("complaints", civilService.search(cs));

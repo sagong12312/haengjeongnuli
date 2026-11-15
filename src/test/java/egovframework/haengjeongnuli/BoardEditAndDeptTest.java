@@ -97,7 +97,7 @@ class BoardEditAndDeptTest {
         MockMvc author = TestUsers.mvcAs(ctx, TestUsers.counter());
         String title = "자료 " + UUID.randomUUID();
         author.perform(multipart("/board/upload")
-                .file(new MockMultipartFile("files", "old.pdf", "application/pdf", new byte[]{1}))
+                .file(new MockMultipartFile("files", "old.pdf", "application/pdf", "%PDF-1.7 test".getBytes(java.nio.charset.StandardCharsets.US_ASCII)))
                 .param("scope", "전체 공개").param("title", title));
         String html = author.perform(get("/board").param("tab", "archive"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -113,7 +113,7 @@ class BoardEditAndDeptTest {
 
         // 빼면서 새 파일을 더하면 된다
         author.perform(multipart("/board/" + id + "/edit")
-                        .file(new MockMultipartFile("files", "new.pdf", "application/pdf", new byte[]{2}))
+                        .file(new MockMultipartFile("files", "new.pdf", "application/pdf", "%PDF-1.7 new".getBytes(java.nio.charset.StandardCharsets.US_ASCII)))
                         .param("scope", "전체 공개").param("title", title).param("removeFileIds", oldFileId))
                 .andExpect(redirectedUrl("/board/" + id));
 

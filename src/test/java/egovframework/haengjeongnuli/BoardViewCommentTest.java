@@ -110,7 +110,7 @@ class BoardViewCommentTest {
         MockMvc author = TestUsers.mvcAs(ctx, TestUsers.counter());   // 민원봉사과
         String title = "부서한정 " + UUID.randomUUID();
         author.perform(multipart("/board/upload")
-                .file(new MockMultipartFile("files", "secret.pdf", "application/pdf", new byte[]{9}))
+                .file(new MockMultipartFile("files", "secret.pdf", "application/pdf", "%PDF-1.7 test".getBytes(java.nio.charset.StandardCharsets.US_ASCII)))
                 .param("scope", "우리 부서").param("title", title));
         String list = html(author, "/board?tab=archive");
         long id = idOf(list, title);

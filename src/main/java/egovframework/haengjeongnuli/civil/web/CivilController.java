@@ -55,11 +55,14 @@ public class CivilController {
     }
 
     @GetMapping
-    public String list(@ModelAttribute("search") CivilSearchVO search, Model model) {
+    public String list(@AuthenticationPrincipal LoginUser me, @ModelAttribute("search") CivilSearchVO search, Model model) {
+        // 요청 값으로 접근 범위를 바꾸지 못하게 서버에서 다시 정한다
+        search.applyViewer(me);
+        model.addAttribute("seeAll", search.isViewerAll());
         model.addAttribute("kinds", CivilKind.values());
         model.addAttribute("statuses", CivilStatus.values());
         model.addAttribute("kind", search.getKind());
-        model.addAttribute("summary", civilService.summary());
+        model.addAttribute("summary", civilService.summary(me));
         model.addAttribute("complaints", civilService.search(search));
         model.addAttribute("total", civilService.count(search));
         return "civil/list";

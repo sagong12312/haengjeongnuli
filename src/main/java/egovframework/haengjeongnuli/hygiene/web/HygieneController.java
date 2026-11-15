@@ -41,7 +41,7 @@ public class HygieneController {
     @GetMapping("/hygiene")
     public String list(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String q,
                        @RequestParam(required = false) String type, Model model) {
-        CivilSearchVO s = new CivilSearchVO();
+        CivilSearchVO s = CivilSearchVO.forViewer(me);
         s.setAffairs(List.of("FOOD_REPORT", "FOOD_CHANGE"));
         s.setOpenOnly(true);
         s.setLimit(50);
