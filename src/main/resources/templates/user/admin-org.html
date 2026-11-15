@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('기관 정보')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/admin/users}">계정 관리</a> › 기관 정보</span><h1>기관 정보와 관인</h1></div>
+  <p class="hint">시행문의 행정기관명·발신명의·주소·연락처와 화면 아래쪽 기관명·문의처에 쓰입니다.</p>
+
+  <form class="panel" th:action="@{/admin/org}" method="post" style="gap:16px;">
+    <h2>기관 정보</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));">
+      <div class="field" th:each="e : ${fields}">
+        <label th:for="'o-' + ${e.key}" th:text="${e.value[0]}">항목</label>
+        <input th:id="'o-' + ${e.key}" th:name="${e.key}" class="input" th:maxlength="${e.value[1]}" th:value="${values[e.key]}"
+               th:placeholder="${e.key == 'senderTitle'} ? '예: 행정누리시장' : (${e.key == 'orgName'} ? '예: 행정누리시' : '')">
+      </div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">저장</button></div>
+  </form>
+
+  <section class="panel" style="gap:14px;">
+    <h2>관인 (전자이미지관인)</h2>
+    <p class="hint" style="margin:0;">기관장 명의 시행문에 찍는 관인의 인영 이미지입니다. 관인대장에 등록된 관인을 스캔한 PNG·JPG(1MB 이하, 배경 투명 권장)를 올리세요.
+      바꾸면 앞으로 출력하는 시행문부터 새 이미지가 찍힙니다.</p>
+    <div th:if="${hasSeal}" style="display:flex; gap:16px; align-items:center;">
+      <img th:src="@{/org/seal}" alt="등록된 관인" style="width:96px; height:96px; object-fit:contain; border:1px solid var(--line); border-radius:8px; background:#fff;">
+      <form th:action="@{/admin/org/seal/delete}" method="post" style="margin:0;">
+        <button type="submit" class="btn btn-plain btn-sm" onclick="return confirm('관인 이미지를 지울까요?');">관인 이미지 지우기</button></form>
+    </div>
+    <p th:unless="${hasSeal}" class="hint" style="margin:0;">등록된 관인 이미지가 없습니다. 시행문에는 관인 자리만 표시됩니다.</p>
+    <form th:action="@{/admin/org/seal}" method="post" enctype="multipart/form-data" style="display:flex; gap:10px; flex-wrap:wrap; margin:0;">
+      <label for="sealfile" class="sr-only">관인 이미지</label>
+      <input id="sealfile" name="file" type="file" accept=".png,.jpg,.jpeg" class="input" style="height:auto; padding:10px; flex:1;">
+      <button type="submit" class="btn btn-outline">관인 이미지 올리기</button>
+    </form>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

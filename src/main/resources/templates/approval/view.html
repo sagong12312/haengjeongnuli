@@ -61,6 +61,28 @@
     </form>
   </section>
 
+  <!-- 시행문 발송 -->
+  <section th:if="${dispatches != null}" class="panel" id="dispatch" aria-labelledby="dispatch-title">
+    <h2 id="dispatch-title">시행문 발송</h2>
+    <p class="hint" style="margin:0;">결재가 끝난 발신 문서는 수신자별로 시행문을 출력해 보내고, 보낸 방법을 기록합니다. 기관장 명의 시행문에는 관인이 찍힙니다.</p>
+    <ul style="margin:0; padding-left:22px;">
+      <li th:each="rcv, st : ${doc.receiverList}">
+        <b th:text="${rcv}">수신자</b>
+        <a th:href="@{/approval/{id}/sihaeng(id=${doc.docId}, to=${st.index})}" target="_blank" rel="noopener">시행문 보기·인쇄</a>
+        <span th:each="dp : ${dispatches}" th:if="${dp.receiver == rcv}" class="badge badge-green" style="margin-left:6px;"
+              th:text="${dp.method} + ' ' + ${#temporals.format(dp.dispatchedAt, 'MM-dd HH:mm')}">발송</span>
+      </li>
+    </ul>
+    <form th:action="@{/approval/{id}/dispatch(id=${doc.docId})}" method="post" style="display:flex; flex-wrap:wrap; gap:10px; margin:0; align-items:flex-end;">
+      <div class="field" style="flex:1; min-width:160px;"><label for="dprcv">수신자</label><select id="dprcv" name="receiver" class="select">
+        <option th:each="rcv : ${doc.receiverList}" th:value="${rcv}" th:text="${rcv}">수신자</option></select></div>
+      <div class="field" style="flex:1; min-width:160px;"><label for="dpm">발송 방법</label><select id="dpm" name="method" class="select">
+        <option th:each="m : ${dispatchMethods}" th:value="${m}" th:text="${m}">방법</option></select></div>
+      <div class="field" style="flex:2; min-width:200px;"><label for="dpn">비고</label><input id="dpn" name="note" class="input" maxlength="500" placeholder="예: 등기번호, 받는 전자우편 주소"></div>
+      <button type="submit" class="btn btn-outline">발송 기록</button>
+    </form>
+  </section>
+
   <!-- 문서 정보 -->
   <section class="panel" aria-labelledby="info-title">
     <h2 id="info-title" class="sr-only">문서 정보</h2>

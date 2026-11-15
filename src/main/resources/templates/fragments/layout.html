@@ -51,8 +51,8 @@
 
 <footer class="site-footer" th:fragment="footer">
   <div class="inner">
-    <span>행정누리 · [운영 기관명]</span>
-    <span>시스템 문의 [연락처]</span>
+    <span th:text="'행정누리 · ' + ${@orgService.get('orgName', '운영 기관명 미설정')}">행정누리</span>
+    <span th:text="'시스템 문의 ' + ${@orgService.get('contact', '시스템 관리자')}">문의</span>
   </div>
 </footer>
 

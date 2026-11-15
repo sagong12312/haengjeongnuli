@@ -10,7 +10,7 @@
     <span class="crumb"><a th:href="@{/}">홈</a> › 시스템 관리</span>
     <h1>직원 계정 관리</h1>
   </div>
-  <div style="display:flex; flex-wrap:wrap; gap:10px;"><a class="btn btn-outline" th:href="@{/admin/audit}">접속·작업 기록 보기</a><a class="btn btn-outline" th:href="@{/admin/holidays}">공휴일 관리</a><a class="btn btn-outline" th:href="@{/admin/depts}">부서 관리</a></div>
+  <div style="display:flex; flex-wrap:wrap; gap:10px;"><a class="btn btn-outline" th:href="@{/admin/audit}">접속·작업 기록 보기</a><a class="btn btn-outline" th:href="@{/admin/holidays}">공휴일 관리</a><a class="btn btn-outline" th:href="@{/admin/depts}">부서 관리</a><a class="btn btn-outline" th:href="@{/admin/org}">기관 정보·관인</a></div>
 
   <!-- 방금 발급한 임시 비밀번호 (이 화면에서 한 번만 보인다) -->
   <section th:if="${tempPassword}" class="panel" role="alert" style="border:2px solid var(--brand);">

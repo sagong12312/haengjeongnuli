@@ -59,9 +59,12 @@ public class ApprovalController {
     private final AuditService auditService;
     private final FileStorage fileStorage;
     private final egovframework.haengjeongnuli.finance.service.FinanceService finance;
+    private final egovframework.haengjeongnuli.approval.service.DispatchService dispatch;
 
     public ApprovalController(ApprovalService approvalService, AuditService auditService, FileStorage fileStorage,
-                              egovframework.haengjeongnuli.finance.service.FinanceService finance) {
+                              egovframework.haengjeongnuli.finance.service.FinanceService finance,
+                              egovframework.haengjeongnuli.approval.service.DispatchService dispatch) {
+        this.dispatch = dispatch;
         this.approvalService = approvalService;
         this.auditService = auditService;
         this.fileStorage = fileStorage;
@@ -139,6 +142,10 @@ public class ApprovalController {
             return "redirect:/approval/" + docId + "/edit";
         }
         model.addAttribute("doc", d);
+        if (d.canDispatch(me)) {
+            model.addAttribute("dispatches", dispatch.list(docId));
+            model.addAttribute("dispatchMethods", egovframework.haengjeongnuli.approval.service.DispatchVO.METHODS);
+        }
         if (d.isSpending()) {
             model.addAttribute("budget", finance.get(d.getBudgetId()));
             model.addAttribute("payText", egovframework.haengjeongnuli.cmm.KoreanAmount.official(d.getPayAmount() == null ? 0 : d.getPayAmount()));
@@ -182,6 +189,41 @@ public class ApprovalController {
             return "redirect:/approval/" + docId;
         }
         return afterSave(docId, form, submit, ra);
+    }
+
+    /**
+     * 시행문: 결재가 끝난 발신 문서를 수신자별로 출력한다 (행정기관명, 수신, 제목, 본문, 발신명의와 관인,
+     * 결재선 서명과 전결·대결 표시, 시행 번호·일자, 주소·연락처, 공개 구분).
+     */
+    @GetMapping("/{docId}/sihaeng")
+    public String sihaeng(@AuthenticationPrincipal LoginUser me, @PathVariable long docId,
+                          @RequestParam(required = false) Integer to, Model model) {
+        ApprovalDocVO d = visible(docId, me);
+        if (!ApprovalDocVO.DONE.equals(d.getStatus()) || !d.isExternal()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        java.util.List<String> receivers = d.getReceiverList();
+        String receiver = to != null && to >= 0 && to < receivers.size() ? receivers.get(to)
+                : (receivers.size() == 1 ? receivers.get(0) : "수신자 참조");
+        model.addAttribute("doc", d);
+        model.addAttribute("receiver", receiver);
+        model.addAttribute("receivers", receivers);
+        model.addAttribute("showList", to == null && receivers.size() > 1);
+        auditService.record(AuditAction.APPROVAL_SIHAENG, "결재 " + docId, receiver);
+        return "approval/sihaeng";
+    }
+
+    @PostMapping("/{docId}/dispatch")
+    public String recordDispatch(@AuthenticationPrincipal LoginUser me, @PathVariable long docId,
+                                 @RequestParam(required = false) String receiver, @RequestParam(required = false) String method,
+                                 @RequestParam(required = false) String note, RedirectAttributes ra) {
+        ApprovalDocVO d = visible(docId, me);
+        String problem = dispatch.record(d, receiver, method, note, me);
+        if (problem == null) {
+            auditService.record(AuditAction.APPROVAL_DISPATCH, "결재 " + docId, receiver + " · " + method);
+        }
+        ra.addFlashAttribute("message", problem == null ? receiver + "에 " + method + "(으)로 발송했다고 기록했습니다." : problem);
+        return "redirect:/approval/" + docId + "#dispatch";
     }
 
     /** 대결자 지정: 휴가·출장 등으로 결재할 수 없는 기간에 대신 결재(대결)할 직원 */

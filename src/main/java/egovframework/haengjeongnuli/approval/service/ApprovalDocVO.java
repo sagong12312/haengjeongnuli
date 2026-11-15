@@ -84,6 +84,21 @@ public class ApprovalDocVO {
         return "external".equals(receiverType);
     }
 
+    /** 수신자 목록 (쉼표로 여럿 적을 수 있다) */
+    public java.util.List<String> getReceiverList() {
+        if (!isExternal() || receiver == null) {
+            return java.util.List.of();
+        }
+        return java.util.Arrays.stream(receiver.split("[,，]")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+    }
+
+    /** 시행문 발송을 기록할 수 있는 사람: 기안자와, 결재선에 든 기안 부서(처리과) 직원 */
+    public boolean canDispatch(LoginUser u) {
+        return DONE.equals(status) && isExternal() && u != null
+                && (isDraftedBy(u) || (drafterDept != null && drafterDept.equals(u.getDeptName())
+                        && (isOnLine(u) || lines.stream().anyMatch(l -> u.getLoginId().equals(l.getActedById())))));
+    }
+
     public boolean isDraftedBy(LoginUser u) {
         return u != null && u.getLoginId().equals(drafterId);
     }

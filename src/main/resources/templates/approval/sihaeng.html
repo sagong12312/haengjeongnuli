@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="'시행문 · ' + ${doc.title}">시행문</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <style>
+    body { background:#E9EDF2; }
+    .sheet { background:#fff; color:#111; max-width:210mm; min-height:297mm; margin:24px auto; padding:20mm 18mm; box-sizing:border-box;
+             font-size:16px; line-height:1.7; display:flex; flex-direction:column; gap:10px; }
+    .org { text-align:center; font-size:28px; font-weight:800; letter-spacing:6px; margin-bottom:14px; }
+    .row { display:flex; gap:10px; } .row b { width:56px; flex:none; }
+    .title-row { border-top:2px solid #111; border-bottom:1px solid #111; padding:8px 0; font-weight:700; }
+    .body { white-space:pre-wrap; min-height:60mm; padding:8px 0; }
+    .sender { position:relative; text-align:center; font-size:26px; font-weight:800; letter-spacing:4px; margin:24px 0 12px; }
+    .seal { position:absolute; width:26mm; height:26mm; object-fit:contain; margin-left:-8mm; margin-top:-9mm; opacity:.92; }
+    .seal-empty { display:inline-block; width:22mm; height:22mm; border:1px dashed #999; border-radius:4px; vertical-align:middle; margin-left:8px;
+                  font-size:12px; color:#777; letter-spacing:0; line-height:22mm; }
+    .signs { display:flex; flex-wrap:wrap; gap:6px 18px; border-top:1px solid #111; padding-top:8px; font-size:15px; }
+    .mark { color:#B71C1C; border:1px solid #B71C1C; padding:0 4px; font-size:13px; margin:0 4px; }
+    .meta { border-top:1px solid #111; padding-top:6px; font-size:14px; display:flex; flex-direction:column; gap:2px; }
+    .toolbar { max-width:210mm; margin:16px auto 0; display:flex; gap:10px; justify-content:flex-end; }
+    @media print { body { background:#fff; } .toolbar { display:none; } .sheet { margin:0; box-shadow:none; } }
+  </style>
+</head>
+<body>
+<div class="toolbar">
+  <a class="btn btn-plain" th:href="@{/approval/{id}(id=${doc.docId})}">문서로 돌아가기</a>
+  <button type="button" class="btn btn-primary" onclick="window.print()">인쇄</button>
+</div>
+<article class="sheet" aria-label="시행문">
+  <div class="org" th:text="${@orgService.get('orgName', '(행정기관명)')}">행정기관명</div>
+  <div class="row"><b>수신</b><span th:text="${receiver}">수신자</span></div>
+  <div class="row" th:if="${doc.via}"><b>(경유)</b><span th:text="${doc.via}">경유</span></div>
+  <div class="row title-row"><b>제목</b><span th:text="${doc.title}">제목</span></div>
+  <div class="body" th:text="${doc.body}">본문</div>
+  <div th:unless="${#lists.isEmpty(doc.files)}">
+    <div th:each="f, st : ${doc.files}" th:text="(${st.first} ? '붙임  ' : '      ') + ${st.count} + '. ' + ${f.originalName} + ' 1부.' + (${st.last} ? '  끝.' : '')">붙임</div>
+  </div>
+  <div th:if="${#lists.isEmpty(doc.files)}" style="text-align:right;">끝.</div>
+
+  <div class="sender">
+    <span th:text="${doc.sender} ?: ${@orgService.get('senderTitle', '(발신명의)')}">발신명의</span>
+    <img th:if="${@orgService.hasSeal()}" class="seal" th:src="@{/org/seal}" alt="관인">
+    <span th:unless="${@orgService.hasSeal()}" class="seal-empty">관인</span>
+  </div>
+
+  <div th:if="${showList}" class="meta"><b>수신자</b><span th:text="${#strings.listJoin(receivers, ', ')}">수신자 목록</span></div>
+
+  <div class="signs">
+    <span><span th:text="${doc.drafterPosition} ?: '기안자'">직위</span> <b th:text="${doc.drafterName}">기안자</b></span>
+    <span th:each="l : ${doc.lines}">
+      <span th:text="${l.role == '협조'} ? '협조자' : (${l.approverPosition} ?: ${l.role})">직위</span>
+      <span th:if="${l.finalRole and doc.delegated}" class="mark">전결</span>
+      <b th:unless="${l.proxyActed}" th:text="${l.approverName}">이름</b>
+      <span th:if="${l.proxyActed}"><span class="mark">대결</span><b th:text="${l.actedByName}">대결자</b></span>
+      <small th:if="${l.actedAt}" th:text="${#temporals.format(l.actedAt, 'MM. dd.')}">날짜</small>
+    </span>
+  </div>
+  <div class="meta">
+    <span>시행 <b th:text="${doc.docNo}">번호</b> (<span th:text="${#temporals.format(doc.completedAt, 'yyyy. M. d.')}">일자</span>)
+      &nbsp;&nbsp; 접수 (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</span>
+    <span th:text="(${@orgService.get('zipCode')} ?: '') + ' ' + (${@orgService.get('address')} ?: '') + (${@orgService.get('homepage')} ? '  / ' + ${@orgService.get('homepage')} : '')">주소</span>
+    <span th:text="'전화 ' + ${@orgService.get('phone', '—')} + '  전송 ' + ${@orgService.get('fax', '—')} + '  / ' + ${doc.disclosure} + (${#lists.isEmpty(doc.restrictReasonList)} ? '' : '(' + ${#strings.listJoin(doc.restrictReasonList, ',')} + ')')">전화</span>
+  </div>
+</article>
+</body>
+</html>
