@@ -37,6 +37,9 @@ public class ApprovalSearchVO {
         };
     }
 
+    /** 대결자 지정 기간 비교용 오늘 날짜 */
+    public java.time.LocalDate getToday() { return java.time.LocalDate.now(); }
+
     public int getStartRow() { return (Math.max(page, 1) - 1) * PAGE_SIZE; }
     public int getEndRow() { return getStartRow() + PAGE_SIZE; }
 

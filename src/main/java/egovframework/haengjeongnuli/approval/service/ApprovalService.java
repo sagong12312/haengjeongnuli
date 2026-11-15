@@ -51,6 +51,15 @@ public interface ApprovalService {
     /** 읽을 수 있는 문서의 붙임만 돌려준다 */
     ApprovalFileVO fileForDownload(long fileId, LoginUser me);
 
+    /** 내가 지정했거나 나를 지정한 대결자 지정 (최근 30일 이후 끝나는 것) */
+    List<ApprovalProxyVO> proxies(LoginUser me);
+
+    /** 대결자를 지정한다. 문제가 있으면 안내 문구, 잘 되면 null */
+    String addProxy(LoginUser me, String proxyLoginId, java.time.LocalDate start, java.time.LocalDate end, String reason);
+
+    /** 내가 지정한 대결자 지정을 취소한다 */
+    boolean cancelProxy(LoginUser me, long proxyId);
+
     /** 결재선에 넣을 수 있는 직원 (사용 중인 계정, 본인 제외) */
     List<LoginUser> approverCandidates(LoginUser me);
 }

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('대결자 지정')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('approval')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/approval}">전자결재</a> › 대결자 지정</span><h1>대결자 지정</h1></div>
+  <p class="hint">휴가·출장 등으로 결재할 수 없는 기간에 직무를 대리할 직원을 지정합니다. 그 기간에 내가 결재권자인 문서는 대결자의 결재 대기함에도 들어가고,
+    대결자가 결재하면 결재권자 칸에 "대결" 표시와 대결자 이름이 남으며 나에게 알림이 옵니다. 검토·협조 차례는 대결하지 않습니다.</p>
+
+  <form class="panel" th:action="@{/approval/proxy}" method="post" style="gap:16px;">
+    <h2>새로 지정</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="pp">대결자 <span class="req">*</span></label>
+        <select id="pp" name="proxyLoginId" class="select" required><option value="">직원 고르기</option>
+          <option th:each="c : ${candidates}" th:value="${c.loginId}" th:text="${c.userName} + ' ' + ${c.position()} + (${c.deptName} ? ' · ' + ${c.deptName} : '')">직원</option></select></div>
+      <div class="field"><label for="ps">시작일 <span class="req">*</span></label><input id="ps" name="startDate" type="date" class="input" required th:value="${today}"></div>
+      <div class="field"><label for="pe">끝나는 날 <span class="req">*</span></label><input id="pe" name="endDate" type="date" class="input" required th:min="${today}"></div>
+      <div class="field"><label for="pr">부재 사유</label><select id="pr" name="reason" class="select">
+        <option th:each="r : ${reasons}" th:value="${r}" th:text="${r}">휴가</option></select></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">지정</button></div>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>지정 내역</h2></div>
+    <p th:if="${#lists.isEmpty(proxies)}" class="hint" style="padding:18px 22px;">지정 내역이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(proxies)}"><table class="list" style="min-width:700px">
+      <thead><tr><th scope="col">결재권자</th><th scope="col">대결자</th><th scope="col">기간</th><th scope="col">사유</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="p : ${proxies}">
+        <td th:text="${p.ownerName}">결재권자</td>
+        <td th:text="${p.proxyName}">대결자</td>
+        <td th:text="${p.startDate} + ' ~ ' + ${p.endDate}">기간</td>
+        <td th:text="${p.reason}">사유</td>
+        <td>
+          <span th:if="${p.canceled}" class="badge badge-gray">취소됨</span>
+          <span th:if="${!p.canceled and p.isActiveOn(today)}" class="badge badge-green">지금 적용 중</span>
+          <form th:if="${!p.canceled and p.ownerId == loginUser.loginId}" th:action="@{/approval/proxy/{id}/cancel(id=${p.proxyId})}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn btn-plain btn-sm">취소</button></form>
+        </td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

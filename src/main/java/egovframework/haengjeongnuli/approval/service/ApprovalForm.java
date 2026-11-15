@@ -15,6 +15,7 @@ public class ApprovalForm {
     /** 정보공개법 제9조 제1항 각 호 */
     public static final List<String> REASONS = List.of("1", "2", "3", "4", "5", "6", "7", "8");
     public static final int MAX_REVIEWERS = 4;
+    public static final int MAX_COOPERATORS = 3;
     /** 인사 화면의 복무 신청이 만드는 문서 종류 (기안하기 화면에서는 고르지 않는다) */
     public static final String DUTY = "복무 신청";
 
@@ -43,8 +44,12 @@ public class ApprovalForm {
     private String body;
     /** 검토자 아이디 (위에서부터 차례대로, 빈 칸은 무시) */
     private List<String> reviewers = new ArrayList<>();
+    /** 협조자 아이디 (다른 부서의 협조를 받을 때, 빈 칸은 무시) */
+    private List<String> cooperators = new ArrayList<>();
     /** 결재권자 아이디 */
     private String finalApprover;
+    /** 위임전결: 결재권자가 기관장의 위임을 받아 전결한다 */
+    private boolean delegated;
 
     // 지출결의
     private Long budgetId;
@@ -66,9 +71,18 @@ public class ApprovalForm {
 
     /** 빈 칸을 뺀 검토자 */
     public List<String> realReviewers() {
+        return real(reviewers);
+    }
+
+    /** 빈 칸을 뺀 협조자 */
+    public List<String> realCooperators() {
+        return real(cooperators);
+    }
+
+    private static List<String> real(List<String> ids) {
         List<String> out = new ArrayList<>();
-        if (reviewers != null) {
-            for (String r : reviewers) {
+        if (ids != null) {
+            for (String r : ids) {
                 if (r != null && !r.isBlank()) {
                     out.add(r.trim());
                 }
@@ -97,12 +111,14 @@ public class ApprovalForm {
         f.payAmount = d.getPayAmount() == null ? null : String.format("%,d", d.getPayAmount());
         f.payee = d.getPayee();
         f.payMethod = d.getPayMethod() == null ? "계좌이체" : d.getPayMethod();
-        List<ApprovalLineVO> lines = d.getLines();
-        for (int i = 0; i < lines.size(); i++) {
-            if (i == lines.size() - 1) {
-                f.finalApprover = lines.get(i).getApproverId();
+        f.delegated = d.isDelegated();
+        for (ApprovalLineVO l : d.getLines()) {
+            if (l.isFinalRole()) {
+                f.finalApprover = l.getApproverId();
+            } else if (ApprovalLineVO.ROLE_COOP.equals(l.getRole())) {
+                f.cooperators.add(l.getApproverId());
             } else {
-                f.reviewers.add(lines.get(i).getApproverId());
+                f.reviewers.add(l.getApproverId());
             }
         }
         return f;
@@ -144,6 +160,10 @@ public class ApprovalForm {
     public void setBody(String body) { this.body = body; }
     public List<String> getReviewers() { return reviewers; }
     public void setReviewers(List<String> reviewers) { this.reviewers = reviewers; }
+    public List<String> getCooperators() { return cooperators; }
+    public void setCooperators(List<String> cooperators) { this.cooperators = cooperators; }
+    public boolean isDelegated() { return delegated; }
+    public void setDelegated(boolean delegated) { this.delegated = delegated; }
     public String getFinalApprover() { return finalApprover; }
     public void setFinalApprover(String finalApprover) { this.finalApprover = finalApprover; }
 }

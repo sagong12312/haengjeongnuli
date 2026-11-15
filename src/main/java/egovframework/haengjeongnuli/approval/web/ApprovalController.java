@@ -184,6 +184,39 @@ public class ApprovalController {
         return afterSave(docId, form, submit, ra);
     }
 
+    /** 대결자 지정: 휴가·출장 등으로 결재할 수 없는 기간에 대신 결재(대결)할 직원 */
+    @GetMapping("/proxy")
+    public String proxyPage(@AuthenticationPrincipal LoginUser me, Model model) {
+        model.addAttribute("proxies", approvalService.proxies(me));
+        model.addAttribute("candidates", approvalService.approverCandidates(me));
+        model.addAttribute("reasons", egovframework.haengjeongnuli.approval.service.ApprovalProxyVO.REASONS);
+        model.addAttribute("today", java.time.LocalDate.now());
+        return "approval/proxy";
+    }
+
+    @PostMapping("/proxy")
+    public String addProxy(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String proxyLoginId,
+                           @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+                           @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
+                           @RequestParam(required = false) String reason, RedirectAttributes ra) {
+        String problem = approvalService.addProxy(me, proxyLoginId, startDate, endDate, reason);
+        if (problem == null) {
+            auditService.record(AuditAction.APPROVAL_PROXY, proxyLoginId, startDate + "~" + endDate + " " + reason);
+        }
+        ra.addFlashAttribute("message", problem == null ? "대결자를 지정했습니다. 그 기간에 결재할 문서는 대결자도 결재할 수 있습니다." : problem);
+        return "redirect:/approval/proxy";
+    }
+
+    @PostMapping("/proxy/{proxyId}/cancel")
+    public String cancelProxy(@AuthenticationPrincipal LoginUser me, @PathVariable long proxyId, RedirectAttributes ra) {
+        boolean ok = approvalService.cancelProxy(me, proxyId);
+        if (ok) {
+            auditService.record(AuditAction.APPROVAL_PROXY, "지정 " + proxyId, "취소");
+        }
+        ra.addFlashAttribute("message", ok ? "대결자 지정을 취소했습니다." : "취소할 수 없는 지정입니다.");
+        return "redirect:/approval/proxy";
+    }
+
     @PostMapping("/{docId}/approve")
     public String approve(@AuthenticationPrincipal LoginUser me, @PathVariable long docId,
                           @RequestParam(required = false) String opinion, RedirectAttributes ra) {
@@ -195,7 +228,8 @@ public class ApprovalController {
         Result r = approvalService.approve(docId, opinion, me);
         if (r == Result.OK) {
             ApprovalDocVO d = approvalService.get(docId);
-            auditService.record(AuditAction.APPROVAL_APPROVE, "결재 " + docId, d.getTitle());
+            boolean proxied = d.getLines().stream().anyMatch(l -> me.getLoginId().equals(l.getActedById()));
+            auditService.record(AuditAction.APPROVAL_APPROVE, "결재 " + docId, (proxied ? "[대결] " : "") + d.getTitle());
             ra.addFlashAttribute("message", ApprovalDocVO.DONE.equals(d.getStatus())
                     ? "결재했습니다. 결재가 끝나 문서번호 " + d.getDocNo() + "이(가) 붙었습니다."
                         + (d.isSpending() ? String.format(" 지출 %,d원을 예산 집행으로 기록했습니다.", d.getPayAmount()) : "")
@@ -330,6 +364,7 @@ public class ApprovalController {
         model.addAttribute("retentions", ApprovalForm.RETENTIONS);
         model.addAttribute("disclosures", ApprovalForm.DISCLOSURES);
         model.addAttribute("maxReviewers", ApprovalForm.MAX_REVIEWERS);
+        model.addAttribute("maxCooperators", ApprovalForm.MAX_COOPERATORS);
         model.addAttribute("payMethods", ApprovalForm.PAY_METHODS);
         // 지출결의에 고를 수 있는 예산과 지금 쓸 수 있는 금액
         Long selfId = doc == null ? null : doc.getDocId();

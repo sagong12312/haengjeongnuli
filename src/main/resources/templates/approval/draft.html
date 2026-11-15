@@ -19,7 +19,10 @@
     <section class="panel" aria-labelledby="line-title">
       <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
         <h2 id="line-title">결재선</h2>
-        <button type="button" id="add-approver" class="btn btn-outline" style="height:48px; font-size:18px;">+ 검토자 추가</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" id="add-approver" class="btn btn-outline" style="height:48px; font-size:18px;">+ 검토자 추가</button>
+          <button type="button" id="add-coop" class="btn btn-outline" style="height:48px; font-size:18px;">+ 협조자 추가</button>
+        </div>
       </div>
       <ol id="line" style="list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:stretch; gap:10px;">
         <li class="step"><div class="step-box"><div class="step-role">기안</div><div class="step-body"><b th:text="${loginUser.name()}">[사용자명]</b><small th:text="${loginUser.dept()}">[소속 부서]</small></div></div></li>
@@ -29,6 +32,19 @@
             <label class="step-role" th:for="'rv' + ${i}" th:text="'검토 ' + ${i + 1}">검토</label>
             <div class="step-body">
               <select th:id="'rv' + ${i}" name="reviewers" class="select approver-select">
+                <option value="">(없음)</option>
+                <option th:each="c : ${candidates}" th:value="${c.loginId}" th:selected="${c.loginId == sel}"
+                        th:text="${c.userName} + ' ' + ${c.position()} + (${c.deptName} ? ' · ' + ${c.deptName} : '')">직원</option>
+              </select>
+            </div>
+          </div>
+        </li>
+        <li class="step coop" th:each="i : ${#numbers.sequence(0, maxCooperators - 1)}"
+            th:with="sel=${approvalForm.cooperators.size() > i} ? ${approvalForm.cooperators[i]} : ''">
+          <div class="step-box">
+            <label class="step-role" th:for="'cp' + ${i}" th:text="'협조 ' + ${i + 1}">협조</label>
+            <div class="step-body">
+              <select th:id="'cp' + ${i}" name="cooperators" class="select approver-select">
                 <option value="">(없음)</option>
                 <option th:each="c : ${candidates}" th:value="${c.loginId}" th:selected="${c.loginId == sel}"
                         th:text="${c.userName} + ' ' + ${c.position()} + (${c.deptName} ? ' · ' + ${c.deptName} : '')">직원</option>
@@ -47,7 +63,11 @@
           </div>
         </div></li>
       </ol>
-      <p class="hint" th:text="'검토자는 차례대로 ' + ${maxReviewers} + '명까지 둘 수 있고, 마지막에 결재권자가 결재합니다. 결재할 차례가 된 사람에게 알림이 갑니다.'">안내</p>
+      <label style="display:flex; gap:10px; align-items:center; font-size:18px;">
+        <input type="checkbox" th:field="*{delegated}" style="width:22px; height:22px;">
+        위임전결 — 결재권자가 기관장의 위임을 받아 전결합니다 (결재권자 칸에 "전결" 표시)
+      </label>
+      <p class="hint" th:text="'검토자 ' + ${maxReviewers} + '명, 다른 부서 협조자 ' + ${maxCooperators} + '명까지 차례대로 둘 수 있고, 마지막에 결재권자가 결재합니다. 결재할 차례가 된 사람에게 알림이 가고, 결재권자가 대결자를 지정해 두었으면 대결자도 결재할 수 있습니다.'">안내</p>
     </section>
 
     <section class="panel" style="padding:28px; gap:22px;">
@@ -223,22 +243,23 @@
       document.querySelectorAll('.external').forEach(function (el) { el.hidden = !ext; });
     });
 
-    // 비어 있는 검토 칸은 숨겨 두고 '검토자 추가'로 하나씩 연다
-    var reviewers = Array.prototype.slice.call(document.querySelectorAll('.reviewer'));
-    var btn = document.getElementById('add-approver');
-    var shown = 0;
-    reviewers.forEach(function (li, i) {
-      var filled = li.querySelector('select').value !== '';
-      if (filled) { shown = i + 1; }
-    });
-    function refresh() {
-      reviewers.forEach(function (li, i) { li.hidden = i >= shown; });
-      btn.disabled = shown >= reviewers.length;
+    // 비어 있는 검토·협조 칸은 숨겨 두고 '추가' 버튼으로 하나씩 연다
+    function slots(cls, btnId) {
+      var items = Array.prototype.slice.call(document.querySelectorAll(cls));
+      var btn = document.getElementById(btnId);
+      var shown = 0;
+      items.forEach(function (li, i) { if (li.querySelector('select').value !== '') { shown = i + 1; } });
+      function refresh() {
+        items.forEach(function (li, i) { li.hidden = i >= shown; });
+        btn.disabled = shown >= items.length;
+      }
+      btn.addEventListener('click', function () {
+        if (shown < items.length) { shown++; refresh(); items[shown - 1].querySelector('select').focus(); }
+      });
+      refresh();
     }
-    btn.addEventListener('click', function () {
-      if (shown < reviewers.length) { shown++; refresh(); reviewers[shown - 1].querySelector('select').focus(); }
-    });
-    refresh();
+    slots('.reviewer', 'add-approver');
+    slots('.coop', 'add-coop');
   })();
 </script>
 </body>

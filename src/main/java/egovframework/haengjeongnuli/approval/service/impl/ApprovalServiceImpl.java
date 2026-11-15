@@ -1,6 +1,7 @@
 package egovframework.haengjeongnuli.approval.service.impl;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -22,6 +23,7 @@ import egovframework.haengjeongnuli.approval.service.ApprovalDocVO;
 import egovframework.haengjeongnuli.approval.service.ApprovalFileVO;
 import egovframework.haengjeongnuli.approval.service.ApprovalForm;
 import egovframework.haengjeongnuli.approval.service.ApprovalLineVO;
+import egovframework.haengjeongnuli.approval.service.ApprovalProxyVO;
 import egovframework.haengjeongnuli.approval.service.ApprovalSearchVO;
 import egovframework.haengjeongnuli.approval.service.ApprovalService;
 import egovframework.haengjeongnuli.cmm.LoginUser;
@@ -93,7 +95,12 @@ public class ApprovalServiceImpl implements ApprovalService {
         if (reviewers.size() > ApprovalForm.MAX_REVIEWERS) {
             err.put("reviewers", "검토자는 " + ApprovalForm.MAX_REVIEWERS + "명까지 지정할 수 있습니다.");
         }
+        List<String> cooperators = f.realCooperators();
+        if (cooperators.size() > ApprovalForm.MAX_COOPERATORS) {
+            err.put("reviewers", "협조자는 " + ApprovalForm.MAX_COOPERATORS + "명까지 지정할 수 있습니다.");
+        }
         List<String> all = new ArrayList<>(reviewers);
+        all.addAll(cooperators);
         if (!blank(f.getFinalApprover())) {
             all.add(f.getFinalApprover().trim());
         }
@@ -223,6 +230,10 @@ public class ApprovalServiceImpl implements ApprovalService {
         if (d != null) {
             d.setLines(mapper.selectLines(docId));
             d.setFiles(mapper.selectFiles(docId));
+            ApprovalLineVO p = d.getPendingLine();
+            if (ApprovalDocVO.PROG.equals(d.getStatus()) && p != null && p.isFinalRole()) {
+                d.setPendingProxyIds(mapper.activeProxyIds(p.getApproverId(), LocalDate.now()));
+            }
         }
         return d;
     }
@@ -257,7 +268,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         if (d == null) {
             return Result.NOT_FOUND;
         }
-        if (!d.isMyTurn(me)) {
+        if (!d.canAct(me)) {
             return Result.NOT_YOUR_TURN;
         }
         ApprovalLineVO line = d.getPendingLine();
@@ -266,7 +277,7 @@ public class ApprovalServiceImpl implements ApprovalService {
             return Result.BUDGET_SHORT;
         }
         LocalDateTime now = LocalDateTime.now();
-        if (mapper.actLine(line.getLineId(), me.getLoginId(), ApprovalLineVO.APPROVED, trim(opinion, 1000), now) == 0) {
+        if (act(d, line, me, ApprovalLineVO.APPROVED, trim(opinion, 1000), now) == 0) {
             return Result.NOT_YOUR_TURN;
         }
         ApprovalLineVO next = d.getLines().stream()
@@ -298,6 +309,28 @@ public class ApprovalServiceImpl implements ApprovalService {
             }
         }
         return Result.OK;
+    }
+
+    /**
+     * 결재선 한 칸을 처리한다. 결재권자가 부재 중이면 지정된 직무대리자가 대결하고(규정 제10조),
+     * 누가 대결했는지 남긴 뒤 결재권자에게 알린다(사후 보고).
+     */
+    private int act(ApprovalDocVO d, ApprovalLineVO line, LoginUser me, String status, String opinion, LocalDateTime now) {
+        if (d.isMyTurn(me)) {
+            return mapper.actLine(line.getLineId(), me.getLoginId(), status, opinion, now);
+        }
+        // 대결자 지정이 지금도 유효한지 다시 확인한다
+        if (mapper.countActiveProxy(line.getApproverId(), me.getLoginId(), now.toLocalDate()) == 0) {
+            return 0;
+        }
+        int n = mapper.actLineAsProxy(line.getLineId(), line.getApproverId(), status, opinion, now,
+                me.getLoginId(), me.getUserName(), me.getPositionName());
+        if (n == 1) {
+            notificationService.notify(line.getApproverId(), me.getUserName() + "님이 '" + d.getTitle() + "' 문서를 "
+                    + (ApprovalLineVO.APPROVED.equals(status) ? "대결" : "대결로 반려") + "했습니다. 내용을 확인해 주세요.",
+                    link(d.getDocId()));
+        }
+        return n;
     }
 
     /**
@@ -341,12 +374,11 @@ public class ApprovalServiceImpl implements ApprovalService {
         if (d == null) {
             return Result.NOT_FOUND;
         }
-        if (!d.isMyTurn(me)) {
+        if (!d.canAct(me)) {
             return Result.NOT_YOUR_TURN;
         }
         LocalDateTime now = LocalDateTime.now();
-        if (mapper.actLine(d.getPendingLine().getLineId(), me.getLoginId(), ApprovalLineVO.REJECTED,
-                trim(opinion, 1000), now) == 0) {
+        if (act(d, d.getPendingLine(), me, ApprovalLineVO.REJECTED, trim(opinion, 1000), now) == 0) {
             return Result.NOT_YOUR_TURN;
         }
         mapper.updateDocStatus(docId, ApprovalDocVO.PROG, ApprovalDocVO.REJECTED, now);
@@ -451,6 +483,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         d.setEffectiveDate(f.getEffectiveDate());
         d.setTitle(f.getTitle().trim());
         d.setBody(f.getBody());
+        d.setDelegatedYn(f.isDelegated() && !blank(f.getFinalApprover()) ? "Y" : "N");
         boolean spending = f.isSpending();
         d.setBudgetId(spending ? f.getBudgetId() : null);
         d.setPayAmount(spending ? f.payAmountValue() : null);
@@ -458,22 +491,23 @@ public class ApprovalServiceImpl implements ApprovalService {
         d.setPayMethod(spending ? f.getPayMethod() : null);
     }
 
-    /** 검토자들 다음에 결재권자. 결재권자가 비어 있으면(임시저장) 검토자만 둔다. */
+    /** 검토자들, 협조자들, 결재권자 차례. 결재권자가 비어 있으면(임시저장) 검토·협조만 둔다. */
     private void saveLines(long docId, ApprovalForm f, LoginUser me) {
         Map<String, LoginUser> users = approverCandidates(me).stream()
                 .collect(Collectors.toMap(LoginUser::getLoginId, Function.identity()));
-        List<String> ids = new ArrayList<>(f.realReviewers());
-        boolean hasFinal = !blank(f.getFinalApprover());
-        if (hasFinal) {
-            ids.add(f.getFinalApprover().trim());
+        List<String[]> steps = new ArrayList<>();
+        f.realReviewers().forEach(id -> steps.add(new String[] {id, ApprovalLineVO.ROLE_REVIEW}));
+        f.realCooperators().forEach(id -> steps.add(new String[] {id, ApprovalLineVO.ROLE_COOP}));
+        if (!blank(f.getFinalApprover())) {
+            steps.add(new String[] {f.getFinalApprover().trim(), ApprovalLineVO.ROLE_FINAL});
         }
-        for (int i = 0; i < ids.size(); i++) {
-            LoginUser u = users.get(ids.get(i));
+        for (int i = 0; i < steps.size(); i++) {
+            LoginUser u = users.get(steps.get(i)[0]);
             ApprovalLineVO l = new ApprovalLineVO();
             l.setLineId(mapper.nextLineId());
             l.setDocId(docId);
             l.setStepNo(i + 1);
-            l.setRole(hasFinal && i == ids.size() - 1 ? "결재" : "검토");
+            l.setRole(steps.get(i)[1]);
             l.setApproverId(u.getLoginId());
             l.setApproverName(u.getUserName());
             l.setApproverPosition(u.getPositionName());
@@ -515,6 +549,63 @@ public class ApprovalServiceImpl implements ApprovalService {
         notificationService.notify(line.getApproverId(),
                 d.getDrafterName() + "님이 올린 '" + d.getTitle() + "' 문서를 " + line.getRole() + "할 차례입니다.",
                 link(d.getDocId()));
+        if (line.isFinalRole()) {
+            for (String proxy : mapper.activeProxyIds(line.getApproverId(), LocalDate.now())) {
+                notificationService.notify(proxy, line.getApproverName() + "님 부재 중 대결할 문서가 왔습니다: '"
+                        + d.getTitle() + "'", link(d.getDocId()));
+            }
+        }
+    }
+
+    @Override
+    public List<ApprovalProxyVO> proxies(LoginUser me) {
+        return mapper.selectProxies(me.getLoginId(), LocalDate.now().minusDays(30));
+    }
+
+    @Override
+    @Transactional
+    public String addProxy(LoginUser me, String proxyLoginId, LocalDate start, LocalDate end, String reason) {
+        LocalDate today = LocalDate.now();
+        if (blank(proxyLoginId) || start == null || end == null) {
+            return "대결자와 기간을 모두 입력하세요.";
+        }
+        LoginUser p = approverCandidates(me).stream().filter(u -> u.getLoginId().equals(proxyLoginId.trim()))
+                .findFirst().orElse(null);
+        if (p == null) {
+            return "대결자는 사용 중인 다른 직원에서 고르세요.";
+        }
+        if (end.isBefore(start) || end.isBefore(today)) {
+            return "기간을 확인하세요 (끝나는 날은 시작일과 오늘 이후).";
+        }
+        if (start.isAfter(today.plusYears(1)) || java.time.temporal.ChronoUnit.DAYS.between(start, end) > 365) {
+            return "대결자는 1년 안의 기간으로만 지정할 수 있습니다.";
+        }
+        if (reason == null || !ApprovalProxyVO.REASONS.contains(reason)) {
+            return "부재 사유를 고르세요.";
+        }
+        if (mapper.countOverlapProxy(me.getLoginId(), start, end) > 0) {
+            return "이 기간과 겹치는 대결자 지정이 있습니다. 먼저 취소하세요.";
+        }
+        ApprovalProxyVO v = new ApprovalProxyVO();
+        v.setProxyId(mapper.nextProxyId());
+        v.setOwnerId(me.getLoginId());
+        v.setOwnerName(me.getUserName());
+        v.setProxyLoginId(p.getLoginId());
+        v.setProxyName(p.getUserName());
+        v.setStartDate(start);
+        v.setEndDate(end);
+        v.setReason(reason);
+        v.setCreatedAt(LocalDateTime.now());
+        mapper.insertProxy(v);
+        notificationService.notify(p.getLoginId(), me.getUserName() + "님이 " + start + "~" + end + " 동안 대결자로 지정했습니다 ("
+                + reason + ").", "/approval/proxy");
+        return null;
+    }
+
+    @Override
+    @Transactional
+    public boolean cancelProxy(LoginUser me, long proxyId) {
+        return mapper.cancelProxy(proxyId, me.getLoginId()) == 1;
     }
 
     private static String link(long docId) {

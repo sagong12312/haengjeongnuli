@@ -156,3 +156,6 @@ table.list td a { color: var(--text); text-decoration: none; }
 [hidden] { display: none !important; }
 
 .btn-sm { height:40px; font-size:16px; padding:0 12px; }
+
+.sign-mark { display:inline-block; margin-left:6px; padding:0 6px; border:1.5px solid var(--red-fg); color:var(--red-fg); border-radius:4px; font-size:14px; font-weight:700; line-height:20px; }
+.sign-proxy { display:block; margin-top:2px; }

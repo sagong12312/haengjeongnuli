@@ -39,6 +39,7 @@ public enum AuditAction {
     APPROVAL_SUBMIT("결재 상신"),
     APPROVAL_APPROVE("결재 승인"),
     APPROVAL_REJECT("결재 반려"),
+    APPROVAL_PROXY("대결자 지정"),
     APPROVAL_WITHDRAW("결재 회수"),
     APPROVAL_RECEIVE("문서 접수"),
     APPROVAL_DELETE("임시저장 문서 삭제"),

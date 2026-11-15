@@ -22,6 +22,24 @@ public class ApprovalLineVO {
     private String status;
     private String opinion;
     private LocalDateTime actedAt;
+    /** 대결한 사람 (결재권자 본인이 처리했으면 null) */
+    private String actedById;
+    private String actedByName;
+    private String actedByPosition;
+
+    public static final String ROLE_REVIEW = "검토";
+    public static final String ROLE_COOP = "협조";
+    public static final String ROLE_FINAL = "결재";
+
+    public boolean isProxyActed() { return actedById != null; }
+    public boolean isFinalRole() { return ROLE_FINAL.equals(role); }
+
+    public String getActedById() { return actedById; }
+    public void setActedById(String actedById) { this.actedById = actedById; }
+    public String getActedByName() { return actedByName; }
+    public void setActedByName(String actedByName) { this.actedByName = actedByName; }
+    public String getActedByPosition() { return actedByPosition; }
+    public void setActedByPosition(String actedByPosition) { this.actedByPosition = actedByPosition; }
 
     public String getStatusLabel() {
         if (status == null) {

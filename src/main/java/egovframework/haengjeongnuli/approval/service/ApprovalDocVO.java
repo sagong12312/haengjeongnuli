@@ -89,6 +89,29 @@ public class ApprovalDocVO {
     }
 
     /** 지금 결재할 차례인 결재선 칸 */
+    /** 위임전결 문서인지 (결재권자 칸에 "전결" 표시) */
+    private String delegatedYn = "N";
+    /** 지금 결재할 차례인 결재권자를 대신해 대결할 수 있는 직원 (get 할 때 채운다) */
+    private java.util.List<String> pendingProxyIds = new java.util.ArrayList<>();
+
+    public String getDelegatedYn() { return delegatedYn; }
+    public void setDelegatedYn(String delegatedYn) { this.delegatedYn = delegatedYn; }
+    public boolean isDelegated() { return "Y".equals(delegatedYn); }
+    public java.util.List<String> getPendingProxyIds() { return pendingProxyIds; }
+    public void setPendingProxyIds(java.util.List<String> ids) { this.pendingProxyIds = ids == null ? new java.util.ArrayList<>() : ids; }
+
+    /** 결재권자가 부재 중이라 내가 대결할 차례인지 */
+    public boolean isProxyTurn(LoginUser u) {
+        ApprovalLineVO p = getPendingLine();
+        return PROG.equals(status) && p != null && u != null && p.isFinalRole()
+                && !u.getLoginId().equals(p.getApproverId()) && pendingProxyIds.contains(u.getLoginId());
+    }
+
+    /** 결재하거나 대결할 차례인지 */
+    public boolean canAct(LoginUser u) {
+        return isMyTurn(u) || isProxyTurn(u);
+    }
+
     public ApprovalLineVO getPendingLine() {
         return lines.stream().filter(l -> ApprovalLineVO.PENDING.equals(l.getStatus())).findFirst().orElse(null);
     }
@@ -122,7 +145,8 @@ public class ApprovalDocVO {
         if (DRAFT.equals(status)) {
             return isDraftedBy(u);
         }
-        return isDraftedBy(u) || isOnLine(u) || u.isAdmin() || isReceiverDept(u);
+        return isDraftedBy(u) || isOnLine(u) || u.isAdmin() || isReceiverDept(u) || isProxyTurn(u)
+                || lines.stream().anyMatch(l -> u.getLoginId().equals(l.getActedById()));
     }
 
     public List<String> getRestrictReasonList() {

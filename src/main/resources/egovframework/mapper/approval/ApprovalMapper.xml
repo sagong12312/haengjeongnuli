@@ -12,7 +12,7 @@
         D.RESTRICT_DETAIL, D.RECEIVER_TYPE, D.RECEIVER, D.VIA, D.REFERENCE_TO, D.SENDER, D.EFFECTIVE_DATE,
         D.TITLE, D.STATUS, D.DRAFTER_ID, D.DRAFTER_NAME, D.DRAFTER_POSITION, D.DRAFTER_DEPT,
         D.CREATED_AT, D.UPDATED_AT, D.SUBMITTED_AT, D.COMPLETED_AT, D.RECEIVED_BY, D.RECEIVED_AT, D.RECEIPT_NO,
-        D.BUDGET_ID, D.PAY_AMOUNT, D.PAYEE, D.PAY_METHOD
+        D.BUDGET_ID, D.PAY_AMOUNT, D.PAYEE, D.PAY_METHOD, D.DELEGATED_YN
     </sql>
 
     <insert id="insertDoc" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
@@ -20,13 +20,13 @@
             DOC_ID, KIND, RETENTION, DISCLOSURE, RESTRICT_REASONS, RESTRICT_DETAIL, RECEIVER_TYPE, RECEIVER,
             VIA, REFERENCE_TO, SENDER, EFFECTIVE_DATE, TITLE, BODY, STATUS, DRAFTER_ID, DRAFTER_NAME,
             DRAFTER_POSITION, DRAFTER_DEPT, CREATED_AT, SUBMITTED_AT, DELETED_YN,
-            BUDGET_ID, PAY_AMOUNT, PAYEE, PAY_METHOD
+            BUDGET_ID, PAY_AMOUNT, PAYEE, PAY_METHOD, DELEGATED_YN
         ) VALUES (
             #{docId}, #{kind}, #{retention}, #{disclosure}, #{restrictReasons}, #{restrictDetail}, #{receiverType}, #{receiver},
             #{via}, #{referenceTo}, #{sender}, #{effectiveDate, jdbcType=DATE}, #{title}, #{body, jdbcType=CLOB}, #{status},
             #{drafterId}, #{drafterName}, #{drafterPosition}, #{drafterDept}, #{createdAt},
             #{submittedAt, jdbcType=TIMESTAMP}, 'N',
-            #{budgetId, jdbcType=NUMERIC}, #{payAmount, jdbcType=NUMERIC}, #{payee}, #{payMethod}
+            #{budgetId, jdbcType=NUMERIC}, #{payAmount, jdbcType=NUMERIC}, #{payee}, #{payMethod}, #{delegatedYn}
         )
     </insert>
 
@@ -39,7 +39,7 @@
                SENDER = #{sender}, EFFECTIVE_DATE = #{effectiveDate, jdbcType=DATE}, TITLE = #{title},
                BODY = #{body, jdbcType=CLOB}, UPDATED_AT = #{updatedAt},
                BUDGET_ID = #{budgetId, jdbcType=NUMERIC}, PAY_AMOUNT = #{payAmount, jdbcType=NUMERIC},
-               PAYEE = #{payee}, PAY_METHOD = #{payMethod}
+               PAYEE = #{payee}, PAY_METHOD = #{payMethod}, DELEGATED_YN = #{delegatedYn}
          WHERE DOC_ID = #{docId} AND STATUS = 'DRAFT' AND DELETED_YN = 'N'
     </update>
 
@@ -79,14 +79,18 @@
         <choose>
             <when test="box == 'wait'">
                 AND D.STATUS = 'PROG'
-                AND EXISTS (SELECT 1 FROM APPROVAL_LINE L WHERE L.DOC_ID = D.DOC_ID
-                               AND L.APPROVER_ID = #{loginId} AND L.STATUS = 'PENDING')
+                AND EXISTS (SELECT 1 FROM APPROVAL_LINE L WHERE L.DOC_ID = D.DOC_ID AND L.STATUS = 'PENDING'
+                               AND (L.APPROVER_ID = #{loginId}
+                                    OR (L.ROLE = '결재' AND EXISTS (
+                                        SELECT 1 FROM APPROVAL_PROXY P
+                                         WHERE P.OWNER_ID = L.APPROVER_ID AND P.PROXY_LOGIN_ID = #{loginId}
+                                           AND P.CANCELED_YN = 'N' AND P.START_DATE &lt;= #{today} AND P.END_DATE &gt;= #{today}))))
             </when>
             <when test="box == 'prog'">
                 AND D.STATUS = 'PROG'
                 AND (D.DRAFTER_ID = #{loginId}
                      OR EXISTS (SELECT 1 FROM APPROVAL_LINE L WHERE L.DOC_ID = D.DOC_ID
-                                   AND L.APPROVER_ID = #{loginId} AND L.STATUS = 'APPROVED'))
+                                   AND (L.APPROVER_ID = #{loginId} OR L.ACTED_BY_ID = #{loginId}) AND L.STATUS = 'APPROVED'))
             </when>
             <when test="box == 'done' or box == 'back'">
                 AND D.STATUS = <if test="box == 'done'">'DONE'</if><if test="box == 'back'">'REJECTED'</if>
@@ -134,13 +138,20 @@
 
     <select id="selectLines" resultType="egovframework.haengjeongnuli.approval.service.ApprovalLineVO">
         SELECT LINE_ID, DOC_ID, STEP_NO, ROLE, APPROVER_ID, APPROVER_NAME, APPROVER_POSITION, APPROVER_DEPT,
-               STATUS, OPINION, ACTED_AT
+               STATUS, OPINION, ACTED_AT, ACTED_BY_ID, ACTED_BY_NAME, ACTED_BY_POSITION
           FROM APPROVAL_LINE WHERE DOC_ID = #{docId} ORDER BY STEP_NO
     </select>
 
     <update id="actLine">
         UPDATE APPROVAL_LINE SET STATUS = #{status}, OPINION = #{opinion}, ACTED_AT = #{at}
          WHERE LINE_ID = #{lineId} AND APPROVER_ID = #{approverId} AND STATUS = 'PENDING'
+    </update>
+
+    <!-- 대결: 결재권자 대신 직무대리자가 처리하고 누가 했는지 남긴다 -->
+    <update id="actLineAsProxy">
+        UPDATE APPROVAL_LINE SET STATUS = #{status}, OPINION = #{opinion}, ACTED_AT = #{at},
+               ACTED_BY_ID = #{byId}, ACTED_BY_NAME = #{byName}, ACTED_BY_POSITION = #{byPosition}
+         WHERE LINE_ID = #{lineId} AND APPROVER_ID = #{approverId} AND ROLE = '결재' AND STATUS = 'PENDING'
     </update>
 
     <update id="setLineStatus">
@@ -171,4 +182,41 @@
     </select>
 
     <delete id="deleteFile">DELETE FROM APPROVAL_FILE WHERE FILE_ID = #{fileId} AND DOC_ID = #{docId}</delete>
+
+    <!-- 대결자 지정 -->
+    <select id="nextProxyId" resultType="long">SELECT SEQ_APPROVAL_PROXY.NEXTVAL FROM DUAL</select>
+
+    <insert id="insertProxy" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalProxyVO">
+        INSERT INTO APPROVAL_PROXY (PROXY_ID, OWNER_ID, OWNER_NAME, PROXY_LOGIN_ID, PROXY_NAME, START_DATE, END_DATE,
+                                    REASON, CREATED_AT, CANCELED_YN)
+        VALUES (#{proxyId}, #{ownerId}, #{ownerName}, #{proxyLoginId}, #{proxyName}, #{startDate}, #{endDate},
+                #{reason}, #{createdAt}, 'N')
+    </insert>
+
+    <select id="selectProxies" resultType="egovframework.haengjeongnuli.approval.service.ApprovalProxyVO">
+        SELECT PROXY_ID, OWNER_ID, OWNER_NAME, PROXY_LOGIN_ID, PROXY_NAME, START_DATE, END_DATE, REASON, CREATED_AT, CANCELED_YN
+          FROM APPROVAL_PROXY
+         WHERE (OWNER_ID = #{loginId} OR PROXY_LOGIN_ID = #{loginId}) AND END_DATE &gt;= #{since}
+         ORDER BY START_DATE DESC, PROXY_ID DESC
+    </select>
+
+    <select id="countActiveProxy" resultType="int">
+        SELECT COUNT(*) FROM APPROVAL_PROXY
+         WHERE OWNER_ID = #{ownerId} AND PROXY_LOGIN_ID = #{proxyLoginId} AND CANCELED_YN = 'N'
+           AND START_DATE &lt;= #{today} AND END_DATE &gt;= #{today}
+    </select>
+
+    <select id="activeProxyIds" resultType="string">
+        SELECT PROXY_LOGIN_ID FROM APPROVAL_PROXY
+         WHERE OWNER_ID = #{ownerId} AND CANCELED_YN = 'N' AND START_DATE &lt;= #{today} AND END_DATE &gt;= #{today}
+    </select>
+
+    <select id="countOverlapProxy" resultType="int">
+        SELECT COUNT(*) FROM APPROVAL_PROXY
+         WHERE OWNER_ID = #{ownerId} AND CANCELED_YN = 'N' AND START_DATE &lt;= #{endDate} AND END_DATE &gt;= #{startDate}
+    </select>
+
+    <update id="cancelProxy">
+        UPDATE APPROVAL_PROXY SET CANCELED_YN = 'Y' WHERE PROXY_ID = #{proxyId} AND OWNER_ID = #{ownerId} AND CANCELED_YN = 'N'
+    </update>
 </mapper>
