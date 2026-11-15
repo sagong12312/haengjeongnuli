@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${doc.title})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('approval')}"></header>
+
+<main class="page narrow">
+  <div>
+    <span class="crumb"><a th:href="@{/approval}">전자결재</a> › 문서 보기</span>
+    <h1 th:text="${doc.title}">제목</h1>
+  </div>
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <!-- 결재선 -->
+  <section class="panel" aria-labelledby="line-title">
+    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
+      <h2 id="line-title">결재선</h2>
+      <span th:class="'badge ' + ${doc.statusBadge}" th:text="${doc.statusLabel}">상태</span>
+    </div>
+    <ol style="list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; align-items:stretch; gap:10px;">
+      <li class="step"><div class="step-box">
+        <div class="step-role">기안</div>
+        <div class="step-body"><b th:text="${doc.drafterName}">기안자</b><small th:text="${doc.drafterDept} ?: ''">부서</small>
+          <small th:if="${doc.submittedAt}" th:text="${#temporals.format(doc.submittedAt, 'MM-dd HH:mm')}">시각</small></div>
+      </div></li>
+      <li class="step" th:each="l : ${doc.lines}"><div class="step-box" th:classappend="${l.status == 'PENDING'} ? 'now'">
+        <div class="step-role" th:text="${l.role}">검토</div>
+        <div class="step-body">
+          <b th:text="${l.approverName} + ' ' + (${l.approverPosition} ?: '')">이름</b>
+          <small th:text="${l.approverDept} ?: ''">부서</small>
+          <span th:class="'badge ' + (${l.status == 'APPROVED'} ? 'badge-green' : (${l.status == 'REJECTED'} ? 'badge-red' : (${l.status == 'PENDING'} ? 'badge-orange' : 'badge-gray')))"
+                th:text="${l.statusLabel}" style="align-self:center; margin-top:4px;">대기</span>
+          <small th:if="${l.actedAt}" th:text="${#temporals.format(l.actedAt, 'MM-dd HH:mm')}">시각</small>
+        </div>
+      </div></li>
+    </ol>
+    <ul th:if="${#lists.size(doc.lines.?[opinion != null]) > 0}" style="margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px;">
+      <li th:each="l : ${doc.lines.?[opinion != null]}" style="background:var(--soft); border-radius:10px; padding:12px 16px;"
+          th:classappend="${l.status == 'REJECTED'} ? 'reject-note'">
+        <b th:text="${l.approverName} + (${l.status == 'REJECTED'} ? ' 반려 사유' : ' 의견')">의견</b>
+        <div style="white-space:pre-wrap; margin-top:4px;" th:text="${l.opinion}">의견</div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 결재하기 -->
+  <section class="panel" th:if="${doc.isMyTurn(loginUser)}" aria-labelledby="act-title" style="border:2px solid var(--brand);">
+    <h2 id="act-title" th:text="${doc.pendingLine.role} + '할 차례입니다'">결재할 차례입니다</h2>
+    <form method="post" style="display:flex; flex-direction:column; gap:12px; margin:0;">
+      <div class="field">
+        <label for="opinion">의견 <span class="muted" style="font-size:16px;">(반려할 때는 꼭 적습니다)</span></label>
+        <textarea id="opinion" name="opinion" class="textarea" rows="3" maxlength="1000"></textarea>
+      </div>
+      <div class="form-actions" style="justify-content:flex-end;">
+        <button type="submit" class="btn btn-outline btn-lg" th:formaction="@{/approval/{id}/reject(id=${doc.docId})}"
+                onclick="var o=document.getElementById('opinion'); if(!o.value.trim()){alert('반려 사유를 적어 주세요.'); o.focus(); return false;} return confirm('반려할까요?');">반려</button>
+        <button type="submit" class="btn btn-primary btn-lg" th:formaction="@{/approval/{id}/approve(id=${doc.docId})}">승인</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 문서 정보 -->
+  <section class="panel" aria-labelledby="info-title">
+    <h2 id="info-title" class="sr-only">문서 정보</h2>
+    <dl class="doc-info">
+      <div><dt>문서번호</dt><dd th:text="${doc.docNo} ?: '결재가 끝나면 붙습니다'">번호</dd></div>
+      <div><dt>문서 종류</dt><dd th:text="${doc.kind}">종류</dd></div>
+      <div><dt>보존기간</dt><dd th:text="${doc.retention}">1년</dd></div>
+      <div><dt>공개 여부</dt><dd>
+        <span th:text="${doc.disclosure}">공개</span>
+        <span th:unless="${#lists.isEmpty(doc.restrictReasonList)}" class="muted"
+              th:text="'(제9조 제1항 ' + ${#strings.listJoin(doc.restrictReasonList.![#this + '호'], ', ')} + ')'">사유</span>
+      </dd></div>
+      <div th:if="${doc.restrictDetail}"><dt>제한 범위·사유</dt><dd th:text="${doc.restrictDetail}">사유</dd></div>
+      <div><dt>시행일자</dt><dd th:text="${doc.effectiveDate} ? ${#temporals.format(doc.effectiveDate, 'yyyy-MM-dd')} : '—'">—</dd></div>
+      <div><dt>수신</dt><dd th:text="${doc.external} ? ${doc.receiver} : '내부결재'">내부결재</dd></div>
+      <div th:if="${doc.via}"><dt>경유</dt><dd th:text="${doc.via}">경유</dd></div>
+      <div th:if="${doc.referenceTo}"><dt>참조</dt><dd th:text="${doc.referenceTo}">참조</dd></div>
+      <div th:if="${doc.sender}"><dt>발신 명의</dt><dd th:text="${doc.sender}">발신</dd></div>
+      <div th:if="${doc.external and doc.status == 'DONE'}"><dt>접수</dt>
+        <dd th:text="${doc.receivedAt} ? ${#temporals.format(doc.receivedAt, 'yyyy-MM-dd HH:mm')} + ' (' + ${doc.receivedBy} + ')' : '접수 대기'">접수 대기</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel" aria-labelledby="body-title">
+    <h2 id="body-title">본문</h2>
+    <div style="white-space:pre-wrap; font-size:19px; line-height:1.8;" th:text="${doc.body}">본문</div>
+    <div th:unless="${#lists.isEmpty(doc.files)}" style="border-top:1px solid var(--line); padding-top:14px;">
+      <b>붙임</b>
+      <ol style="margin:6px 0 0; padding-left:22px;">
+        <li th:each="f : ${doc.files}"><a th:href="@{/approval/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a>
+          <span class="muted" style="font-size:15px;" th:text="'(' + ${f.fileSize < 1048576 ? (f.fileSize / 1024 + 1) + 'KB' : #numbers.formatDecimal(f.fileSize / 1048576.0, 1, 1) + 'MB'} + ')'">크기</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <a class="btn btn-plain btn-lg" th:href="@{/approval}">목록</a>
+    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+      <form th:if="${doc.canWithdraw(loginUser)}" th:action="@{/approval/{id}/withdraw(id=${doc.docId})}" method="post" style="margin:0;"
+            onsubmit="return confirm('회수하면 임시저장 문서로 돌아갑니다. 회수할까요?');">
+        <button type="submit" class="btn btn-outline btn-lg">회수</button>
+      </form>
+      <a th:if="${doc.status == 'REJECTED' and doc.isDraftedBy(loginUser)}" class="btn btn-primary btn-lg"
+         th:href="@{/approval/draft(from=${doc.docId})}">고쳐서 다시 기안</a>
+      <form th:if="${doc.isReceiverDept(loginUser) and doc.receivedAt == null}" th:action="@{/approval/{id}/receive(id=${doc.docId})}" method="post" style="margin:0;">
+        <button type="submit" class="btn btn-primary btn-lg">접수</button>
+      </form>
+    </div>
+  </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<style>
+  .step { display:flex; align-items:center; gap:10px; }
+  .step + .step::before { content:'→'; color:#8A96A8; font-size:22px; }
+  .step-box { min-width:150px; border:1px solid var(--line); border-radius:12px; overflow:hidden; text-align:center; height:100%; }
+  .step-box.now { border:2px solid var(--orange-line); }
+  .step-role { background:var(--soft); padding:8px 12px; font-size:17px; font-weight:700; color:var(--text-2); }
+  .step-body { padding:12px; display:flex; flex-direction:column; gap:2px; }
+  .step-body small { color:var(--text-3); font-size:16px; }
+  .reject-note { background:var(--red-bg) !important; color:var(--red-fg); }
+  .doc-info { margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px 24px; }
+  .doc-info div { display:flex; gap:12px; border-bottom:1px solid var(--line); padding:8px 0; }
+  .doc-info dt { width:110px; flex:none; color:var(--text-3); font-weight:700; }
+  .doc-info dd { margin:0; color:var(--text); }
+</style>
+</body>
+</html>

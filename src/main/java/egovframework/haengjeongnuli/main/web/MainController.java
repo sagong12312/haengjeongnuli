@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
+import egovframework.haengjeongnuli.approval.service.ApprovalSearchVO;
+import egovframework.haengjeongnuli.approval.service.ApprovalService;
 import egovframework.haengjeongnuli.board.service.BoardService;
 import egovframework.haengjeongnuli.civil.service.CivilService;
 import jakarta.servlet.http.HttpSession;
@@ -19,10 +21,12 @@ public class MainController {
 
     private final CivilService civilService;
     private final BoardService boardService;
+    private final ApprovalService approvalService;
 
-    public MainController(CivilService civilService, BoardService boardService) {
+    public MainController(CivilService civilService, BoardService boardService, ApprovalService approvalService) {
         this.civilService = civilService;
         this.boardService = boardService;
+        this.approvalService = approvalService;
     }
 
     @GetMapping("/")
@@ -30,6 +34,7 @@ public class MainController {
                        egovframework.haengjeongnuli.cmm.LoginUser loginUser, HttpSession session, Model model) {
         model.addAttribute("working", isWorking(session));
         model.addAttribute("civilSummary", civilService.summary());
+        model.addAttribute("approvalWait", approvalService.count(ApprovalSearchVO.of("wait", loginUser)));
         model.addAttribute("notices", boardService.list(
                 egovframework.haengjeongnuli.board.service.BoardSearchVO.of("notice", null, 1, loginUser).size(3)));
         return "main/index";

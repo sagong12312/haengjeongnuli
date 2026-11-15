@@ -53,7 +53,7 @@
       <section class="panel" aria-labelledby="todo-title" style="padding:22px; gap:14px;">
         <h2 id="todo-title">나의 할 일</h2>
         <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px;">
-          <a class="stat center" th:href="@{/approval(box='wait')}"><strong style="font-size:30px; color:var(--brand)">0</strong><small>결재 대기</small></a>
+          <a class="stat center" th:href="@{/approval(box='wait')}"><strong style="font-size:30px; color:var(--brand)" th:text="${approvalWait}">0</strong><small>결재 대기</small></a>
           <a class="stat center" th:href="@{/civil(status='IN_PROGRESS')}"><strong style="font-size:30px; color:var(--brand)" th:text="${civilSummary.inProgress}">0</strong><small>처리할 민원</small></a>
           <a class="stat center orange" th:href="@{/civil}"><strong style="font-size:30px;" th:text="${civilSummary.imminent}">0</strong><small style="color:#6B3A0E">기한 임박</small></a>
         </div>

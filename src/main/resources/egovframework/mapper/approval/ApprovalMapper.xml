@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 전자결재. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
+<mapper namespace="egovframework.haengjeongnuli.approval.service.impl.ApprovalMapper">
+
+    <select id="nextDocId" resultType="long">SELECT SEQ_APPROVAL_DOC.NEXTVAL FROM DUAL</select>
+    <select id="nextLineId" resultType="long">SELECT SEQ_APPROVAL_LINE.NEXTVAL FROM DUAL</select>
+    <select id="nextFileId" resultType="long">SELECT SEQ_APPROVAL_FILE.NEXTVAL FROM DUAL</select>
+
+    <sql id="docCols">
+        D.DOC_ID, D.DOC_NO, D.DOC_YEAR, D.DOC_SEQ, D.KIND, D.RETENTION, D.DISCLOSURE, D.RESTRICT_REASONS,
+        D.RESTRICT_DETAIL, D.RECEIVER_TYPE, D.RECEIVER, D.VIA, D.REFERENCE_TO, D.SENDER, D.EFFECTIVE_DATE,
+        D.TITLE, D.STATUS, D.DRAFTER_ID, D.DRAFTER_NAME, D.DRAFTER_POSITION, D.DRAFTER_DEPT,
+        D.CREATED_AT, D.UPDATED_AT, D.SUBMITTED_AT, D.COMPLETED_AT, D.RECEIVED_BY, D.RECEIVED_AT
+    </sql>
+
+    <insert id="insertDoc" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
+        INSERT INTO APPROVAL_DOC (
+            DOC_ID, KIND, RETENTION, DISCLOSURE, RESTRICT_REASONS, RESTRICT_DETAIL, RECEIVER_TYPE, RECEIVER,
+            VIA, REFERENCE_TO, SENDER, EFFECTIVE_DATE, TITLE, BODY, STATUS, DRAFTER_ID, DRAFTER_NAME,
+            DRAFTER_POSITION, DRAFTER_DEPT, CREATED_AT, SUBMITTED_AT, DELETED_YN
+        ) VALUES (
+            #{docId}, #{kind}, #{retention}, #{disclosure}, #{restrictReasons}, #{restrictDetail}, #{receiverType}, #{receiver},
+            #{via}, #{referenceTo}, #{sender}, #{effectiveDate, jdbcType=DATE}, #{title}, #{body, jdbcType=CLOB}, #{status},
+            #{drafterId}, #{drafterName}, #{drafterPosition}, #{drafterDept}, #{createdAt},
+            #{submittedAt, jdbcType=TIMESTAMP}, 'N'
+        )
+    </insert>
+
+    <!-- 임시저장 문서만 내용을 고칠 수 있다 -->
+    <update id="updateDocContent" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
+        UPDATE APPROVAL_DOC
+           SET KIND = #{kind}, RETENTION = #{retention}, DISCLOSURE = #{disclosure},
+               RESTRICT_REASONS = #{restrictReasons}, RESTRICT_DETAIL = #{restrictDetail},
+               RECEIVER_TYPE = #{receiverType}, RECEIVER = #{receiver}, VIA = #{via}, REFERENCE_TO = #{referenceTo},
+               SENDER = #{sender}, EFFECTIVE_DATE = #{effectiveDate, jdbcType=DATE}, TITLE = #{title},
+               BODY = #{body, jdbcType=CLOB}, UPDATED_AT = #{updatedAt}
+         WHERE DOC_ID = #{docId} AND STATUS = 'DRAFT' AND DELETED_YN = 'N'
+    </update>
+
+    <select id="selectDoc" resultType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
+        SELECT <include refid="docCols"/>, D.BODY
+          FROM APPROVAL_DOC D
+         WHERE D.DOC_ID = #{docId} AND D.DELETED_YN = 'N'
+    </select>
+
+    <update id="updateDocStatus">
+        UPDATE APPROVAL_DOC
+           SET STATUS = #{toStatus}
+               <if test="toStatus == 'PROG'">, SUBMITTED_AT = #{at}, COMPLETED_AT = NULL</if>
+               <if test="toStatus == 'DONE' or toStatus == 'REJECTED'">, COMPLETED_AT = #{at}</if>
+               <if test="toStatus == 'DRAFT'">, SUBMITTED_AT = NULL, UPDATED_AT = #{at}</if>
+         WHERE DOC_ID = #{docId} AND STATUS = #{fromStatus} AND DELETED_YN = 'N'
+    </update>
+
+    <select id="nextDocSeq" resultType="int">
+        SELECT NVL(MAX(DOC_SEQ), 0) + 1 FROM APPROVAL_DOC
+         WHERE DOC_YEAR = #{year} AND NVL(DRAFTER_DEPT, ' ') = NVL(#{dept}, ' ')
+    </select>
+
+    <update id="updateDocNumber">
+        UPDATE APPROVAL_DOC SET DOC_YEAR = #{year}, DOC_SEQ = #{seq}, DOC_NO = #{docNo} WHERE DOC_ID = #{docId}
+    </update>
+
+    <update id="markReceived">
+        UPDATE APPROVAL_DOC SET RECEIVED_BY = #{by}, RECEIVED_AT = #{at}
+         WHERE DOC_ID = #{docId} AND STATUS = 'DONE' AND RECEIVED_AT IS NULL
+    </update>
+
+    <!-- 임시저장 문서만 지운다 (삭제 표시) -->
+    <update id="markDeleted">
+        UPDATE APPROVAL_DOC SET DELETED_YN = 'Y'
+         WHERE DOC_ID = #{docId} AND DRAFTER_ID = #{drafterId} AND STATUS = 'DRAFT' AND DELETED_YN = 'N'
+    </update>
+
+    <sql id="boxWhere">
+        WHERE D.DELETED_YN = 'N'
+        <choose>
+            <when test="box == 'wait'">
+                AND D.STATUS = 'PROG'
+                AND EXISTS (SELECT 1 FROM APPROVAL_LINE L WHERE L.DOC_ID = D.DOC_ID
+                               AND L.APPROVER_ID = #{loginId} AND L.STATUS = 'PENDING')
+            </when>
+            <when test="box == 'prog'">
+                AND D.STATUS = 'PROG'
+                AND (D.DRAFTER_ID = #{loginId}
+                     OR EXISTS (SELECT 1 FROM APPROVAL_LINE L WHERE L.DOC_ID = D.DOC_ID
+                                   AND L.APPROVER_ID = #{loginId} AND L.STATUS = 'APPROVED'))
+            </when>
+            <when test="box == 'done' or box == 'back'">
+                AND D.STATUS = <if test="box == 'done'">'DONE'</if><if test="box == 'back'">'REJECTED'</if>
+                AND (D.DRAFTER_ID = #{loginId}
+                     OR EXISTS (SELECT 1 FROM APPROVAL_LINE L WHERE L.DOC_ID = D.DOC_ID AND L.APPROVER_ID = #{loginId}))
+            </when>
+            <when test="box == 'recv'">
+                AND D.STATUS = 'DONE' AND D.RECEIVER_TYPE = 'external' AND D.RECEIVER = #{dept}
+            </when>
+            <otherwise>
+                AND D.STATUS = 'DRAFT' AND D.DRAFTER_ID = #{loginId}
+            </otherwise>
+        </choose>
+        <if test="q != null">
+            AND (D.TITLE LIKE '%' || #{q} || '%' OR D.DOC_NO LIKE '%' || #{q} || '%'
+                 OR D.DRAFTER_NAME LIKE '%' || #{q} || '%')
+        </if>
+        <if test="from != null">AND NVL(D.SUBMITTED_AT, D.CREATED_AT) &gt;= #{from}</if>
+    </sql>
+
+    <select id="selectList" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalSearchVO"
+            resultType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
+        SELECT * FROM (
+            SELECT A.*, ROWNUM AS RN FROM (
+                SELECT <include refid="docCols"/>
+                  FROM APPROVAL_DOC D
+                <include refid="boxWhere"/>
+                 ORDER BY NVL(D.COMPLETED_AT, NVL(D.SUBMITTED_AT, NVL(D.UPDATED_AT, D.CREATED_AT))) DESC, D.DOC_ID DESC
+            ) A WHERE ROWNUM &lt;= #{endRow}
+        ) WHERE RN &gt; #{startRow}
+    </select>
+
+    <select id="selectCount" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalSearchVO" resultType="int">
+        SELECT COUNT(*) FROM APPROVAL_DOC D <include refid="boxWhere"/>
+    </select>
+
+    <insert id="insertLine" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalLineVO">
+        INSERT INTO APPROVAL_LINE (LINE_ID, DOC_ID, STEP_NO, ROLE, APPROVER_ID, APPROVER_NAME,
+                                   APPROVER_POSITION, APPROVER_DEPT, STATUS)
+        VALUES (#{lineId}, #{docId}, #{stepNo}, #{role}, #{approverId}, #{approverName},
+                #{approverPosition}, #{approverDept}, #{status})
+    </insert>
+
+    <delete id="deleteLines">DELETE FROM APPROVAL_LINE WHERE DOC_ID = #{docId}</delete>
+
+    <select id="selectLines" resultType="egovframework.haengjeongnuli.approval.service.ApprovalLineVO">
+        SELECT LINE_ID, DOC_ID, STEP_NO, ROLE, APPROVER_ID, APPROVER_NAME, APPROVER_POSITION, APPROVER_DEPT,
+               STATUS, OPINION, ACTED_AT
+          FROM APPROVAL_LINE WHERE DOC_ID = #{docId} ORDER BY STEP_NO
+    </select>
+
+    <update id="actLine">
+        UPDATE APPROVAL_LINE SET STATUS = #{status}, OPINION = #{opinion}, ACTED_AT = #{at}
+         WHERE LINE_ID = #{lineId} AND APPROVER_ID = #{approverId} AND STATUS = 'PENDING'
+    </update>
+
+    <update id="setLineStatus">
+        UPDATE APPROVAL_LINE SET STATUS = #{status} WHERE DOC_ID = #{docId} AND STEP_NO = #{stepNo}
+    </update>
+
+    <update id="withdrawFirst">
+        UPDATE APPROVAL_LINE SET STATUS = 'WAIT' WHERE DOC_ID = #{docId} AND STEP_NO = 1 AND STATUS = 'PENDING'
+    </update>
+
+    <update id="resetLines">
+        UPDATE APPROVAL_LINE SET STATUS = 'WAIT', OPINION = NULL, ACTED_AT = NULL WHERE DOC_ID = #{docId}
+    </update>
+
+    <insert id="insertFile" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalFileVO">
+        INSERT INTO APPROVAL_FILE (FILE_ID, DOC_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, CREATED_AT)
+        VALUES (#{fileId}, #{docId}, #{originalName}, #{storedName}, #{fileSize}, #{createdAt})
+    </insert>
+
+    <select id="selectFiles" resultType="egovframework.haengjeongnuli.approval.service.ApprovalFileVO">
+        SELECT FILE_ID, DOC_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, CREATED_AT
+          FROM APPROVAL_FILE WHERE DOC_ID = #{docId} ORDER BY FILE_ID
+    </select>
+
+    <select id="selectFile" resultType="egovframework.haengjeongnuli.approval.service.ApprovalFileVO">
+        SELECT FILE_ID, DOC_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, CREATED_AT
+          FROM APPROVAL_FILE WHERE FILE_ID = #{fileId}
+    </select>
+
+    <delete id="deleteFile">DELETE FROM APPROVAL_FILE WHERE FILE_ID = #{fileId} AND DOC_ID = #{docId}</delete>
+</mapper>
