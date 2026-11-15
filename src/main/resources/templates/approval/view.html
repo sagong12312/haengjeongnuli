@@ -107,17 +107,38 @@
     </dl>
   </section>
 
-  <section class="panel" th:if="${doc.spending}" aria-labelledby="spend-title">
-    <h2 id="spend-title">지출 내용</h2>
+  <section class="panel" th:if="${doc.budgetDoc}" aria-labelledby="spend-title">
+    <h2 id="spend-title" th:text="${doc.commitment} ? '품의 내용' : '지출 내용'">지출 내용</h2>
     <dl class="doc-info">
+      <div><dt>종류</dt><dd th:text="${doc.spendType} ?: '일반'">일반</dd></div>
       <div><dt>예산</dt><dd>
         <a th:if="${budget}" th:href="@{/finance/budget/{id}(id=${budget.budgetId})}"
            th:text="${budget.detailName} + ' / ' + ${budget.code} + ' ' + ${budget.codeName}">예산</a></dd></div>
+      <div th:if="${doc.commitDocId}"><dt>지출품의</dt><dd><a th:href="@{/approval/{id}(id=${doc.commitDocId})}">품의 문서 보기</a></dd></div>
       <div><dt>금액</dt><dd style="font-weight:700;" th:text="${payText}">금액</dd></div>
-      <div><dt>채권자</dt><dd th:text="${doc.payee}">채권자</dd></div>
-      <div><dt>지급 방법</dt><dd th:text="${doc.payMethod}">계좌이체</dd></div>
-      <div><dt>집행</dt><dd th:text="${doc.status == 'DONE'} ? '결재 완료와 함께 예산 집행으로 기록됨' : (${doc.status == 'PROG'} ? '결재 중 (잔액에서 미리 빼 둠)' : '집행 안 됨')">상태</dd></div>
+      <div th:if="${doc.payee}"><dt th:text="${doc.commitment} ? '거래처(예정)' : '채권자'">채권자</dt><dd th:text="${doc.payee}">채권자</dd></div>
+      <div th:if="${doc.spending}"><dt>지급 방법</dt><dd th:text="${doc.payMethod}">계좌이체</dd></div>
+      <div th:if="${doc.spendTarget}"><dt>집행 대상·내용</dt><dd th:text="${doc.spendTarget}">대상</dd></div>
+      <div th:if="${doc.spending}"><dt>집행</dt><dd th:text="${doc.status == 'DONE'} ? '결재 완료와 함께 예산 집행으로 기록됨' : (${doc.status == 'PROG'} ? '결재 중 (잔액에서 미리 빼 둠)' : '집행 안 됨')">상태</dd></div>
+      <div th:if="${doc.commitment}"><dt>예산 묶기</dt><dd th:text="${commit} ? (${commit.closed} ? '잔액 해제함' : '품의 금액만큼 예산을 묶어 둠') : (${doc.status == 'PROG'} ? '결재 중 (잔액에서 미리 빼 둠)' : '없음')">상태</dd></div>
     </dl>
+    <div th:if="${commit}" style="display:flex; flex-direction:column; gap:10px;">
+      <p style="margin:0; font-size:18px;" th:text="'지출한 금액 ' + ${#numbers.formatInteger(commit.spent, 1, 'COMMA')} + '원 · 남은 금액 ' + ${#numbers.formatInteger(commit.remaining, 1, 'COMMA')} + '원'
+          + (${commit.closed} ? ' (해제: ' + ${commit.closeNote} + ')' : '')">잔액</p>
+      <ul th:unless="${#lists.isEmpty(commitSpends)}" style="margin:0; padding-left:22px;">
+        <li th:each="sp : ${commitSpends}"><a th:href="@{/approval/{id}(id=${sp.docId})}" th:text="${sp.title}">지출결의</a>
+          <span th:text="' ' + ${#numbers.formatInteger(sp.amount, 1, 'COMMA')} + '원 · ' + (${sp.status == 'DONE'} ? '집행' : '결재 중')">금액</span></li>
+      </ul>
+      <div th:if="${canUseCommit}" style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <a class="btn btn-primary" th:href="@{/approval/draft(kind='지출결의', commit=${doc.docId})}">이 품의로 지출결의 작성</a>
+        <form th:action="@{/approval/{id}/commit/close(id=${doc.docId})}" method="post" style="display:flex; gap:6px; margin:0;"
+              data-confirm="남은 금액을 해제하면 이 품의로 더 지출할 수 없습니다. 해제할까요?">
+          <label for="cnote" class="sr-only">해제 사유</label>
+          <input id="cnote" name="note" class="input" maxlength="500" placeholder="해제 사유 (예: 낙찰 차액)" style="width:220px;">
+          <button type="submit" class="btn btn-outline">남은 금액 해제</button>
+        </form>
+      </div>
+    </div>
   </section>
 
   <section class="panel" aria-labelledby="body-title">

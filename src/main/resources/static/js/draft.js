@@ -5,7 +5,18 @@
 
     var kind = document.getElementById('dkind');
     var spend = document.getElementById('spend');
-    kind.addEventListener('change', function () { spend.hidden = kind.value !== '지출결의'; });
+    var commitSel = document.getElementById('scommit');
+    function spendView() {
+      var k = kind.value, isSpend = k === '지출결의', isCommit = k === '지출품의';
+      spend.hidden = !(isSpend || isCommit);
+      spend.querySelectorAll('.only-spending').forEach(function (el) { el.hidden = !isSpend; });
+      spend.querySelectorAll('.only-commit').forEach(function (el) { el.hidden = !isCommit; });
+      // 품의에 연결한 지출결의는 예산을 품의에서 가져온다
+      document.getElementById('sbudget-field').hidden = isSpend && commitSel && commitSel.value !== '';
+    }
+    kind.addEventListener('change', spendView);
+    if (commitSel) { commitSel.addEventListener('change', spendView); }
+    spendView();
 
     // 지출 금액: 세 자리마다 쉼표, 한글 금액
     var D = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'], S = ['', '십', '백', '천'], B = ['', '만', '억', '조'];

@@ -68,6 +68,7 @@ public enum AuditAction {
     FIN_BUDGET_APPROVE("예산 승인"),
     FIN_BUDGET_REJECT("예산 반려"),
     FIN_BUDGET_CHANGE("추가경정·이월"),
+    FIN_COMMIT_CLOSE("품의 잔액 해제"),
     FIN_EXECUTE("예산 집행"),
     FIN_RECEIPT("세입 수납"),
     FIN_TXN_CANCEL("집행·수납 취소"),

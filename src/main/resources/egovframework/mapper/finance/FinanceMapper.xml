@@ -174,10 +174,23 @@
          GROUP BY T.CODE
     </select>
 
-    <!-- 결재가 진행 중인 지출결의 금액 (아직 집행되지 않았지만 잔액에서 미리 뺀다) -->
+    <!-- 결재가 진행 중인 지출품의·지출결의 금액 (아직 집행되지 않았지만 잔액에서 미리 뺀다).
+         품의에 연결된 지출결의는 품의로 이미 묶은 금액에서 나가므로 빼지 않는다 -->
     <select id="sumReserved" resultType="long">
         SELECT NVL(SUM(PAY_AMOUNT), 0) FROM APPROVAL_DOC
-         WHERE BUDGET_ID = #{budgetId} AND STATUS = 'PROG' AND DELETED_YN = 'N'
+         WHERE BUDGET_ID = #{budgetId} AND STATUS = 'PROG' AND DELETED_YN = 'N' AND COMMIT_DOC_ID IS NULL
+           <if test="exceptDocId != null">AND DOC_ID &lt;&gt; #{exceptDocId}</if>
+    </select>
+
+    <!-- 지출품의로 묶었지만 아직 지출하지 않은 금액 -->
+    <select id="sumCommitted" resultType="long">
+        SELECT NVL(SUM(AMOUNT - SPENT), 0) FROM FIN_COMMIT WHERE BUDGET_ID = #{budgetId} AND CLOSED_YN = 'N'
+    </select>
+
+    <!-- 품의에 연결되어 결재 중인 지출결의 금액 -->
+    <select id="sumPendingOnCommit" resultType="long">
+        SELECT NVL(SUM(PAY_AMOUNT), 0) FROM APPROVAL_DOC
+         WHERE COMMIT_DOC_ID = #{commitDocId} AND STATUS = 'PROG' AND DELETED_YN = 'N'
            <if test="exceptDocId != null">AND DOC_ID &lt;&gt; #{exceptDocId}</if>
     </select>
 
@@ -185,7 +198,7 @@
         SELECT DOC_ID AS "docId", TITLE AS "title", PAY_AMOUNT AS "amount", DRAFTER_NAME AS "drafterName",
                SUBMITTED_AT AS "submittedAt"
           FROM APPROVAL_DOC
-         WHERE BUDGET_ID = #{budgetId} AND STATUS = 'PROG' AND DELETED_YN = 'N'
+         WHERE BUDGET_ID = #{budgetId} AND STATUS = 'PROG' AND DELETED_YN = 'N' AND COMMIT_DOC_ID IS NULL
          ORDER BY SUBMITTED_AT
     </select>
 
@@ -193,4 +206,39 @@
         UPDATE FIN_TXN SET CANCELLED_YN = 'Y', CANCELLED_BY = #{by}, CANCELLED_AT = #{at}
          WHERE TXN_ID = #{txnId} AND CANCELLED_YN = 'N'
     </update>
+
+    <!-- 지출품의 -->
+    <select id="nextCommitId" resultType="long">SELECT SEQ_FIN_COMMIT.NEXTVAL FROM DUAL</select>
+    <insert id="insertCommit" parameterType="egovframework.haengjeongnuli.finance.service.CommitVO">
+        INSERT INTO FIN_COMMIT (COMMIT_ID, DOC_ID, BUDGET_ID, DEPT_NAME, SPEND_TYPE, TITLE, AMOUNT, SPENT, CLOSED_YN, CREATED_AT)
+        VALUES (#{commitId}, #{docId}, #{budgetId}, #{deptName}, #{spendType}, #{title}, #{amount}, 0, 'N', #{createdAt})
+    </insert>
+    <sql id="commitCols">
+        COMMIT_ID, DOC_ID, BUDGET_ID, DEPT_NAME, SPEND_TYPE, TITLE, AMOUNT, SPENT, CLOSED_YN, CLOSED_BY, CLOSED_AT, CLOSE_NOTE, CREATED_AT
+    </sql>
+    <select id="selectCommitByDoc" resultType="egovframework.haengjeongnuli.finance.service.CommitVO">
+        SELECT <include refid="commitCols"/> FROM FIN_COMMIT WHERE DOC_ID = #{docId}
+    </select>
+    <select id="lockCommitByDoc" resultType="egovframework.haengjeongnuli.finance.service.CommitVO">
+        SELECT <include refid="commitCols"/> FROM FIN_COMMIT WHERE DOC_ID = #{docId} FOR UPDATE
+    </select>
+    <select id="selectOpenCommits" resultType="egovframework.haengjeongnuli.finance.service.CommitVO">
+        SELECT <include refid="commitCols"/> FROM FIN_COMMIT
+         WHERE DEPT_NAME = #{dept} AND CLOSED_YN = 'N' AND AMOUNT &gt; SPENT ORDER BY CREATED_AT DESC
+    </select>
+    <select id="selectCommitsByBudget" resultType="egovframework.haengjeongnuli.finance.service.CommitVO">
+        SELECT <include refid="commitCols"/> FROM FIN_COMMIT WHERE BUDGET_ID = #{budgetId} ORDER BY CREATED_AT DESC
+    </select>
+    <update id="addCommitSpent">
+        UPDATE FIN_COMMIT SET SPENT = SPENT + #{amount} WHERE DOC_ID = #{docId} AND CLOSED_YN = 'N'
+    </update>
+    <update id="closeCommit">
+        UPDATE FIN_COMMIT SET CLOSED_YN = 'Y', CLOSED_BY = #{by}, CLOSED_AT = #{at}, CLOSE_NOTE = #{note}
+         WHERE DOC_ID = #{docId} AND CLOSED_YN = 'N'
+    </update>
+    <select id="selectCommitSpends" resultType="map">
+        SELECT DOC_ID AS "docId", TITLE AS "title", PAY_AMOUNT AS "amount", STATUS AS "status", DOC_NO AS "docNo"
+          FROM APPROVAL_DOC WHERE COMMIT_DOC_ID = #{docId} AND DELETED_YN = 'N' AND STATUS IN ('PROG', 'DONE')
+         ORDER BY DOC_ID
+    </select>
 </mapper>

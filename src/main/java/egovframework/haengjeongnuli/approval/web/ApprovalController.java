@@ -105,7 +105,8 @@ public class ApprovalController {
     @GetMapping("/draft")
     public String draftForm(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Long from,
                             @RequestParam(required = false) String kind, @RequestParam(required = false) Long budgetId,
-                            @RequestParam(required = false) Long template, Model model) {
+                            @RequestParam(required = false) Long template, @RequestParam(required = false) Long commit,
+                            Model model) {
         ApprovalForm form = new ApprovalForm();
         if (kind != null && ApprovalForm.KINDS.contains(kind)) {
             form.setKind(kind);
@@ -115,6 +116,20 @@ public class ApprovalController {
             ApprovalDocVO src = approvalService.get(from);
             if (src != null && src.isDraftedBy(me)) {
                 form = ApprovalForm.from(src);
+            }
+        }
+        if (commit != null) {
+            // 품의에서 지출결의 시작: 종류·예산·거래처·제목을 가져온다
+            ApprovalDocVO c = approvalService.get(commit);
+            egovframework.haengjeongnuli.finance.service.CommitVO cv = finance.commitOf(commit);
+            if (c != null && cv != null && c.canView(me) && !cv.isClosed() && me.dept().equals(cv.getDeptName())) {
+                form.setKind(ApprovalForm.SPENDING);
+                form.setCommitDocId(commit);
+                form.setBudgetId(cv.getBudgetId());
+                form.setSpendType(cv.getSpendType() == null ? "일반" : cv.getSpendType());
+                form.setPayee(c.getPayee());
+                form.setTitle("[지출] " + c.getTitle());
+                form.setSpendTarget(c.getSpendTarget());
             }
         }
         if (template != null) {
@@ -160,7 +175,13 @@ public class ApprovalController {
             model.addAttribute("dispatches", dispatch.list(docId));
             model.addAttribute("dispatchMethods", egovframework.haengjeongnuli.approval.service.DispatchVO.METHODS);
         }
-        if (d.isSpending()) {
+        if (d.isCommitment() && ApprovalDocVO.DONE.equals(d.getStatus())) {
+            egovframework.haengjeongnuli.finance.service.CommitVO c = finance.commitOf(docId);
+            model.addAttribute("commit", c);
+            model.addAttribute("commitSpends", c == null ? java.util.List.of() : finance.commitSpends(docId));
+            model.addAttribute("canUseCommit", c != null && !c.isClosed() && me.dept().equals(c.getDeptName()));
+        }
+        if (d.isBudgetDoc()) {
             model.addAttribute("budget", finance.get(d.getBudgetId()));
             model.addAttribute("payText", egovframework.haengjeongnuli.cmm.KoreanAmount.official(d.getPayAmount() == null ? 0 : d.getPayAmount()));
         }
@@ -238,6 +259,19 @@ public class ApprovalController {
         }
         ra.addFlashAttribute("message", problem == null ? receiver + "에 " + method + "(으)로 발송했다고 기록했습니다." : problem);
         return "redirect:/approval/" + docId + "#dispatch";
+    }
+
+    /** 지출품의 남은 금액 해제 (낙찰 차액·사업 취소 등) */
+    @PostMapping("/{docId}/commit/close")
+    public String closeCommit(@AuthenticationPrincipal LoginUser me, @PathVariable long docId,
+                              @RequestParam(required = false) String note, RedirectAttributes ra) {
+        visible(docId, me);
+        String problem = finance.closeCommit(docId, note, me);
+        if (problem == null) {
+            auditService.record(AuditAction.FIN_COMMIT_CLOSE, "품의 " + docId, note);
+        }
+        ra.addFlashAttribute("message", problem == null ? "남은 금액을 해제했습니다. 예산의 쓸 수 있는 금액으로 돌아갔습니다." : problem);
+        return "redirect:/approval/" + docId;
     }
 
     /** 기안 서식: 목록, 지금 쓰는 기안 내용을 서식으로 저장, 지우기 */
@@ -320,7 +354,8 @@ public class ApprovalController {
             auditService.record(AuditAction.APPROVAL_APPROVE, "결재 " + docId, (proxied ? "[대결] " : "") + d.getTitle());
             ra.addFlashAttribute("message", ApprovalDocVO.DONE.equals(d.getStatus())
                     ? "결재했습니다. 결재가 끝나 문서번호 " + d.getDocNo() + "이(가) 붙었습니다."
-                        + (d.isSpending() ? String.format(" 지출 %,d원을 예산 집행으로 기록했습니다.", d.getPayAmount()) : "")
+                        + (d.isSpending() ? String.format(" 지출 %,d원을 예산 집행으로 기록했습니다.", d.getPayAmount())
+                            : d.isCommitment() ? String.format(" 품의 금액 %,d원만큼 예산을 묶었습니다.", d.getPayAmount()) : "")
                     : "결재했습니다. 다음 결재자에게 넘어갔습니다.");
             return "redirect:/approval?box=wait";
         }
@@ -455,6 +490,8 @@ public class ApprovalController {
         model.addAttribute("maxCooperators", ApprovalForm.MAX_COOPERATORS);
         model.addAttribute("templates", templates.visible(me));
         model.addAttribute("payMethods", ApprovalForm.PAY_METHODS);
+        model.addAttribute("spendTypes", ApprovalForm.SPEND_TYPES);
+        model.addAttribute("commits", finance.openCommits(me.getDeptName()));
         // 지출결의에 고를 수 있는 예산과 지금 쓸 수 있는 금액
         Long selfId = doc == null ? null : doc.getDocId();
         java.util.List<egovframework.haengjeongnuli.finance.service.BudgetVO> spendable =

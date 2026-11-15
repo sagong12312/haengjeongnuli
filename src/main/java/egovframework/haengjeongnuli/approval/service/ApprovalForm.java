@@ -9,7 +9,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 /** 기안하기 입력값 */
 public class ApprovalForm {
 
-    public static final List<String> KINDS = List.of("일반 기안", "지출결의", "협조 요청", "보고");
+    public static final List<String> KINDS = List.of("일반 기안", "지출품의", "지출결의", "협조 요청", "보고");
     public static final List<String> RETENTIONS = List.of("1년", "3년", "5년", "10년", "30년", "준영구", "영구");
     public static final List<String> DISCLOSURES = List.of("공개", "부분공개", "비공개");
     /** 정보공개법 제9조 제1항 각 호 */
@@ -25,6 +25,12 @@ public class ApprovalForm {
 
     /** 지출결의 문서 종류 */
     public static final String SPENDING = "지출결의";
+    /** 지출품의(지출원인행위): 결재가 끝나면 예산을 묶고, 지출결의는 그 안에서 나눠 집행한다 */
+    public static final String COMMIT = "지출품의";
+    /** 품의·지출 종류 */
+    public static final List<String> SPEND_TYPES = List.of("물품구매", "용역", "공사", "여비", "업무추진비", "행사·교육", "일반");
+    /** 업무추진비를 이 금액 이상 쓰면 집행 대상(상대방 소속·성명 등)을 적는다 (지자체 회계관리 훈령, 보도 기준) */
+    public static final long ENTERTAIN_DETAIL_FROM = 500_000L;
     /** 지급 방법 (지방회계법 시행령 제36조·제37조: 계좌 지급이 원칙, 현금은 제52조의 경우) */
     public static final List<String> PAY_METHODS = List.of("계좌이체", "현금");
 
@@ -59,6 +65,19 @@ public class ApprovalForm {
     private String payMethod = "계좌이체";
 
     public boolean isSpending() { return SPENDING.equals(kind); }
+    public boolean isCommit() { return COMMIT.equals(kind); }
+    /** 예산을 쓰는 문서 (지출품의·지출결의) */
+    public boolean isBudgetDoc() { return isSpending() || isCommit(); }
+
+    private String spendType = "일반";
+    private Long commitDocId;
+    private String spendTarget;
+    public String getSpendType() { return spendType; }
+    public void setSpendType(String spendType) { this.spendType = spendType; }
+    public Long getCommitDocId() { return commitDocId; }
+    public void setCommitDocId(Long commitDocId) { this.commitDocId = commitDocId; }
+    public String getSpendTarget() { return spendTarget; }
+    public void setSpendTarget(String spendTarget) { this.spendTarget = spendTarget; }
 
     /** "1,234,000" → 1234000, 잘못된 값이면 null */
     public Long payAmountValue() {
@@ -111,6 +130,9 @@ public class ApprovalForm {
         f.payAmount = d.getPayAmount() == null ? null : String.format("%,d", d.getPayAmount());
         f.payee = d.getPayee();
         f.payMethod = d.getPayMethod() == null ? "계좌이체" : d.getPayMethod();
+        f.spendType = d.getSpendType() == null ? "일반" : d.getSpendType();
+        f.commitDocId = d.getCommitDocId();
+        f.spendTarget = d.getSpendTarget();
         f.delegated = d.isDelegated();
         for (ApprovalLineVO l : d.getLines()) {
             if (l.isFinalRole()) {

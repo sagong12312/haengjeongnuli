@@ -58,4 +58,17 @@ public interface FinanceMapper {
     long sumReserved(@Param("budgetId") long budgetId, @Param("exceptDocId") Long exceptDocId);
     List<java.util.Map<String, Object>> selectPendingSpends(@Param("budgetId") long budgetId);
     int cancelTxn(@Param("txnId") long txnId, @Param("by") String by, @Param("at") LocalDateTime at);
+
+    long sumCommitted(@Param("budgetId") long budgetId);
+    long sumPendingOnCommit(@Param("commitDocId") long commitDocId, @Param("exceptDocId") Long exceptDocId);
+    long nextCommitId();
+    void insertCommit(egovframework.haengjeongnuli.finance.service.CommitVO c);
+    egovframework.haengjeongnuli.finance.service.CommitVO selectCommitByDoc(@Param("docId") long docId);
+    egovframework.haengjeongnuli.finance.service.CommitVO lockCommitByDoc(@Param("docId") long docId);
+    List<egovframework.haengjeongnuli.finance.service.CommitVO> selectOpenCommits(@Param("dept") String dept);
+    List<egovframework.haengjeongnuli.finance.service.CommitVO> selectCommitsByBudget(@Param("budgetId") long budgetId);
+    int addCommitSpent(@Param("docId") long docId, @Param("amount") long amount);
+    int closeCommit(@Param("docId") long docId, @Param("by") String by, @Param("at") java.time.LocalDateTime at,
+                    @Param("note") String note);
+    List<java.util.Map<String, Object>> selectCommitSpends(@Param("docId") long docId);
 }

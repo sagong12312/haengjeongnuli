@@ -111,23 +111,52 @@ public class ApprovalServiceImpl implements ApprovalService {
             err.put("reviewers", "같은 직원을 결재선에 두 번 넣을 수 없습니다.");
         }
 
-        if (f.isSpending()) {
-            if (f.getPayMethod() == null || !ApprovalForm.PAY_METHODS.contains(f.getPayMethod())) {
+        if (f.isBudgetDoc()) {
+            if (f.getSpendType() == null || !ApprovalForm.SPEND_TYPES.contains(f.getSpendType())) {
+                err.put("spendType", (f.isCommit() ? "품의" : "지출") + " 종류를 고르세요.");
+            }
+            if (f.isSpending() && (f.getPayMethod() == null || !ApprovalForm.PAY_METHODS.contains(f.getPayMethod()))) {
                 err.put("payMethod", "지급 방법을 고르세요.");
             }
             if (!blank(f.getPayAmount()) && f.payAmountValue() == null) {
-                err.put("payAmount", "지출 금액은 숫자로 입력하세요.");
+                err.put("payAmount", "금액은 숫자로 입력하세요.");
             }
             if (len(f.getPayee()) > 200) {
-                err.put("payee", "채권자(지급받는 곳)는 200자 이내로 입력하세요.");
+                err.put("payee", "채권자(거래처)는 200자 이내로 입력하세요.");
+            }
+            if (len(f.getSpendTarget()) > 500) {
+                err.put("spendTarget", "집행 대상·내용은 500자 이내로 입력하세요.");
+            }
+            if (f.isCommit()) {
+                f.setCommitDocId(null);
+            }
+            // 품의에 연결한 지출결의는 예산을 품의에서 가져온다
+            if (f.isSpending() && f.getCommitDocId() != null) {
+                egovframework.haengjeongnuli.finance.service.CommitVO c = finance.commitOf(f.getCommitDocId());
+                if (c == null) {
+                    err.put("commitDocId", "결재가 끝난 지출품의를 고르세요.");
+                } else {
+                    f.setBudgetId(c.getBudgetId());
+                }
             }
             if (submit) {
-                if (blank(f.getPayee())) {
+                if (f.isSpending() && blank(f.getPayee())) {
                     err.put("payee", "채권자(지급받는 곳)를 입력하세요.");
                 }
-                String problem = finance.checkSpend(f.getBudgetId(), f.payAmountValue(), me.getDeptName(), docId);
+                Long amt = f.payAmountValue();
+                if ("여비".equals(f.getSpendType()) && blank(f.getSpendTarget())) {
+                    err.put("spendTarget", "여비는 출장자·출장 기간·출장지를 적으세요.");
+                }
+                if ("업무추진비".equals(f.getSpendType()) && amt != null && amt >= ApprovalForm.ENTERTAIN_DETAIL_FROM
+                        && blank(f.getSpendTarget())) {
+                    err.put("spendTarget", String.format("업무추진비 %,d원 이상은 집행 대상(상대방 소속·성명 등)을 적으세요.",
+                            ApprovalForm.ENTERTAIN_DETAIL_FROM));
+                }
+                String problem = f.isSpending() && f.getCommitDocId() != null
+                        ? finance.checkCommitSpend(f.getCommitDocId(), amt, me.getDeptName(), docId)
+                        : finance.checkSpend(f.getBudgetId(), amt, me.getDeptName(), docId);
                 if (problem != null) {
-                    err.putIfAbsent(f.getBudgetId() == null ? "budgetId" : "payAmount", problem);
+                    err.putIfAbsent(f.getBudgetId() == null && f.getCommitDocId() == null ? "budgetId" : "payAmount", problem);
                 }
             }
         }
@@ -273,7 +302,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         }
         ApprovalLineVO line = d.getPendingLine();
         boolean last = d.getLines().stream().noneMatch(l -> l.getStepNo() == line.getStepNo() + 1);
-        if (last && d.isSpending() && spendingProblem(d) != null) {
+        if (last && d.isBudgetDoc() && spendingProblem(d) != null) {
             return Result.BUDGET_SHORT;
         }
         LocalDateTime now = LocalDateTime.now();
@@ -295,7 +324,10 @@ public class ApprovalServiceImpl implements ApprovalService {
         if (d.isSpending()) {
             // 지출결의는 결재가 끝나면 집행으로 기록한다 (잔액이 모자라면 예외로 결재까지 되돌린다)
             finance.executeFromDoc(docId, d.getTitle(), d.getBudgetId(), d.getPayAmount(), d.getPayee(),
-                    d.getDrafterId(), d.getDrafterName(), d.getDrafterDept());
+                    d.getDrafterId(), d.getDrafterName(), d.getDrafterDept(), d.getCommitDocId());
+        } else if (d.isCommitment()) {
+            // 지출품의는 결재가 끝나면 예산을 묶는다 (지출원인행위)
+            finance.commitFromDoc(docId, d.getTitle(), d.getBudgetId(), d.getPayAmount(), d.getSpendType(), d.getDrafterDept());
         }
         notificationService.notify(d.getDrafterId(),
                 "'" + d.getTitle() + "' 결재가 끝났습니다. (문서번호 " + docNo + ")", link(docId));
@@ -361,8 +393,11 @@ public class ApprovalServiceImpl implements ApprovalService {
     }
 
     private String spendingProblem(ApprovalDocVO d) {
-        if (!d.isSpending()) {
+        if (!d.isBudgetDoc()) {
             return null;
+        }
+        if (d.isSpending() && d.getCommitDocId() != null) {
+            return finance.checkCommitSpend(d.getCommitDocId(), d.getPayAmount(), d.getDrafterDept(), d.getDocId());
         }
         return finance.checkSpend(d.getBudgetId(), d.getPayAmount(), d.getDrafterDept(), d.getDocId());
     }
@@ -484,11 +519,14 @@ public class ApprovalServiceImpl implements ApprovalService {
         d.setTitle(f.getTitle().trim());
         d.setBody(f.getBody());
         d.setDelegatedYn(f.isDelegated() && !blank(f.getFinalApprover()) ? "Y" : "N");
-        boolean spending = f.isSpending();
-        d.setBudgetId(spending ? f.getBudgetId() : null);
-        d.setPayAmount(spending ? f.payAmountValue() : null);
-        d.setPayee(spending ? trim(f.getPayee(), 200) : null);
-        d.setPayMethod(spending ? f.getPayMethod() : null);
+        boolean budgetDoc = f.isBudgetDoc();
+        d.setBudgetId(budgetDoc ? f.getBudgetId() : null);
+        d.setPayAmount(budgetDoc ? f.payAmountValue() : null);
+        d.setPayee(budgetDoc ? trim(f.getPayee(), 200) : null);
+        d.setPayMethod(f.isSpending() ? f.getPayMethod() : null);
+        d.setSpendType(budgetDoc ? f.getSpendType() : null);
+        d.setCommitDocId(f.isSpending() ? f.getCommitDocId() : null);
+        d.setSpendTarget(budgetDoc ? trim(f.getSpendTarget(), 500) : null);
     }
 
     /** 검토자들, 협조자들, 결재권자 차례. 결재권자가 비어 있으면(임시저장) 검토·협조만 둔다. */

@@ -99,35 +99,58 @@
         </div>
       </div>
 
-      <!-- 지출결의: 문서 종류가 지출결의일 때 -->
-      <fieldset id="spend" th:hidden="${approvalForm.kind != '지출결의'}" style="margin:0; border:2px solid var(--line); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
-        <legend style="padding:0 6px; font-size:19px; font-weight:700;">지출 내용</legend>
-        <p th:if="${#lists.isEmpty(spendable)}" class="hint" style="margin:0;">올해 우리 부서의 승인된 세출 예산이 없습니다. 재정 화면에서 예산을 작성해 승인을 받은 뒤 지출결의를 올리세요.</p>
-        <div class="field">
+      <!-- 지출품의·지출결의: 문서 종류가 둘 중 하나일 때 -->
+      <fieldset id="spend" th:hidden="${approvalForm.kind != '지출결의' and approvalForm.kind != '지출품의'}"
+                style="margin:0; border:2px solid var(--line); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+        <legend style="padding:0 6px; font-size:19px; font-weight:700;">품의·지출 내용</legend>
+        <p class="hint" style="margin:0;"><b>지출품의</b>는 물품 구매·용역·공사 등을 하겠다고 결재받는 문서로, 결재가 끝나면 그 금액만큼 예산을 묶어 둡니다(지출원인행위).
+          <b>지출결의</b>는 실제로 돈을 지급하는 문서로, 품의를 골라 그 안에서 지급하거나 소액 일상경비는 예산에서 바로 지급합니다.</p>
+        <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+          <div class="field">
+            <label for="stype">종류 <span class="req">*</span></label>
+            <select id="stype" th:field="*{spendType}" class="select"><option th:each="t : ${spendTypes}" th:value="${t}" th:text="${t}">일반</option></select>
+          </div>
+          <div class="field only-spending">
+            <label for="scommit">지출품의 (결재 끝난 품의에서 지급)</label>
+            <select id="scommit" th:field="*{commitDocId}" class="select">
+              <option value="">품의 없이 예산에서 바로 (소액·일상경비)</option>
+              <option th:each="c : ${commits}" th:value="${c.docId}"
+                      th:text="'[' + (${c.spendType} ?: '일반') + '] ' + ${c.title} + ' — 잔액 ' + ${#numbers.formatInteger(c.remaining, 1, 'COMMA')} + '원'">품의</option>
+            </select>
+          </div>
+        </div>
+        <p th:if="${#lists.isEmpty(spendable)}" class="hint" style="margin:0;">올해 우리 부서의 승인된 세출 예산이 없습니다. 재정 화면에서 예산을 작성해 승인을 받은 뒤 올리세요.</p>
+        <div class="field" id="sbudget-field">
           <label for="sbudget">예산 (세부사업 / 통계목) <span class="req">*</span></label>
           <select id="sbudget" th:field="*{budgetId}" class="select">
             <option value="">선택</option>
             <option th:each="b : ${spendable}" th:value="${b.budgetId}"
-                    th:text="${b.detailName} + ' / ' + ${b.code} + ' ' + ${b.codeName} + ' — 지출 가능 ' + ${#numbers.formatInteger(available[b.budgetId], 1, 'COMMA')} + '원'">예산</option>
+                    th:text="${b.detailName} + ' / ' + ${b.code} + ' ' + ${b.codeName} + ' — 쓸 수 있는 금액 ' + ${#numbers.formatInteger(available[b.budgetId], 1, 'COMMA')} + '원'">예산</option>
           </select>
+          <p class="hint only-spending" style="margin:0;">품의를 고르면 예산은 품의의 예산으로 정해집니다.</p>
         </div>
         <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
           <div class="field">
-            <label for="samount">지출 금액(원) <span class="req">*</span></label>
+            <label for="samount">금액(원) <span class="req">*</span></label>
             <input id="samount" th:field="*{payAmount}" class="input" inputmode="numeric" placeholder="예: 3,450,000">
             <p class="hint" id="samount-text" aria-live="polite" style="margin:0;"></p>
           </div>
           <div class="field">
-            <label for="spayee">채권자(지급받는 곳) <span class="req">*</span></label>
+            <label for="spayee"><span class="only-spending">채권자(지급받는 곳) <span class="req">*</span></span><span class="only-commit">거래처(예정)</span></label>
             <input id="spayee" th:field="*{payee}" class="input" maxlength="200" placeholder="예: (주)문구나라">
           </div>
-          <div class="field">
+          <div class="field only-spending">
             <label for="smethod">지급 방법</label>
             <select id="smethod" th:field="*{payMethod}" class="select"><option th:each="m : ${payMethods}" th:value="${m}" th:text="${m}">계좌이체</option></select>
           </div>
         </div>
-        <p class="hint" style="margin:0;">배정된 예산 범위에서만 지출할 수 있습니다(지방회계법 제29조). 상신할 때와 마지막 결재 때 잔액을 확인하고, 결재가 끝나면 예산 집행으로 기록합니다.
-          현금 지급은 계좌 입금이 불가능한 경우 등 지방회계법 시행령 제52조의 경우에만 씁니다.</p>
+        <div class="field">
+          <label for="starget">집행 대상·내용</label>
+          <input id="starget" th:field="*{spendTarget}" class="input" maxlength="500"
+                 placeholder="여비: 출장자·기간·출장지 / 업무추진비 50만원 이상: 상대방 소속·성명 등 / 물품: 품명·수량">
+        </div>
+        <p class="hint" style="margin:0;">배정된 예산 범위에서만 쓸 수 있습니다(지방회계법 제29조). 상신할 때와 마지막 결재 때 잔액을 다시 확인합니다.
+          여비는 출장자·기간·출장지를, 업무추진비 50만원 이상은 집행 대상을 적어야 상신됩니다. 현금 지급은 지방회계법 시행령 제52조의 경우에만 씁니다.</p>
       </fieldset>
 
       <!-- 비공개 사유: 부분공개·비공개일 때 -->

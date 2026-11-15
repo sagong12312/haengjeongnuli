@@ -492,7 +492,7 @@ public class FinanceService implements ApplicationRunner {
         if (b == null || !b.isApproved()) {
             return 0;
         }
-        return b.getAmount() - mapper.sumUsed(budgetId) - mapper.sumReserved(budgetId, exceptDocId);
+        return b.getAmount() - mapper.sumUsed(budgetId) - mapper.sumReserved(budgetId, exceptDocId) - mapper.sumCommitted(budgetId);
     }
 
     /**
@@ -522,7 +522,7 @@ public class FinanceService implements ApplicationRunner {
         }
         long avail = available(budgetId, exceptDocId);
         if (amount > avail) {
-            return String.format("지출 가능 잔액(%,d원)을 넘습니다. 결재 중인 다른 지출결의 금액도 잔액에서 미리 뺍니다.", avail);
+            return String.format("지출 가능 잔액(%,d원)을 넘습니다. 결재 중인 지출품의·지출결의와 품의로 묶은 금액도 잔액에서 미리 뺍니다.", avail);
         }
         return null;
     }
@@ -532,10 +532,103 @@ public class FinanceService implements ApplicationRunner {
      * 확인에 실패하면 예외를 던져 결재까지 되돌린다.
      */
     @Transactional
-    public TxnVO executeFromDoc(long docId, String title, long budgetId, long amount, String payee, String drafterId,
-                                String drafterName, String drafterDept) {
+    // ===== 지출품의 (지출원인행위) =====
+
+    /** 품의로 묶은 예산 (없으면 null) */
+    public CommitVO commitOf(long docId) {
+        return mapper.selectCommitByDoc(docId);
+    }
+
+    /** 우리 부서에서 아직 지출할 금액이 남은 품의 */
+    public List<CommitVO> openCommits(String dept) {
+        return dept == null ? List.of() : mapper.selectOpenCommits(dept);
+    }
+
+    public List<CommitVO> commitsOfBudget(long budgetId) {
+        return mapper.selectCommitsByBudget(budgetId);
+    }
+
+    public List<Map<String, Object>> commitSpends(long commitDocId) {
+        return mapper.selectCommitSpends(commitDocId);
+    }
+
+    /** 품의에 연결된 지출결의로 지금 쓸 수 있는 금액 = 품의 잔액 - 결재 중인 다른 지출결의 */
+    public long commitAvailable(long commitDocId, Long exceptDocId) {
+        CommitVO c = mapper.selectCommitByDoc(commitDocId);
+        return c == null ? 0 : c.getRemaining() - mapper.sumPendingOnCommit(commitDocId, exceptDocId);
+    }
+
+    /** 품의에 연결한 지출결의를 확인한다. 문제가 있으면 안내 문구 */
+    public String checkCommitSpend(Long commitDocId, Long amount, String dept, Long exceptDocId) {
+        CommitVO c = commitDocId == null ? null : mapper.selectCommitByDoc(commitDocId);
+        if (c == null) {
+            return "결재가 끝난 지출품의를 고르세요.";
+        }
+        if (c.isClosed()) {
+            return "잔액을 해제한 품의입니다. 새로 품의하세요.";
+        }
+        if (dept == null || !dept.equals(c.getDeptName())) {
+            return "우리 부서의 품의에서만 지출할 수 있습니다.";
+        }
+        if (amount == null || amount <= 0 || amount > MAX_AMOUNT) {
+            return "지출 금액을 원 단위로 1원 이상 입력하세요.";
+        }
+        long avail = commitAvailable(commitDocId, exceptDocId);
+        if (amount > avail) {
+            return String.format("품의 잔액(%,d원)을 넘습니다. 결재 중인 다른 지출결의 금액도 품의 잔액에서 미리 뺍니다.", avail);
+        }
+        return null;
+    }
+
+    /** 품의 결재가 끝나면 예산을 묶는다 (마지막 결재 때 잔액을 다시 확인) */
+    public CommitVO commitFromDoc(long docId, String title, long budgetId, long amount, String spendType, String drafterDept) {
         mapper.lockBudget(budgetId);
         String err = checkSpend(budgetId, amount, drafterDept, docId);
+        if (err != null) {
+            throw new IllegalStateException(err);
+        }
+        CommitVO c = new CommitVO();
+        c.setCommitId(mapper.nextCommitId());
+        c.setDocId(docId);
+        c.setBudgetId(budgetId);
+        c.setDeptName(drafterDept);
+        c.setSpendType(spendType);
+        c.setTitle(title.length() > 300 ? title.substring(0, 300) : title);
+        c.setAmount(amount);
+        c.setCreatedAt(java.time.LocalDateTime.now());
+        mapper.insertCommit(c);
+        return c;
+    }
+
+    /** 품의하고 남은 금액(낙찰 차액 등)을 풀어 예산 잔액으로 돌린다. 문제가 있으면 안내 문구 */
+    @Transactional
+    public String closeCommit(long commitDocId, String note, LoginUser by) {
+        CommitVO c = mapper.lockCommitByDoc(commitDocId);
+        if (c == null || c.isClosed()) {
+            return "이미 해제했거나 없는 품의입니다.";
+        }
+        if (!by.dept().equals(c.getDeptName())) {
+            return "품의한 부서 직원만 잔액을 해제할 수 있습니다.";
+        }
+        if (mapper.sumPendingOnCommit(commitDocId, null) > 0) {
+            return "이 품의로 결재 중인 지출결의가 있습니다. 결재가 끝난 뒤 해제하세요.";
+        }
+        String n = note == null || note.isBlank() ? null : note.trim();
+        if (n == null || n.length() > 500) {
+            return "해제 사유를 500자 이내로 적으세요 (예: 낙찰 차액, 사업 취소).";
+        }
+        mapper.closeCommit(commitDocId, by.getLoginId(), java.time.LocalDateTime.now(), n);
+        return null;
+    }
+
+    public TxnVO executeFromDoc(long docId, String title, long budgetId, long amount, String payee, String drafterId,
+                                String drafterName, String drafterDept, Long commitDocId) {
+        mapper.lockBudget(budgetId);
+        if (commitDocId != null) {
+            mapper.lockCommitByDoc(commitDocId);
+        }
+        String err = commitDocId != null ? checkCommitSpend(commitDocId, amount, drafterDept, docId)
+                : checkSpend(budgetId, amount, drafterDept, docId);
         if (err != null) {
             throw new IllegalStateException(err);
         }
@@ -547,6 +640,9 @@ public class FinanceService implements ApplicationRunner {
         t.setDeptName(b.getDeptName());
         t.setDocId(docId);
         mapper.insertTxn(t);
+        if (commitDocId != null && mapper.addCommitSpent(commitDocId, amount) != 1) {
+            throw new IllegalStateException("품의 잔액을 줄이지 못했습니다");
+        }
         return t;
     }
 

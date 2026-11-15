@@ -228,6 +228,19 @@ public class ApprovalDocVO {
     public LocalDateTime getReceivedAt() { return receivedAt; }
     public void setReceivedAt(LocalDateTime receivedAt) { this.receivedAt = receivedAt; }
     public boolean isSpending() { return ApprovalForm.SPENDING.equals(kind) && budgetId != null; }
+    public boolean isCommitment() { return ApprovalForm.COMMIT.equals(kind) && budgetId != null; }
+    /** 예산을 쓰는 문서 (지출품의·지출결의) */
+    public boolean isBudgetDoc() { return isSpending() || isCommitment(); }
+
+    private String spendType;
+    private Long commitDocId;
+    private String spendTarget;
+    public String getSpendType() { return spendType; }
+    public void setSpendType(String spendType) { this.spendType = spendType; }
+    public Long getCommitDocId() { return commitDocId; }
+    public void setCommitDocId(Long commitDocId) { this.commitDocId = commitDocId; }
+    public String getSpendTarget() { return spendTarget; }
+    public void setSpendTarget(String spendTarget) { this.spendTarget = spendTarget; }
     public Long getBudgetId() { return budgetId; }
     public void setBudgetId(Long budgetId) { this.budgetId = budgetId; }
     public Long getPayAmount() { return payAmount; }
