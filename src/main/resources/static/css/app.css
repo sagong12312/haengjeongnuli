@@ -39,14 +39,14 @@ a:hover { color: var(--brand-dark); }
 
 /* 헤더 */
 .site-header { background: var(--brand); color: #fff; }
-.site-header .inner { max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+.site-header .inner { max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; }
 .logo { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; }
 .logo:hover { color: #fff; }
 .logo-mark { width: 40px; height: 40px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; color: var(--brand); }
 .logo-name { display: block; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
 .logo-sub { display: block; font-size: 15px; color: #C9D8EC; }
-.gnb { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 420px; }
-.gnb a { color: #E3ECF7; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-size: 19px; }
+.gnb { display: flex; flex-wrap: wrap; gap: 2px; flex: 1 1 420px; }
+.gnb a { color: #E3ECF7; text-decoration: none; padding: 10px 11px; border-radius: 8px; font-size: 18px; white-space: nowrap; }
 .gnb a:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .gnb a[aria-current="page"] { color: #fff; background: rgba(255,255,255,0.14); font-weight: 700; }
 .user-chip { display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12); }

@@ -11,6 +11,7 @@
     <div>
       <span class="crumb"><a th:href="@{/}">홈</a> › 민원 › <span th:text="${kind} ? ${kind.label} : '전체'">전체</span></span>
       <h1>민원</h1>
+      <a th:if="${loginUser.counterStaff or loginUser.admin}" th:href="@{/civil/certs}">증명 발급대장</a>
     </div>
     <a th:if="${loginUser.counterStaff}" class="btn btn-primary" th:href="@{/civil/new}">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>

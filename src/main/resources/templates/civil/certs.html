@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('증명 발급대장')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('civil')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/civil}">민원</a> › 증명 발급대장</span><h1>증명 발급대장</h1></div>
+  <p class="hint">주민등록표 등·초본, 인감증명서 등은 해당 전산 시스템에서 발급하고, 여기에는 창구에서 발급한 사실과 받은 수수료를 기록합니다.
+    창구 수수료는 1통에 등·초본 400원(이해관계인 500원), 인감증명서 600원으로 계산하며, 기관 조례·면제 대상에 따라 다를 수 있습니다.</p>
+
+  <form class="panel" th:action="@{/civil/certs}" method="post" style="gap:16px;">
+    <h2>발급 기록</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="ct">증명 종류</label><select id="ct" name="certType" class="select">
+        <option th:each="e : ${fees}" th:value="${e.key}" th:text="${e.key} + (${e.value} > 0 ? ' (' + ${e.value} + '원)' : '')">종류</option></select></div>
+      <div class="field"><label for="cn">신청인 <span class="req">*</span></label><input id="cn" name="applicantName" class="input" required maxlength="100"></div>
+      <div class="field"><label for="ca">신청인 구분</label><select id="ca" name="applicantType" class="select">
+        <option th:each="a : ${applicantTypes}" th:value="${a}" th:text="${a}">본인</option></select></div>
+      <div class="field"><label for="cc">통수</label><input id="cc" name="copies" type="number" min="1" max="100" value="1" class="input"></div>
+      <div class="field"><label for="cp">용도</label><input id="cp" name="purpose" class="input" maxlength="200" placeholder="예: 금융기관 제출"></div>
+    </div>
+    <label style="display:flex; gap:10px; align-items:center; font-size:18px;"><input type="checkbox" name="idChecked" value="true" style="width:22px; height:22px;" required> 신분증으로 신청인을 확인했습니다</label>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <label style="display:flex; gap:10px; align-items:center; font-size:18px;"><input type="checkbox" name="exempt" value="true" style="width:22px; height:22px;"> 수수료 면제</label>
+      <label for="ce" class="sr-only">면제 사유</label><input id="ce" name="exemptReason" class="input" maxlength="200" placeholder="면제 사유 (예: 기초생활수급자)" style="flex:1; min-width:220px;">
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">발급 기록</button></div>
+  </form>
+
+  <form th:action="@{/civil/certs}" method="get" class="search-bar">
+    <label for="cday" class="sr-only">날짜</label><input id="cday" name="day" type="date" class="input" th:value="${day}">
+    <button type="submit" class="btn btn-outline">보기</button>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="${day} + ' 발급'">발급</h2>
+      <span class="muted" th:text="${#lists.size(rows)} + '건 · ' + ${totalCopies} + '통 · 수수료 ' + ${#numbers.formatInteger(totalFee, 1, 'COMMA')} + '원'">합계</span></div>
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">이 날 발급 기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list" style="min-width:900px">
+      <thead><tr><th scope="col">발급번호</th><th scope="col">시각</th><th scope="col">종류</th><th scope="col">신청인</th><th scope="col">구분</th>
+        <th scope="col">통수</th><th scope="col">수수료</th><th scope="col">발급</th></tr></thead>
+      <tbody><tr th:each="r : ${rows}">
+        <td style="color:var(--text); font-weight:700" th:text="${r.issueNo}">번호</td>
+        <td th:text="${#temporals.format(r.issuedAt, 'HH:mm')}">시각</td>
+        <td th:text="${r.certType}">종류</td><td th:text="${r.applicantName}">신청인</td><td th:text="${r.applicantType}">구분</td>
+        <td th:text="${r.copies}">1</td>
+        <td th:text="${#numbers.formatInteger(r.fee, 1, 'COMMA')} + '원' + (${r.exemptReason} ? ' (면제: ' + ${r.exemptReason} + ')' : '')">수수료</td>
+        <td th:text="${r.issuedName}">발급자</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -10,6 +10,7 @@
     <div>
       <span class="crumb"><a th:href="@{/}">홈</a> › 재정·세무 › <span th:text="${area == 'rev'} ? '세입' : '세출'">세출</span></span>
       <h1>재정·세무</h1>
+      <a th:href="@{/finance/contracts}">계약대장</a>
     </div>
     <form th:action="@{/finance}" method="get" style="display:flex; align-items:center; gap:10px;">
       <input type="hidden" name="area" th:value="${area}">

@@ -109,8 +109,8 @@ class BoardDeleteTest {
     @Test
     void 관리자_메뉴는_관리자에게만_보인다() throws Exception {
         TestUsers.mvcAs(ctx, TestUsers.admin()).perform(get("/"))
-                .andExpect(content().string(containsString("계정 관리")));
+                .andExpect(content().string(containsString(">시스템 관리<")));
         TestUsers.mvcAs(ctx, TestUsers.general()).perform(get("/"))
-                .andExpect(content().string(not(containsString(">계정 관리<"))));
+                .andExpect(content().string(not(containsString(">시스템 관리<"))));
     }
 }

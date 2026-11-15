@@ -30,18 +30,20 @@
 
   <div class="row">
     <!-- 업무 메뉴 -->
-    <section class="col-main" aria-labelledby="menu-title" style="gap:14px;">
+    <section class="col-main" id="work" aria-labelledby="menu-title" style="gap:14px;">
       <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
         <h2 id="menu-title" style="font-size:24px;">업무 메뉴</h2>
       </div>
       <div class="card-grid">
         <a class="menu-card" th:href="@{/approval}"><b>문서·전자결재</b><span>기안, 결재, 접수, 문서함, <span th:remove="tag">기록물 등록대장</span></span></a>
-        <a class="menu-card" th:href="@{/civil}"><b>민원</b><span>민원 접수·처리, 증명 발급, 처리기한 관리</span></a>
+        <a class="menu-card" th:href="@{/civil}"><b>민원</b><span>민원 접수·처리, 구비서류, 처리기한 관리</span></a>
+        <a th:if="${loginUser.counterStaff or loginUser.admin}" class="menu-card" th:href="@{/civil/certs}"><b>증명 발급</b><span>등·초본·인감증명 발급대장, 수수료</span></a>
         <a class="menu-card" th:href="@{/finance(area='rev')}"><b>세입</b><span>세입예산, 수납 기록 (세입 담당)</span></a>
-        <a class="menu-card" th:href="@{/finance(area='fin')}"><b>재정·회계</b><span>예산 편성·집행, 지출결의, 계약</span></a>
+        <a class="menu-card" th:href="@{/finance(area='fin')}"><b>재정·회계</b><span>예산 편성·집행, 추경·이월, 지출결의</span></a>
+        <a class="menu-card" th:href="@{/finance/contracts}"><b>계약</b><span>공사·물품·용역 계약대장, 완료·해지</span></a>
         <a class="menu-card" th:href="@{/hr}"><b>인사</b><span>인사정보, 근태, 휴가·출장·시간외근무 신청</span></a>
         <a class="menu-card" th:href="@{/board}"><b>게시판</b><span>공지사항, 건의사항, 자료실</span></a>
-        <a th:if="${loginUser.admin}" class="menu-card" th:href="@{/admin/users}"><b>시스템 관리</b><span>직원 계정·권한, 인사정보, 공휴일, 접속 기록</span></a>
+        <a th:if="${loginUser.admin}" class="menu-card" th:href="@{/admin/users}"><b>시스템 관리</b><span>직원 계정·권한, 부서, 기관 정보·관인, 공휴일, 접속 기록</span></a>
         <a class="menu-card" th:href="@{/welfare}"><b>사회복지</b><span>기초생활보장 급여 신청·조사·결정 (복지 담당)</span></a>
         <a class="menu-card" th:href="@{/building}"><b>건축·토지</b><span>건축신고·허가 민원, 인허가 대장, 착수기한</span></a>
         <a class="menu-card" th:href="@{/hygiene}"><b>환경·위생</b><span>식품 영업신고, 영업소 대장, 위생 점검</span></a>
