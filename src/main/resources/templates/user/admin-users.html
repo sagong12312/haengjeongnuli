@@ -12,6 +12,39 @@
   </div>
   <div style="display:flex; flex-wrap:wrap; gap:10px;"><a class="btn btn-outline" th:href="@{/admin/audit}">접속·작업 기록 보기</a><a class="btn btn-outline" th:href="@{/admin/holidays}">공휴일 관리</a><a class="btn btn-outline" th:href="@{/admin/depts}">부서 관리</a></div>
 
+  <!-- 방금 발급한 임시 비밀번호 (이 화면에서 한 번만 보인다) -->
+  <section th:if="${tempPassword}" class="panel" role="alert" style="border:2px solid var(--brand);">
+    <h2>임시 비밀번호</h2>
+    <p style="margin:0; font-size:18px;"><span th:text="${tempPassword.userName} + '(' + ${tempPassword.loginId} + ')'">직원</span>:
+      <code style="font-size:24px; font-weight:800; letter-spacing:1px;" th:text="${tempPassword.tempPassword}">temp</code></p>
+    <p class="hint" style="margin:0;">이 비밀번호는 다시 볼 수 없습니다. 전화나 대면으로 본인임을 확인하고 직접 알려 주세요. 처음 로그인하면 새 비밀번호로 바꿔야 합니다.</p>
+  </section>
+
+  <!-- 비밀번호 분실 요청 -->
+  <section class="panel flush" id="pw-requests" aria-labelledby="pwreq-title" th:unless="${#lists.isEmpty(pwRequests)}">
+    <div class="panel-head"><h2 id="pwreq-title">비밀번호 분실 요청</h2>
+      <span class="muted" th:text="'처리 대기 ' + ${#lists.size(pwRequests.?[status == 'OPEN'])} + '건'">0건</span></div>
+    <div class="table-wrap"><table class="list" style="min-width:820px">
+      <thead><tr><th scope="col">요청 시각</th><th scope="col">아이디</th><th scope="col">이름</th><th scope="col">연락처</th><th scope="col">접속 주소</th><th scope="col">처리</th></tr></thead>
+      <tbody><tr th:each="r : ${pwRequests}">
+        <td th:text="${#temporals.format(r.requestedAt, 'MM-dd HH:mm')}">시각</td>
+        <td style="color:var(--text)" th:text="${r.loginId}">id</td>
+        <td th:text="${r.userName}">이름</td>
+        <td th:text="${r.contact} ?: '—'">연락처</td>
+        <td th:text="${r.requestIp} ?: '—'">IP</td>
+        <td>
+          <div th:if="${r.status == 'OPEN'}" style="display:flex; gap:6px; justify-content:center;">
+            <form th:action="@{/admin/users/pw-requests/{id}/issue(id=${r.reqId})}" method="post" style="margin:0;">
+              <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('본인임을 확인했나요? 임시 비밀번호를 발급합니다.');">임시 비밀번호 발급</button></form>
+            <form th:action="@{/admin/users/pw-requests/{id}/reject(id=${r.reqId})}" method="post" style="margin:0;">
+              <button type="submit" class="btn btn-plain btn-sm">반려</button></form>
+          </div>
+          <span th:unless="${r.status == 'OPEN'}" th:text="${r.statusLabel} + ' · ' + ${r.handledBy}">처리</span>
+        </td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
   <!-- 계정 목록 -->
   <section class="panel flush" aria-labelledby="list-title">
     <div class="panel-head"><h2 id="list-title">직원 계정</h2><span class="muted" style="font-size:17px;" th:text="'전체 ' + ${#lists.size(users)} + '명'">전체</span></div>

@@ -19,6 +19,7 @@ import egovframework.haengjeongnuli.cmm.audit.AuditAction;
 import egovframework.haengjeongnuli.cmm.audit.AuditService;
 import egovframework.haengjeongnuli.dept.service.DeptService;
 import egovframework.haengjeongnuli.user.service.PasswordPolicy;
+import egovframework.haengjeongnuli.user.service.PasswordResetService;
 import egovframework.haengjeongnuli.user.service.UserForm;
 import egovframework.haengjeongnuli.user.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,11 +32,38 @@ public class AdminUserController {
     private final UserService userService;
     private final AuditService auditService;
     private final DeptService deptService;
+    private final PasswordResetService passwordReset;
 
-    public AdminUserController(UserService userService, AuditService auditService, DeptService deptService) {
+    public AdminUserController(UserService userService, AuditService auditService, DeptService deptService,
+                               PasswordResetService passwordReset) {
         this.userService = userService;
         this.auditService = auditService;
         this.deptService = deptService;
+        this.passwordReset = passwordReset;
+    }
+
+    /** 비밀번호 분실 요청: 본인을 확인한 뒤 임시 비밀번호를 발급한다 (한 번만 보여 준다) */
+    @PostMapping("/pw-requests/{reqId}/issue")
+    public String issueTemp(@PathVariable long reqId, @AuthenticationPrincipal LoginUser me, RedirectAttributes ra) {
+        PasswordResetService.Issued r = passwordReset.issue(reqId, me);
+        if (r == null) {
+            ra.addFlashAttribute("message", "이미 처리했거나 없는 요청입니다.");
+            return "redirect:/admin/users";
+        }
+        auditService.record(AuditAction.USER_PASSWORD_RESET, r.loginId(), "분실 요청 " + reqId + " 임시 비밀번호 발급");
+        ra.addFlashAttribute("tempPassword", r);
+        ra.addFlashAttribute("message", r.userName() + "(" + r.loginId() + ")의 임시 비밀번호를 발급하고 잠금을 풀었습니다. 본인에게 직접 전달하세요.");
+        return "redirect:/admin/users#pw-requests";
+    }
+
+    @PostMapping("/pw-requests/{reqId}/reject")
+    public String rejectRequest(@PathVariable long reqId, @AuthenticationPrincipal LoginUser me, RedirectAttributes ra) {
+        boolean ok = passwordReset.reject(reqId, me);
+        if (ok) {
+            auditService.record(AuditAction.PASSWORD_HELP_REJECT, "분실 요청 " + reqId, null);
+        }
+        ra.addFlashAttribute("message", ok ? "요청을 반려했습니다." : "이미 처리했거나 없는 요청입니다.");
+        return "redirect:/admin/users#pw-requests";
     }
 
     @GetMapping
@@ -198,6 +226,7 @@ public class AdminUserController {
 
     private void addCommon(Model model) {
         model.addAttribute("deptMoves", userService.recentDeptMoves(20));
+        model.addAttribute("pwRequests", passwordReset.recent(20));
         java.util.List<LoginUser> users = userService.list();
         model.addAttribute("users", users);
         model.addAttribute("depts", deptService.activeNames());

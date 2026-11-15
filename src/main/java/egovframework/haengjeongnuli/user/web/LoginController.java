@@ -13,6 +13,7 @@ import egovframework.haengjeongnuli.cmm.audit.AuditAction;
 import egovframework.haengjeongnuli.cmm.audit.AuditService;
 import egovframework.haengjeongnuli.cmm.security.PasswordAgeInterceptor;
 import egovframework.haengjeongnuli.user.service.PasswordPolicy;
+import egovframework.haengjeongnuli.user.service.PasswordResetService;
 import egovframework.haengjeongnuli.user.service.UserService;
 
 /** 로그인 화면, 내 비밀번호 변경 */
@@ -22,11 +23,34 @@ public class LoginController {
     private final UserService userService;
     private final AuditService auditService;
     private final PasswordAgeInterceptor passwordAge;
+    private final PasswordResetService passwordReset;
 
-    public LoginController(UserService userService, AuditService auditService, PasswordAgeInterceptor passwordAge) {
+    public LoginController(UserService userService, AuditService auditService, PasswordAgeInterceptor passwordAge,
+                           PasswordResetService passwordReset) {
         this.userService = userService;
         this.auditService = auditService;
         this.passwordAge = passwordAge;
+        this.passwordReset = passwordReset;
+    }
+
+    /** 비밀번호 분실: 아이디·이름으로 요청하면 관리자가 본인을 확인하고 임시 비밀번호를 전달한다 */
+    @GetMapping("/password-help")
+    public String passwordHelp() {
+        return "user/password-help";
+    }
+
+    @PostMapping("/password-help")
+    public String passwordHelpRequest(@RequestParam(required = false) String loginId,
+                                      @RequestParam(required = false) String userName,
+                                      @RequestParam(required = false) String contact,
+                                      jakarta.servlet.http.HttpServletRequest request, RedirectAttributes ra) {
+        boolean saved = passwordReset.request(loginId, userName, contact, request.getRemoteAddr());
+        if (saved) {
+            auditService.recordAs(loginId.trim(), AuditAction.PASSWORD_HELP_REQUEST, loginId.trim(), request.getRemoteAddr());
+        }
+        // 계정이 있는지 알리지 않도록 결과와 상관없이 같은 안내를 보여 준다
+        ra.addFlashAttribute("info", "요청을 받았습니다. 아이디와 이름이 맞으면 시스템 관리자가 본인을 확인한 뒤 임시 비밀번호를 직접 전달합니다.");
+        return "redirect:/password-help";
     }
 
     /** 비밀번호를 바꿔야 하는 이유와 다음 변경 기한 */

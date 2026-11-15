@@ -31,7 +31,7 @@ public class SecurityConfig {
             // 허용한 네트워크(기본: 이 PC + 집 내부망)가 아니면 로그인 화면조차 보여주지 않는다
             .addFilterBefore(new AllowedNetworkFilter(allowedNetworks), DisableEncodeUrlFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/error").permitAll()
+                .requestMatchers("/login", "/password-help", "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/error").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers(h2).hasRole("ADMIN")
                 .anyRequest().authenticated())
