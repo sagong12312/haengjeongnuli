@@ -91,6 +91,24 @@ public class FileStorage {
         return storedName;
     }
 
+    /** 저장 폴더에 있는 파일 (저장 이름 형식인 것만): 이름 → [크기, 마지막 수정 시각(ms)] */
+    public java.util.Map<String, long[]> listStored() throws IOException {
+        java.util.Map<String, long[]> out = new java.util.TreeMap<>();
+        try (java.util.stream.Stream<Path> s = Files.list(root)) {
+            for (Path p : (Iterable<Path>) s::iterator) {
+                String n = p.getFileName().toString();
+                if (Files.isRegularFile(p) && n.matches("[0-9a-f]{32}")) {
+                    out.put(n, new long[] {Files.size(p), Files.getLastModifiedTime(p).toMillis()});
+                }
+            }
+        }
+        return out;
+    }
+
+    public Path getRoot() {
+        return root;
+    }
+
     public Path path(String storedName) {
         return resolve(storedName);
     }

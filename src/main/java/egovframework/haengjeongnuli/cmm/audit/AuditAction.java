@@ -15,6 +15,7 @@ public enum AuditAction {
     USER_RECORDS_MANAGER("기록물관리책임자 지정"),
     ORG_UPDATE("기관 정보 변경"),
     AUDIT_REVIEW("접속기록 점검"),
+    FILE_ORPHAN_DELETE("남는 첨부파일 정리"),
     ORG_SEAL("관인 이미지 변경"),
     RECORD_FIX_REQUEST("등록정보 수정 요청"),
     RECORD_FIX_CONFIRM("등록정보 수정 확인"),

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('첨부파일 점검')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/admin/users}">시스템 관리</a> › 첨부파일 점검</span><h1>첨부파일 점검</h1></div>
+  <p class="hint">DB에는 파일 정보만 있고 실제 파일은 저장 폴더에 있습니다. 둘이 맞는지 확인합니다. DB 백업과 같은 시점에 저장 폴더도 백업하세요.</p>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+    <div class="stat"><span>DB에 등록된 파일</span><strong th:text="${r.registered} + '개'">0</strong></div>
+    <div class="stat"><span>폴더의 파일</span><strong th:text="${r.onDisk} + '개'">0</strong></div>
+    <div class="stat"><span>사용 용량</span><strong th:text="${#numbers.formatDecimal(r.diskBytes / 1048576.0, 1, 'COMMA', 1, 'POINT')} + 'MB'">0</strong></div>
+    <div class="stat" th:classappend="${#lists.isEmpty(r.missing)} ? '' : 'red'"><span>없는 파일</span><strong th:text="${#lists.size(r.missing)} + '개'">0</strong></div>
+  </div>
+  <p class="hint" style="margin:0;" th:text="'저장 폴더: ' + ${root}">폴더</p>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>DB에는 있는데 파일이 없거나 다른 것</h2></div>
+    <p th:if="${#lists.isEmpty(r.missing)}" class="hint" style="padding:14px 22px;">모든 파일이 있습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(r.missing)}"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">구분</th><th scope="col">번호</th><th scope="col" style="text-align:left">파일 이름</th><th scope="col">저장 이름</th><th scope="col">문제</th></tr></thead>
+      <tbody><tr th:each="m : ${r.missing}"><td th:text="${m.source}">구분</td><td th:text="${m.id}">1</td>
+        <td class="left" th:text="${m.name}">이름</td><td style="font-family:monospace; font-size:14px;" th:text="${m.stored}">저장</td>
+        <td><span class="badge badge-red" th:text="${m.problem}">문제</span></td></tr></tbody>
+    </table></div>
+    <p th:unless="${#lists.isEmpty(r.missing)}" class="hint" style="padding:10px 22px;">백업에서 같은 저장 이름의 파일을 저장 폴더로 되살리세요.</p>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>폴더에는 있는데 DB에 없는 것</h2><span class="muted" th:text="${#lists.size(r.orphans)} + '개'">0</span></div>
+    <p th:if="${#lists.isEmpty(r.orphans)}" class="hint" style="padding:14px 22px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(r.orphans)}"><table class="list">
+      <thead><tr><th scope="col">저장 이름</th><th scope="col">크기</th><th scope="col">저장 시각</th><th scope="col">정리</th></tr></thead>
+      <tbody><tr th:each="o : ${r.orphans}"><td style="font-family:monospace; font-size:14px;" th:text="${o.stored}">저장</td>
+        <td th:text="${#numbers.formatInteger(o.size, 1, 'COMMA')} + 'B'">크기</td>
+        <td th:text="${#temporals.format(o.modified, 'yyyy-MM-dd HH:mm')}">시각</td>
+        <td th:text="${o.removable} ? '지울 수 있음' : '하루 뒤 정리 (올리는 중일 수 있음)'">정리</td></tr></tbody>
+    </table></div>
+    <form th:unless="${#lists.isEmpty(r.orphans)}" th:action="@{/admin/files/orphans/delete}" method="post" style="padding:14px 22px; margin:0;">
+      <button type="submit" class="btn btn-outline" onclick="return confirm('하루 넘게 DB에 없는 파일을 지울까요? 되돌릴 수 없습니다.');">하루 지난 남는 파일 지우기</button>
+    </form>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
