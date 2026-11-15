@@ -15,6 +15,7 @@ public interface StatsMapper {
     List<Map<String, Object>> financeByDept(@Param("year") int year);
     List<Map<String, Object>> welfareByStatus(@Param("year") int year);
     List<Map<String, Object>> hygieneByResult(@Param("year") int year);
-    List<Map<String, Object>> buildingByStatus();
+    /** today: Oracle 의 CURRENT_DATE 는 시각까지 있어 날짜 비교가 어긋나므로 날짜를 넘긴다 */
+    List<Map<String, Object>> buildingByStatus(@Param("today") java.time.LocalDate today);
     List<Map<String, Object>> dutyByKind(@Param("year") int year);
 }

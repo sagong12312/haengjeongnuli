@@ -3,6 +3,7 @@
 #   DB_URL       예: jdbc:tibero:thin:@db-host:8629:DB_NAME
 #   DB_USERNAME
 #   DB_PASSWORD
+#   DB_SCHEMA    테이블 주인 계정 (예: HJN_OWNER). 프로그램 계정과 같으면 비워 둔다.
 # 테이블은 DBA가 db/oracle/schema.sql 로 미리 만든다 (Tibero는 Oracle 문법 호환).
 spring:
   datasource:
@@ -10,6 +11,9 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.tmax.tibero.jdbc.TbDriver
+    hikari:
+      # 프로그램 계정으로 접속해 테이블 주인의 스키마를 쓴다 (db/oracle/accounts_and_grants.sql)
+      connection-init-sql: ALTER SESSION SET CURRENT_SCHEMA=${DB_SCHEMA:${DB_USERNAME}}
   sql:
     init:
       mode: never

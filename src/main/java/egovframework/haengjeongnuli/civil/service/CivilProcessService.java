@@ -195,8 +195,8 @@ public class CivilProcessService {
         if (type.needsRemedy() && rem.isEmpty()) {
             return new Result(false, "민원 내용을 거부하는 경우 거부 이유와 구제절차를 함께 알려야 합니다 (민원처리법 제27조 제3항).");
         }
-        if (rem.length() > 2000) {
-            return new Result(false, "거부 이유·구제절차는 2,000자 이내로 적으세요.");
+        if (rem.length() > 1300) {
+            return new Result(false, "거부 이유·구제절차는 1,300자 이내로 적으세요.");
         }
         if (notifyMethod == null || !NOTIFY_METHODS.contains(notifyMethod)) {
             return new Result(false, "결과 통지 방법을 고르세요.");
@@ -240,7 +240,7 @@ public class CivilProcessService {
         h.setHistId(mapper.nextHistoryId());
         h.setComplaintId(id);
         h.setAction(action);
-        h.setDetail(detail.length() > 2000 ? detail.substring(0, 2000) : detail);
+        h.setDetail(detail.length() > 1300 ? detail.substring(0, 1300) : detail);
         h.setActorId(by.getLoginId());
         h.setActorName(by.getUserName());
         h.setActedAt(LocalDateTime.now());

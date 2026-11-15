@@ -54,7 +54,7 @@
         <legend style="font-weight:700; padding:0 6px;">지급할 급여</legend>
         <label class="check" th:each="b : ${c.benefitList}" style="margin-right:14px;"><input type="checkbox" name="granted" th:value="${b}"><span th:text="${b}">급여</span></label>
       </fieldset>
-      <div class="field"><label for="dsum">결정의 요지 (급여의 산출 근거 포함) <span class="req">*</span></label><textarea id="dsum" name="summary" class="textarea" rows="4" maxlength="4000" required></textarea></div>
+      <div class="field"><label for="dsum">결정의 요지 (급여의 산출 근거 포함) <span class="req">*</span></label><textarea id="dsum" name="summary" class="textarea" rows="4" maxlength="1300" required></textarea></div>
       <div class="grid-fields">
         <div class="field"><label for="dmethod">급여 방법</label><input id="dmethod" name="method" class="input" maxlength="500" placeholder="예: 매월 20일 신청인 계좌 입금"></div>
         <div class="field"><label for="dstart">급여 개시일</label><input id="dstart" name="start" type="date" class="input" th:value="${c.appliedOn}">

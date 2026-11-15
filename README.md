@@ -23,6 +23,7 @@
 - 비밀번호는 BCrypt로 암호화해 `USER_ACCOUNT` 테이블에 저장합니다. 규칙: 9자 이상, 영문·숫자·특수문자 포함, 아이디 포함 불가 (`PasswordPolicy`에서 변경)
 - 비밀번호를 5번 틀리면 계정이 잠기고, 관리자가 풀어 줍니다.
 - 모든 등록·수정 요청에 CSRF(요청 위조) 확인을 합니다.
+- DB를 직접 보는 H2 콘솔(`/h2-console`)은 기본으로 꺼져 있습니다. 필요할 때만 `$env:H2_CONSOLE_ENABLED="true"`를 넣고 실행합니다.
 - **비밀번호 변경 주기**: 마지막으로 바꾼 지 90일(`app.password.max-age-days`)이 지나면 다른 화면으로 가지 못하고 비밀번호 변경 화면으로 이동합니다. 관리자가 만들거나 재설정한 비밀번호는 첫 로그인 때 바로 바꿔야 합니다. 이 기능 전에 만든 계정도 다음 로그인 때 한 번 바꾸게 됩니다.
 - **접속·작업 기록**: 로그인 성공·실패, 로그아웃, 비밀번호 변경, 계정 관리, 글·댓글 등록·수정·삭제, 첨부파일 내려받기, 민원 접수를 누가·언제·어느 IP에서 했는지 `AUDIT_LOG`에 남깁니다. 관리자는 **계정 관리 › 접속·작업 기록 보기**(`/admin/audit`)에서 직원·작업 종류·기간으로 찾아봅니다.
 - **알림**: 머리글의 종 모양 버튼에 읽지 않은 알림 수가 보입니다. 지금은 내 글에 댓글이 달리면 알림이 옵니다. 알림을 누르면 읽음으로 바뀌고 해당 화면으로 이동합니다.
@@ -40,6 +41,18 @@
 ### 글꼴
 
 문체부 돋음체 파일을 `src/main/resources/static/fonts/MDotum.ttf`에 두면 적용됩니다. 이용 조건(재배포 허용 여부)을 확인하지 못해 저장소에는 올리지 않았습니다(`.gitignore` 처리). 파일이 없으면 맑은 고딕으로 표시됩니다.
+
+## 보안 설정 (2026. 11. 보안 점검 반영)
+
+| 점검 항목 | 조치 |
+|---|---|
+| 민원 목록 개인정보 노출 | 목록·요약·통합검색·업무 화면의 조회 SQL에 접근 조건 추가. 창구 직원·관리자 외에는 담당·접수했거나 우리 부서가 처리하는 민원만 보임 |
+| 오류 화면 내부 정보 노출 | `bootRun` 때 스택 트레이스를 내보내던 devtools 제거, `server.error.*` 상세 정보 끔, 404·4xx·5xx 안내 화면 |
+| 확장자만 바꾼 파일 업로드 | 파일 시그니처·내부 구조(ZIP 안 항목)·글자 인코딩으로 실제 형식 확인, 저장 직전에도 다시 확인, 한 번에 10개 |
+| 게시글 공개범위 | '전체 공개'·'우리 부서'만 받고, 그 밖의 값은 공개로 보지 않음(목록·상세 같은 규칙) |
+| 쿠키 | 세션 쿠키 `HttpOnly`, `SameSite=Lax`, HTTPS 운영 시 `Secure`(`APP_COOKIE_SECURE=true`), 세션 30분 |
+| H2 콘솔 | 기본 끔. 필요할 때만 `H2_CONSOLE_ENABLED=true`(관리자·허용 네트워크·이 PC에서만), 운영 프로필은 항상 끔 |
+| 허용 네트워크·첫 관리자 | 운영 프로필은 허용 네트워크를 정하지 않으면 서버 자신만, 첫 관리자 비밀번호 필수(규칙 검사, 첫 로그인 때 변경) |
 
 ## 접속 허용 범위
 
@@ -66,25 +79,51 @@ $env:APP_ALLOWED_NETWORKS="127.0.0.1/32,::1/128"
 | `--spring.profiles.active=oracle` | Oracle | `ojdbc11` 드라이버 포함 |
 | `--spring.profiles.active=tibero` | Tibero | 드라이버 jar를 `libs/`에 직접 넣어야 함 |
 
-로컬 H2 데이터는 http://localhost:8080/h2-console 에서 볼 수 있습니다 (JDBC URL: `jdbc:h2:file:./data/haengjeongnuli;MODE=Oracle;AUTO_SERVER=TRUE`, 사용자 `sa`, 비밀번호 없음).
+로컬 H2 데이터는 `$env:H2_CONSOLE_ENABLED="true"`로 실행했을 때 http://localhost:8080/h2-console 에서 볼 수 있습니다 (시스템 관리자만, JDBC URL: `jdbc:h2:file:./data/haengjeongnuli;MODE=Oracle;AUTO_SERVER=TRUE`, 사용자 `sa`, 비밀번호 없음).
 
-### Oracle / Tibero 연결 순서
+### Oracle / Tibero 운영 준비
 
-1. DBA가 `src/main/resources/db/oracle/schema.sql`로 테이블과 시퀀스를 만듭니다. (Oracle·Tibero 공통)
-   - 이미 예전 `schema.sql`로 만든 DB라면 `db/oracle/migration/` 안의 파일을 번호 순서대로 한 번씩 실행합니다. (로컬 H2는 자동)
-2. Tibero라면 Tibero 설치 폴더의 `client/lib/jar/tibero7-jdbc.jar`(Tibero 6은 `tibero6-jdbc.jar`)를 프로젝트의 `libs/` 폴더에 복사합니다.
-3. 접속 정보를 환경변수로 넣고 실행합니다. 비밀번호는 파일에 적지 않습니다.
+실제 Oracle 서버에서는 아직 실행해 보지 못했습니다. 아래 점검은 H2의 Oracle 호환 모드와 정적 검사로 했으므로, 운영 전에 시험 DB에서 한 번 돌려 보세요.
 
-Windows PowerShell 예 (Oracle):
+**이미 점검한 것**
+
+- 새로 설치(`schema.sql`)한 구조와, 예전 구조에 `migration/002~014`를 순서대로 적용한 구조가 테이블·컬럼·형식·길이·NULL 여부까지 같습니다(324개 항목). 로컬 H2 구조와도 같습니다.
+- 글자 컬럼은 모두 `VARCHAR2(n CHAR)`(글자 단위)입니다. Oracle 기본값은 바이트 단위라 한글(3바이트)이 화면에서 허용한 길이만큼 들어가지 않는 문제가 있었습니다. 4000바이트를 넘던 5개 컬럼은 1300자로 줄였습니다.
+- 컬럼 이름에 Oracle 예약어가 없고, SQL에 Oracle에 없는 문법(LIMIT, ILIKE 등)이 없습니다. Oracle에서 시각까지 들어가는 `CURRENT_DATE` 비교와 집계 함수 안 서브쿼리는 고쳤습니다.
+
+**1. 계정과 권한** — `db/oracle/accounts_and_grants.sql` (DBA가 실행)
+
+- `HJN_OWNER`: 테이블·시퀀스의 주인. 설치·마이그레이션 때만 씁니다.
+- `HJN_APP`: 프로그램이 접속하는 계정. `CREATE SESSION`과 테이블 읽기·쓰기(SELECT/INSERT/UPDATE/DELETE), 시퀀스 SELECT만 받습니다. DBA·RESOURCE 같은 관리자 권한은 주지 않습니다.
+- 프로그램은 `ALTER SESSION SET CURRENT_SCHEMA`로 `HJN_OWNER`의 테이블을 씁니다(`DB_SCHEMA`).
+
+**2. 테이블 만들기** — `HJN_OWNER`로 접속해서
+
+- 새로 설치: `db/oracle/schema.sql`
+- 이미 설치: `db/oracle/migration/` 파일을 번호 순서대로 한 번씩 (`014_char_semantics.sql`은 글자 단위로 바꾸는 것이라, 길이를 줄이는 5개 컬럼에 더 긴 자료가 있으면 그 줄에서 멈춥니다)
+- Tibero는 같은 스크립트를 쓰고, `client/lib/jar/tibero7-jdbc.jar`를 프로젝트의 `libs/`에 복사합니다.
+
+**3. 실행** — 비밀번호는 파일에 적지 않고 환경변수로 넘깁니다. Windows PowerShell 예:
 
 ```powershell
+$env:SPRING_PROFILES_ACTIVE="oracle"          # Tibero 는 tibero
 $env:DB_URL="jdbc:oracle:thin:@//DB주소:1521/서비스명"
-$env:DB_USERNAME="계정"
-$env:DB_PASSWORD="비밀번호"
-.\gradlew.bat bootRun --args="--spring.profiles.active=oracle"
+$env:DB_USERNAME="HJN_APP"
+$env:DB_PASSWORD="프로그램 계정 비밀번호"
+$env:DB_SCHEMA="HJN_OWNER"
+$env:APP_ALLOWED_NETWORKS="10.20.0.0/16,127.0.0.1/32"   # 실제 업무망 대역
+$env:APP_INIT_ADMIN_PASSWORD="첫 관리자 비밀번호"         # 계정이 없을 때만 쓰고, 첫 로그인 때 바꾸게 됨
+$env:APP_COOKIE_SECURE="true"                            # HTTPS 로 운영할 때만
+.\gradlew.bat bootRun
 ```
 
-Tibero는 `DB_URL="jdbc:tibero:thin:@DB주소:8629:DB명"`, 프로필은 `tibero`.
+- `oracle`·`tibero` 프로필에서는 H2 콘솔이 꺼지고, `APP_ALLOWED_NETWORKS`를 정하지 않으면 서버 자신만 접속할 수 있으며, 계정이 없는데 `APP_INIT_ADMIN_PASSWORD`가 없거나 규칙에 맞지 않으면 시작하지 않습니다.
+
+**4. 백업과 복구** (DBA와 정해서 운영)
+
+- DB: Data Pump로 스키마를 매일 내보내기 (예: `expdp HJN_OWNER schemas=HJN_OWNER directory=DATA_PUMP_DIR dumpfile=hjn_%U.dmp logfile=hjn_exp.log`), 기관 정책에 따라 RMAN 전체 백업. 복구는 `impdp`(필요하면 `remap_schema`).
+- 첨부파일: DB에는 파일 정보만 있고 실제 파일은 `app.file.upload-dir`(기본 `./uploads`) 폴더에 있으므로, DB 백업과 같은 시점에 이 폴더도 백업합니다.
+- 복구 연습: 분기마다 시험 DB에 복구해 로그인·문서·첨부파일 내려받기가 되는지 확인합니다.
 
 ### 지금 DB에 저장되는 것
 

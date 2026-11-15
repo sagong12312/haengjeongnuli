@@ -27,9 +27,11 @@
     </select>
 
     <select id="financeByDept" resultType="map">
-        SELECT B.DEPT_NAME AS "dept", SUM(B.AMOUNT) AS "budget",
-               NVL(SUM((SELECT NVL(SUM(T.AMOUNT), 0) FROM FIN_TXN T WHERE T.BUDGET_ID = B.BUDGET_ID AND T.CANCELLED_YN = 'N')), 0) AS "used"
+        <!-- 집계 함수 안에 스칼라 서브쿼리를 넣지 않는다 (Oracle 호환) -->
+        SELECT B.DEPT_NAME AS "dept", SUM(B.AMOUNT) AS "budget", NVL(SUM(U.USED), 0) AS "used"
           FROM FIN_BUDGET B
+          LEFT JOIN (SELECT BUDGET_ID, SUM(AMOUNT) AS USED FROM FIN_TXN WHERE CANCELLED_YN = 'N' GROUP BY BUDGET_ID) U
+                 ON U.BUDGET_ID = B.BUDGET_ID
          WHERE B.KIND = 'EXP' AND B.FISCAL_YEAR = #{year} AND B.STATUS = 'APPROVED' AND B.DELETED_YN = 'N'
          GROUP BY B.DEPT_NAME ORDER BY 2 DESC
     </select>
@@ -48,7 +50,7 @@
 
     <select id="buildingByStatus" resultType="map">
         SELECT KIND AS "kind", STATUS AS "status", COUNT(*) AS "cnt",
-               SUM(CASE WHEN STATUS = 'VALID' AND START_DEADLINE &lt; CURRENT_DATE THEN 1 ELSE 0 END) AS "overdue"
+               SUM(CASE WHEN STATUS = 'VALID' AND START_DEADLINE &lt; #{today, jdbcType=DATE} THEN 1 ELSE 0 END) AS "overdue"
           FROM BUILDING_CASE GROUP BY KIND, STATUS
     </select>
 

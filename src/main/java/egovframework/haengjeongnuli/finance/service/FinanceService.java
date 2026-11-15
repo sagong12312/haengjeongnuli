@@ -334,8 +334,8 @@ public class FinanceService implements ApplicationRunner {
         if (amount == null || amount <= 0 || amount > MAX_AMOUNT) {
             return "금액을 원 단위로 1원 이상 입력하세요.";
         }
-        if (basis != null && basis.length() > 2000) {
-            return "산출근거는 2,000자 이내로 입력하세요.";
+        if (basis != null && basis.length() > 1300) {
+            return "산출근거는 1,300자 이내로 입력하세요.";
         }
         if (BudgetVO.EXP.equals(b.getKind())) {
             ProgramVO d = detailId == null ? null : mapper.selectProgram(detailId);

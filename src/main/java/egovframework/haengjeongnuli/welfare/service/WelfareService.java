@@ -137,7 +137,7 @@ public class WelfareService {
         if (!c.isOpen()) {
             return new Result(false, "이미 결정한 신청입니다.", null);
         }
-        if (blank(summary) || summary.length() > 4000) {
+        if (blank(summary) || summary.length() > 1300) {
             return new Result(false, grant ? "결정의 요지와 급여의 산출 근거를 적으세요 (제26조 제3항)." : "부적합 결정의 요지와 이유를 적으세요.", null);
         }
         if (notifiedOn == null || notifiedOn.isBefore(c.getAppliedOn()) || notifiedOn.isAfter(LocalDate.now())) {

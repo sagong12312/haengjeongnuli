@@ -114,7 +114,7 @@ public class StatsService {
             m.put(k, 0L);
         }
         long overdue = 0;
-        for (Map<String, Object> r : mapper.buildingByStatus()) {
+        for (Map<String, Object> r : mapper.buildingByStatus(java.time.LocalDate.now())) {
             m.put(r.get("kind") + "_" + r.get("status"), n(r.get("cnt")));
             overdue += n(r.get("overdue"));
         }
