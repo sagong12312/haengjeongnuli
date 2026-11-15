@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('통합검색')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page">
+  <div>
+    <span class="crumb"><a th:href="@{/}">홈</a> › 통합검색</span>
+    <h1>통합검색</h1>
+  </div>
+  <form role="search" th:action="@{/search}" method="get" style="display:flex; gap:8px;">
+    <label for="sq" class="sr-only">검색어</label>
+    <input id="sq" name="q" class="input" type="search" th:value="${q}" maxlength="100" placeholder="메뉴, 문서번호·제목, 민원번호·민원인, 게시글 검색" style="flex:1; min-width:0; height:60px; font-size:20px;" autofocus>
+    <button type="submit" class="btn btn-primary" style="height:60px;">검색</button>
+  </form>
+
+  <th:block th:if="${!#strings.isEmpty(q)}">
+    <p class="hint" th:if="${#lists.isEmpty(menus) and #lists.isEmpty(docs) and #lists.isEmpty(complaints) and #lists.isEmpty(posts)}"
+       th:text="'‘' + ${q} + '’에 맞는 결과가 없습니다.'">결과 없음</p>
+
+    <section class="panel" th:unless="${#lists.isEmpty(menus)}" aria-labelledby="r-menu">
+      <h2 id="r-menu">메뉴</h2>
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        <a th:each="m : ${menus}" th:href="@{${m.url}}" th:text="${m.name}" style="text-decoration:none; border:1px solid var(--input); border-radius:999px; padding:10px 14px;">메뉴</a>
+      </div>
+    </section>
+
+    <section class="panel flush" th:unless="${#lists.isEmpty(docs)}" aria-labelledby="r-doc">
+      <div class="panel-head"><h2 id="r-doc">결재 문서</h2><span class="muted" th:text="${#lists.size(docs)} + '건'">0건</span></div>
+      <div class="table-wrap"><table class="list" style="min-width:720px">
+        <thead><tr><th scope="col">문서번호</th><th scope="col" style="text-align:left">제목</th><th scope="col">기안자</th><th scope="col">상태</th></tr></thead>
+        <tbody><tr th:each="d : ${docs}">
+          <td th:text="${d.docNo} ?: '—'">번호</td>
+          <td class="left"><a th:href="@{/approval/{id}(id=${d.docId})}" th:text="${d.title}">제목</a></td>
+          <td th:text="${d.drafterName}">기안자</td>
+          <td><span th:class="'badge ' + ${d.statusBadge}" th:text="${d.statusLabel}">상태</span></td>
+        </tr></tbody>
+      </table></div>
+    </section>
+
+    <section class="panel flush" th:unless="${#lists.isEmpty(complaints)}" aria-labelledby="r-civil">
+      <div class="panel-head"><h2 id="r-civil">민원</h2><span class="muted" th:text="${#lists.size(complaints)} + '건'">0건</span></div>
+      <div class="table-wrap"><table class="list" style="min-width:720px">
+        <thead><tr><th scope="col">접수번호</th><th scope="col" style="text-align:left">제목</th><th scope="col">처리기한</th><th scope="col">상태</th></tr></thead>
+        <tbody><tr th:each="c : ${complaints}">
+          <td th:text="${c.receiptNo}">번호</td>
+          <td class="left"><a th:href="@{/civil/{id}(id=${c.complaintId})}" th:text="${c.title}">제목</a></td>
+          <td th:text="${c.deadline} ? ${#temporals.format(c.deadline, 'yyyy-MM-dd')} : '—'">기한</td>
+          <td><span th:class="'badge ' + ${c.status.badge}" th:text="${c.status.label}">상태</span></td>
+        </tr></tbody>
+      </table></div>
+    </section>
+
+    <section class="panel flush" th:unless="${#lists.isEmpty(posts)}" aria-labelledby="r-post">
+      <div class="panel-head"><h2 id="r-post">게시글</h2><span class="muted" th:text="${#lists.size(posts)} + '건'">0건</span></div>
+      <div class="table-wrap"><table class="list" style="min-width:640px">
+        <thead><tr><th scope="col">게시판</th><th scope="col" style="text-align:left">제목</th><th scope="col">글쓴이</th><th scope="col">날짜</th></tr></thead>
+        <tbody><tr th:each="p : ${posts}">
+          <td th:text="${p.boardType == 'notice'} ? '공지사항' : (${p.boardType == 'suggest'} ? '건의사항' : '자료실')">게시판</td>
+          <td class="left"><a th:href="@{/board/{id}(id=${p.postId})}" th:text="${p.title}">제목</a></td>
+          <td th:text="${p.writer}">글쓴이</td>
+          <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd')}">날짜</td>
+        </tr></tbody>
+      </table></div>
+    </section>
+  </th:block>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
