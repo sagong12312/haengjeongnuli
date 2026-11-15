@@ -17,6 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import egovframework.haengjeongnuli.cmm.LoginUser;
 import egovframework.haengjeongnuli.cmm.audit.AuditAction;
 import egovframework.haengjeongnuli.cmm.audit.AuditService;
+import egovframework.haengjeongnuli.dept.service.DeptService;
 import egovframework.haengjeongnuli.user.service.PasswordPolicy;
 import egovframework.haengjeongnuli.user.service.UserForm;
 import egovframework.haengjeongnuli.user.service.UserService;
@@ -29,10 +30,12 @@ public class AdminUserController {
 
     private final UserService userService;
     private final AuditService auditService;
+    private final DeptService deptService;
 
-    public AdminUserController(UserService userService, AuditService auditService) {
+    public AdminUserController(UserService userService, AuditService auditService, DeptService deptService) {
         this.userService = userService;
         this.auditService = auditService;
+        this.deptService = deptService;
     }
 
     @GetMapping
@@ -50,6 +53,9 @@ public class AdminUserController {
         String pwProblem = PasswordPolicy.check(form.getPassword(), form.getLoginId());
         if (pwProblem != null) {
             result.rejectValue("password", "password", pwProblem);
+        }
+        if (form.getDeptName() != null && !form.getDeptName().isBlank() && !deptService.isActive(form.getDeptName())) {
+            result.rejectValue("deptName", "dept", "부서는 부서 관리에 있는 지금 쓰는 부서에서 고르세요.");
         }
         if (!result.hasErrors()) {
             try {
@@ -176,8 +182,8 @@ public class AdminUserController {
     public String moveDept(@PathVariable long userId, @RequestParam String deptName,
                            @AuthenticationPrincipal LoginUser me, RedirectAttributes ra) {
         String dept = deptName.trim();
-        if (dept.isEmpty() || dept.length() > 100) {
-            ra.addFlashAttribute("message", "부서 이름을 1~100자로 입력하세요.");
+        if (!deptService.isActive(dept)) {
+            ra.addFlashAttribute("message", "부서는 부서 관리에 있는 지금 쓰는 부서에서 고르세요.");
             return "redirect:/admin/users";
         }
         if (!userService.moveDept(userId, dept, me.getLoginId())) {
@@ -194,9 +200,7 @@ public class AdminUserController {
         model.addAttribute("deptMoves", userService.recentDeptMoves(20));
         java.util.List<LoginUser> users = userService.list();
         model.addAttribute("users", users);
-        // 부서 입력칸 자동완성용: 지금 쓰고 있는 부서 이름들
-        model.addAttribute("depts", users.stream().map(LoginUser::getDeptName)
-                .filter(d -> d != null && !d.isBlank()).distinct().sorted().toList());
+        model.addAttribute("depts", deptService.activeNames());
         model.addAttribute("roles", LoginUser.Role.values());
         model.addAttribute("rule", PasswordPolicy.DESCRIPTION);
     }

@@ -10,7 +10,7 @@
     <span class="crumb"><a th:href="@{/}">홈</a> › 시스템 관리</span>
     <h1>직원 계정 관리</h1>
   </div>
-  <div style="display:flex; flex-wrap:wrap; gap:10px;"><a class="btn btn-outline" th:href="@{/admin/audit}">접속·작업 기록 보기</a><a class="btn btn-outline" th:href="@{/admin/holidays}">공휴일 관리</a></div>
+  <div style="display:flex; flex-wrap:wrap; gap:10px;"><a class="btn btn-outline" th:href="@{/admin/audit}">접속·작업 기록 보기</a><a class="btn btn-outline" th:href="@{/admin/holidays}">공휴일 관리</a><a class="btn btn-outline" th:href="@{/admin/depts}">부서 관리</a></div>
 
   <!-- 계정 목록 -->
   <section class="panel flush" aria-labelledby="list-title">
@@ -54,8 +54,10 @@
                 </form>
                 <form th:action="@{/admin/users/{id}/dept(id=${u.userId})}" method="post" style="margin:0; display:flex; gap:6px;">
                   <label th:for="'dept' + ${u.userId}" class="sr-only" th:text="${u.userName} + ' 새 부서'">새 부서</label>
-                  <input th:id="'dept' + ${u.userId}" name="deptName" type="text" class="input" required maxlength="100"
-                         list="dept-list" placeholder="새 부서" style="height:40px; font-size:16px; width:130px;">
+                  <select th:id="'dept' + ${u.userId}" name="deptName" class="select" required style="height:40px; font-size:16px; width:150px;">
+                    <option value="">새 부서</option>
+                    <option th:each="d : ${depts}" th:value="${d}" th:text="${d}" th:disabled="${d == u.deptName}">부서</option>
+                  </select>
                   <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;">부서 이동</button>
                 </form>
                 <form th:action="@{/admin/users/{id}/password(id=${u.userId})}" method="post" style="margin:0; display:flex; gap:6px;">
@@ -71,9 +73,6 @@
     </div>
   </section>
 
-  <datalist id="dept-list">
-    <option th:each="d : ${depts}" th:value="${d}"></option>
-  </datalist>
 
   <!-- 최근 부서 이동 -->
   <section class="panel flush" aria-labelledby="move-title">
@@ -114,7 +113,11 @@
       </div>
       <div class="field">
         <label for="ndept">부서</label>
-        <input id="ndept" th:field="*{deptName}" class="input" type="text" maxlength="100">
+        <select id="ndept" th:field="*{deptName}" class="select">
+          <option value="">(부서 없음)</option>
+          <option th:each="d : ${depts}" th:value="${d}" th:text="${d}">부서</option>
+        </select>
+        <p class="hint" style="margin:0;">목록에 없는 부서는 <a th:href="@{/admin/depts}">부서 관리</a>에서 먼저 만드세요.</p>
       </div>
       <div class="field">
         <label for="nrole">권한 <span class="req">*</span></label>

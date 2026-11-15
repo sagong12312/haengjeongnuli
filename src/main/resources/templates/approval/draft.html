@@ -135,7 +135,7 @@
           <input id="dref" th:field="*{reference}" class="input" type="text" maxlength="200" placeholder="참조할 부서·담당자">
         </div>
       </div>
-      <datalist id="dept-list"><option th:each="d : ${candidates.![deptName]}" th:if="${d}" th:value="${d}"></option></datalist>
+      <datalist id="dept-list"><option th:each="d : ${@deptService.activeNames()}" th:value="${d}"></option></datalist>
       <p class="hint external" th:hidden="${approvalForm.receiverType != 'external'}">수신자에 우리 시스템의 부서 이름을 그대로 적으면, 결재가 끝난 뒤 그 부서 직원의 '수신 문서'함에 들어가고 알림이 갑니다.</p>
 
       <div class="field">

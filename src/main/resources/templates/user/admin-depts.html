@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('부서 관리')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div>
+    <span class="crumb"><a th:href="@{/admin/users}">계정 관리</a> › 부서 관리</span>
+    <h1>부서(조직도) 관리</h1>
+  </div>
+  <p class="hint">직원 계정의 부서, 기록물 등록번호의 처리과명, 게시판 '우리 부서' 공개, 수신 문서함은 모두 부서 이름으로 이어집니다.
+    그래서 부서 이름은 바꾸지 않습니다. 이름이 바뀌면 새 부서를 만들고 직원을 옮긴 뒤 옛 부서를 폐지하세요. 지난 문서는 그때의 처리과명을 그대로 가집니다.</p>
+
+  <section class="panel flush" aria-labelledby="tree-title">
+    <div class="panel-head"><h2 id="tree-title">조직도</h2><span class="muted" th:text="${#lists.size(activeDepts)} + '개 부서 사용 중'">0</span></div>
+    <p th:if="${#lists.isEmpty(tree)}" class="hint" style="padding:18px 22px;">부서가 없습니다. 아래에서 만드세요.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(tree)}"><table class="list" style="min-width:900px">
+      <thead><tr><th scope="col" style="text-align:left">부서</th><th scope="col">직원</th><th scope="col">상태</th>
+        <th scope="col">상위 부서 · 코드 · 순서</th><th scope="col">사용</th></tr></thead>
+      <tbody><tr th:each="d : ${tree}">
+        <td class="left" th:style="'padding-left:' + (22 + ${d.depth} * 24) + 'px; color:var(--text); font-weight:700'">
+          <span th:if="${d.depth > 0}" aria-hidden="true">└ </span><span th:text="${d.deptName}">부서</span></td>
+        <td th:text="${d.memberCount} + '명'">0명</td>
+        <td><span th:if="${d.active}" class="badge badge-green">사용</span><span th:unless="${d.active}" class="badge badge-gray">폐지</span></td>
+        <td>
+          <form th:action="@{/admin/depts/{id}(id=${d.deptId})}" method="post" style="margin:0; display:flex; gap:6px; justify-content:center;">
+            <label th:for="'p' + ${d.deptId}" class="sr-only" th:text="${d.deptName} + ' 상위 부서'">상위</label>
+            <select th:id="'p' + ${d.deptId}" name="parentId" class="select" style="height:40px; font-size:16px; width:150px;">
+              <option value="">(최상위)</option>
+              <option th:each="p : ${activeDepts}" th:unless="${p.deptId == d.deptId}" th:value="${p.deptId}" th:text="${p.deptName}" th:selected="${p.deptId == d.parentId}">부서</option>
+            </select>
+            <label th:for="'c' + ${d.deptId}" class="sr-only">코드</label>
+            <input th:id="'c' + ${d.deptId}" name="deptCode" class="input" maxlength="20" th:value="${d.deptCode}" placeholder="코드" style="height:40px; font-size:16px; width:100px;">
+            <label th:for="'o' + ${d.deptId}" class="sr-only">순서</label>
+            <input th:id="'o' + ${d.deptId}" name="sortOrder" type="number" min="0" max="9999" class="input" th:value="${d.sortOrder}" style="height:40px; font-size:16px; width:80px;">
+            <button type="submit" class="btn btn-outline btn-sm">저장</button>
+          </form>
+        </td>
+        <td>
+          <form th:action="@{/admin/depts/{id}/use(id=${d.deptId})}" method="post" style="margin:0;">
+            <input type="hidden" name="value" th:value="${!d.active}">
+            <button type="submit" class="btn btn-plain btn-sm" th:text="${d.active} ? '폐지' : '다시 사용'">폐지</button>
+          </form>
+        </td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form class="panel" th:action="@{/admin/depts}" method="post" style="gap:16px;">
+    <h2>부서 만들기</h2>
+    <div class="grid-fields">
+      <div class="field"><label for="dn">부서 이름 <span class="req">*</span></label><input id="dn" name="deptName" class="input" required maxlength="100" placeholder="예: 민원봉사과"></div>
+      <div class="field"><label for="dp">상위 부서</label><select id="dp" name="parentId" class="select"><option value="">(최상위)</option>
+        <option th:each="p : ${activeDepts}" th:value="${p.deptId}" th:text="${p.deptName}">부서</option></select></div>
+      <div class="field"><label for="dc">부서 코드</label><input id="dc" name="deptCode" class="input" maxlength="20" placeholder="행정표준코드 등 (선택)"></div>
+      <div class="field"><label for="do">표시 순서</label><input id="do" name="sortOrder" type="number" min="0" max="9999" class="input" value="0"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">부서 만들기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

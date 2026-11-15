@@ -127,7 +127,7 @@
         <div class="field">
           <label for="cdept">처리 부서</label>
           <input id="cdept" th:field="*{dept}" class="input" type="text" maxlength="100" list="dept-list" placeholder="비워 두면 담당자의 부서로 정합니다">
-          <datalist id="dept-list"><option th:each="d : ${staffList.![deptName]}" th:if="${d}" th:value="${d}"></option></datalist>
+          <datalist id="dept-list"><option th:each="d : ${@deptService.activeNames()}" th:value="${d}"></option></datalist>
         </div>
         <div class="field">
           <label for="cstaff">담당자</label>

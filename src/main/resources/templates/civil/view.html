@@ -71,7 +71,7 @@
       <div class="grid-fields">
         <div class="field"><label for="adept">처리 부서</label>
           <input id="adept" name="dept" class="input" maxlength="100" th:value="${c.dept}" list="dept-list" placeholder="비워 두면 담당자의 부서">
-          <datalist id="dept-list"><option th:each="d : ${staffList.![deptName]}" th:if="${d}" th:value="${d}"></option></datalist></div>
+          <datalist id="dept-list"><option th:each="d : ${@deptService.activeNames()}" th:value="${d}"></option></datalist></div>
         <div class="field"><label for="astaff">담당자</label>
           <select id="astaff" name="assigneeId" class="select">
             <option value="">없음</option>

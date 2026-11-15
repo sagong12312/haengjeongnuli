@@ -135,6 +135,11 @@ class BoardEditAndDeptTest {
         LoginUser u = userService.create(f);
 
         MockMvc admin = TestUsers.mvcAs(ctx, TestUsers.admin());
+        // 부서 관리에 없는 부서로는 옮길 수 없다
+        admin.perform(post("/admin/users/" + u.getUserId() + "/dept").param("deptName", "없는과" + UUID.randomUUID()))
+                .andExpect(redirectedUrl("/admin/users"));
+        assertThat(((LoginUser) userService.loadUserByUsername(loginId)).getDeptName()).isEqualTo("민원봉사과");
+        admin.perform(post("/admin/depts").param("deptName", "세무과"));
         admin.perform(post("/admin/users/" + u.getUserId() + "/dept").param("deptName", "세무과"))
                 .andExpect(redirectedUrl("/admin/users"));
 
