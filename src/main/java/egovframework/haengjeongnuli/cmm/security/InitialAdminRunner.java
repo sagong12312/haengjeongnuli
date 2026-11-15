@@ -25,11 +25,14 @@ public class InitialAdminRunner implements ApplicationRunner {
 
     private final UserService userService;
     private final String configuredPassword;
+    private final boolean requirePassword;
 
     public InitialAdminRunner(UserService userService,
-                              @Value("${app.init-admin.password:}") String configuredPassword) {
+                              @Value("${app.init-admin.password:}") String configuredPassword,
+                              @Value("${app.init-admin.require-password:false}") boolean requirePassword) {
         this.userService = userService;
         this.configuredPassword = configuredPassword;
+        this.requirePassword = requirePassword;
     }
 
     @Override
@@ -38,6 +41,16 @@ public class InitialAdminRunner implements ApplicationRunner {
             return;
         }
         boolean generated = configuredPassword == null || configuredPassword.isBlank();
+        if (generated && requirePassword) {
+            throw new IllegalStateException("계정이 하나도 없습니다. 운영 환경에서는 환경변수 APP_INIT_ADMIN_PASSWORD 로 "
+                    + "첫 관리자 비밀번호를 정해서 시작하세요 (첫 로그인 때 바꾸게 됩니다).");
+        }
+        if (!generated) {
+            String problem = egovframework.haengjeongnuli.user.service.PasswordPolicy.check(configuredPassword, "admin");
+            if (problem != null) {
+                throw new IllegalStateException("APP_INIT_ADMIN_PASSWORD 가 비밀번호 규칙에 맞지 않습니다: " + problem);
+            }
+        }
         String password = generated ? randomPassword() : configuredPassword;
 
         UserForm form = new UserForm();

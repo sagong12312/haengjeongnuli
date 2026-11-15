@@ -9,6 +9,14 @@ server:
     whitelabel:
       enabled: false
   servlet:
+    session:
+      timeout: 30m
+      cookie:
+        # 자바스크립트로 읽지 못하게, 다른 사이트에서 오는 요청에는 쿠키를 보내지 않게(SameSite=Lax)
+        http-only: true
+        same-site: lax
+        # HTTPS 로 운영하면 APP_COOKIE_SECURE=true 로 켠다 (HTTP 에서 켜면 로그인이 안 된다)
+        secure: ${APP_COOKIE_SECURE:false}
     encoding:
       charset: UTF-8
       force: true
@@ -42,6 +50,8 @@ app:
   # 계정이 하나도 없을 때 만드는 첫 관리자(admin) 비밀번호. 비워 두면 무작위로 만들어 서버 창에 한 번 보여준다.
   init-admin:
     password: ${APP_INIT_ADMIN_PASSWORD:}
+    # true 면 계정이 없을 때 APP_INIT_ADMIN_PASSWORD 가 없으면 시작하지 않는다 (운영 프로필에서 켠다)
+    require-password: false
   password:
     # 비밀번호를 이 일수마다 바꾸게 한다
     max-age-days: 90

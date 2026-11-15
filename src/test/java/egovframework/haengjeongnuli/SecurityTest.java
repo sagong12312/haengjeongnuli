@@ -64,7 +64,7 @@ class SecurityTest {
 
     @Test
     void 첫_관리자_계정으로_로그인된다() throws Exception {
-        anon.perform(formLogin("/login").userParameter("loginId").user("admin").password("Test-admin-1!"))
+        anon.perform(formLogin("/login").userParameter("loginId").user("admin").password("Test-first-1!"))
                 .andExpect(authenticated().withUsername("admin"))
                 .andExpect(redirectedUrl("/"));
     }
@@ -137,7 +137,7 @@ class SecurityTest {
 
     @Test
     void CSRF_토큰이_없으면_거부된다() throws Exception {
-        anon.perform(post("/login").param("loginId", "admin").param("password", "Test-admin-1!"))
+        anon.perform(post("/login").param("loginId", "admin").param("password", "Test-first-1!"))
                 .andExpect(status().isForbidden());
     }
 

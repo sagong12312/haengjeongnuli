@@ -49,7 +49,8 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionFixation(f -> f.changeSessionId()))
             // H2 콘솔(로컬 전용)은 자체 화면이 frame을 쓰고 CSRF 토큰을 모른다
             .csrf(csrf -> csrf.ignoringRequestMatchers(h2))
-            .headers(h -> h.frameOptions(f -> f.sameOrigin()));
+            .headers(h -> h.frameOptions(f -> f.sameOrigin())
+                    .referrerPolicy(r -> r.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)));
         return http.build();
     }
 

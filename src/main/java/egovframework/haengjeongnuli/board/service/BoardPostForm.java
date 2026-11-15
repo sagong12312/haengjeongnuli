@@ -9,13 +9,15 @@ public class BoardPostForm {
 
     @Pattern(regexp = "notice|suggest|archive", message = "게시판을 고르세요.")
     private String board = "notice";
-    @NotBlank
+    /** 공개 범위는 이 두 값만 받는다 (화면 밖에서 다른 값을 보내도 막는다) */
+    @NotBlank(message = "공개 범위를 고르세요.")
+    @Pattern(regexp = "전체 공개|우리 부서", message = "공개 범위는 '전체 공개' 또는 '우리 부서'만 고를 수 있습니다.")
     private String scope = "전체 공개";
     @NotBlank(message = "제목을 입력하세요.")
     @Size(max = 300)
     private String title;
     private String content;
-    @Size(max = 50)
+    @Pattern(regexp = "^$|업무 서식|지침·매뉴얼|교육 자료|기타", message = "자료 분류를 다시 고르세요.")
     private String category;
     private boolean pinned;
 

@@ -13,3 +13,16 @@ spring:
   sql:
     init:
       mode: never
+
+  h2:
+    console:
+      enabled: false
+
+app:
+  # 운영에서는 접속 허용 네트워크를 반드시 실제 운영망으로 정한다. 정하지 않으면 이 서버 자신만 허용한다.
+  #   예) APP_ALLOWED_NETWORKS=10.20.0.0/16,127.0.0.1/32
+  access:
+    allowed-networks: ${APP_ALLOWED_NETWORKS:127.0.0.1/32,::1/128}
+  # 계정이 없을 때 APP_INIT_ADMIN_PASSWORD 가 없으면 시작하지 않는다 (무작위 비밀번호를 서버 로그에 남기지 않기 위해)
+  init-admin:
+    require-password: true

@@ -11,5 +11,9 @@ spring:
       schema-locations: classpath:db/h2/schema.sql
   h2:
     console:
-      enabled: true
+      # DB 내용을 직접 보는 관리 도구. 기본은 끔. 필요할 때만 H2_CONSOLE_ENABLED=true 로 켜고 다 쓰면 끈다.
+      # 켜도 시스템 관리자만, 허용 네트워크에서만 열린다.
+      enabled: ${H2_CONSOLE_ENABLED:false}
       path: /h2-console
+      settings:
+        web-allow-others: false

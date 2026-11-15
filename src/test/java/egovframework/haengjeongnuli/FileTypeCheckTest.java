@@ -80,7 +80,7 @@ class FileTypeCheckTest {
     @Test
     void 화면에서_올리면_안내와_함께_막힌다() throws Exception {
         TestUsers.mvcAs(ctx, TestUsers.general()).perform(multipart("/board/upload").file(f("압축.txt", SEVEN_Z))
-                        .param("board", "archive").param("scope", "전체 공개").param("category", "서식")
+                        .param("board", "archive").param("scope", "전체 공개").param("category", "업무 서식")
                         .param("title", "자료").param("content", "x"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("파일 내용이 확장자(txt)와 맞지 않아")));
@@ -90,7 +90,7 @@ class FileTypeCheckTest {
             req.file(f("메모" + i + ".txt", "글".getBytes(StandardCharsets.UTF_8)));
         }
         TestUsers.mvcAs(ctx, TestUsers.general()).perform(req.param("board", "archive").param("scope", "전체 공개")
-                        .param("category", "서식").param("title", "자료").param("content", "x"))
+                        .param("category", "업무 서식").param("title", "자료").param("content", "x"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("10개까지")));
     }

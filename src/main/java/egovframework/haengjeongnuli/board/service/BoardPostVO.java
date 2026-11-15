@@ -32,12 +32,15 @@ public class BoardPostVO {
         return user != null && (user.isAdmin() || (writerId != null && writerId.equals(user.getLoginId())));
     }
 
-    /** 볼 수 있는지: 전체 공개, 또는 '우리 부서'면 같은 부서·글쓴이·관리자 */
+    /**
+     * 볼 수 있는지: '전체 공개'만 모두에게 열고, 그 밖의 값(우리 부서, 알 수 없는 값)은
+     * 같은 부서·글쓴이·관리자에게만 연다. 목록 SQL(BoardMapper visible)과 같은 규칙이다.
+     */
     public boolean canView(egovframework.haengjeongnuli.cmm.LoginUser user) {
         if (user == null) {
             return false;
         }
-        if (user.isAdmin() || !"우리 부서".equals(openScope)) {
+        if (user.isAdmin() || "전체 공개".equals(openScope)) {
             return true;
         }
         return (writerId != null && writerId.equals(user.getLoginId()))
