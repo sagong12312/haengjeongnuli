@@ -60,6 +60,8 @@ public class ApprovalController {
     private final FileStorage fileStorage;
     private final egovframework.haengjeongnuli.finance.service.FinanceService finance;
     private final egovframework.haengjeongnuli.approval.service.DispatchService dispatch;
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.approval.service.ApprovalTemplateService templates;
 
     public ApprovalController(ApprovalService approvalService, AuditService auditService, FileStorage fileStorage,
                               egovframework.haengjeongnuli.finance.service.FinanceService finance,
@@ -103,7 +105,7 @@ public class ApprovalController {
     @GetMapping("/draft")
     public String draftForm(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Long from,
                             @RequestParam(required = false) String kind, @RequestParam(required = false) Long budgetId,
-                            Model model) {
+                            @RequestParam(required = false) Long template, Model model) {
         ApprovalForm form = new ApprovalForm();
         if (kind != null && ApprovalForm.KINDS.contains(kind)) {
             form.setKind(kind);
@@ -113,6 +115,18 @@ public class ApprovalController {
             ApprovalDocVO src = approvalService.get(from);
             if (src != null && src.isDraftedBy(me)) {
                 form = ApprovalForm.from(src);
+            }
+        }
+        if (template != null) {
+            egovframework.haengjeongnuli.approval.service.ApprovalTemplateVO t = templates.get(template, me);
+            if (t != null) {
+                form.setKind(t.getKind());
+                if (t.getRetention() != null) {
+                    form.setRetention(t.getRetention());
+                }
+                form.setTitle(t.getTitle());
+                form.setBody(t.getBody());
+                model.addAttribute("message", "'" + t.getName() + "' 서식을 불러왔습니다. 결재선과 수신자는 직접 정하세요.");
             }
         }
         model.addAttribute("approvalForm", form);
@@ -224,6 +238,38 @@ public class ApprovalController {
         }
         ra.addFlashAttribute("message", problem == null ? receiver + "에 " + method + "(으)로 발송했다고 기록했습니다." : problem);
         return "redirect:/approval/" + docId + "#dispatch";
+    }
+
+    /** 기안 서식: 목록, 지금 쓰는 기안 내용을 서식으로 저장, 지우기 */
+    @GetMapping("/templates")
+    public String templateList(@AuthenticationPrincipal LoginUser me, Model model) {
+        model.addAttribute("templates", templates.visible(me));
+        model.addAttribute("scopes", egovframework.haengjeongnuli.approval.service.ApprovalTemplateVO.SCOPES);
+        model.addAttribute("kinds", ApprovalForm.KINDS);
+        return "approval/templates";
+    }
+
+    @PostMapping("/templates")
+    public String templateSave(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String templateName,
+                               @RequestParam(required = false) String templateScope, @RequestParam(required = false) String kind,
+                               @RequestParam(required = false) String retention, @RequestParam(required = false) String title,
+                               @RequestParam(required = false) String body, RedirectAttributes ra) {
+        String problem = templates.save(templateName, templateScope == null ? "MINE" : templateScope, kind, retention, title, body, me);
+        if (problem == null) {
+            auditService.record(AuditAction.APPROVAL_TEMPLATE, templateName, "저장");
+        }
+        ra.addFlashAttribute("message", problem == null ? "'" + templateName.trim() + "' 서식을 저장했습니다." : problem);
+        return "redirect:/approval/templates";
+    }
+
+    @PostMapping("/templates/{id}/delete")
+    public String templateDelete(@AuthenticationPrincipal LoginUser me, @PathVariable long id, RedirectAttributes ra) {
+        boolean ok = templates.delete(id, me);
+        if (ok) {
+            auditService.record(AuditAction.APPROVAL_TEMPLATE, "서식 " + id, "삭제");
+        }
+        ra.addFlashAttribute("message", ok ? "서식을 지웠습니다." : "만든 사람이나 관리자만 지울 수 있습니다.");
+        return "redirect:/approval/templates";
     }
 
     /** 대결자 지정: 휴가·출장 등으로 결재할 수 없는 기간에 대신 결재(대결)할 직원 */
@@ -407,6 +453,7 @@ public class ApprovalController {
         model.addAttribute("disclosures", ApprovalForm.DISCLOSURES);
         model.addAttribute("maxReviewers", ApprovalForm.MAX_REVIEWERS);
         model.addAttribute("maxCooperators", ApprovalForm.MAX_COOPERATORS);
+        model.addAttribute("templates", templates.visible(me));
         model.addAttribute("payMethods", ApprovalForm.PAY_METHODS);
         // 지출결의에 고를 수 있는 예산과 지금 쓸 수 있는 금액
         Long selfId = doc == null ? null : doc.getDocId();

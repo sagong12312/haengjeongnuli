@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('기안 서식')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('approval')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/approval}">전자결재</a> › 기안 서식</span><h1>기안 서식</h1></div>
+  <p class="hint">자주 쓰는 문서의 종류·제목·본문을 서식으로 저장해 두고 기안할 때 불러옵니다. 기안하기 화면 아래쪽 '서식으로 저장'으로도 만들 수 있습니다.
+    기관 전체 서식은 시스템 관리자만 만듭니다.</p>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>쓸 수 있는 서식</h2><span class="muted" th:text="${#lists.size(templates)} + '개'">0</span></div>
+    <p th:if="${#lists.isEmpty(templates)}" class="hint" style="padding:18px 22px;">서식이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(templates)}"><table class="list">
+      <thead><tr><th scope="col" style="text-align:left">서식</th><th scope="col">범위</th><th scope="col">종류</th><th scope="col">만든 사람</th><th scope="col">사용</th></tr></thead>
+      <tbody><tr th:each="t : ${templates}">
+        <td class="left"><b th:text="${t.name}">이름</b><small class="muted" style="display:block" th:text="${t.title} ?: ''">제목</small></td>
+        <td th:text="${t.scopeLabel}">범위</td><td th:text="${t.kind}">종류</td><td th:text="${t.ownerName}">만든 사람</td>
+        <td style="white-space:nowrap;">
+          <a class="btn btn-outline btn-sm" th:href="@{/approval/draft(template=${t.templateId})}">이 서식으로 기안</a>
+          <form th:if="${t.ownerId == loginUser.loginId or loginUser.admin}" th:action="@{/approval/templates/{id}/delete(id=${t.templateId})}" method="post" style="display:inline; margin:0;">
+            <button type="submit" class="btn btn-plain btn-sm" onclick="return confirm('이 서식을 지울까요?');">지우기</button></form>
+        </td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form class="panel" th:action="@{/approval/templates}" method="post" style="gap:14px;">
+    <h2>새 서식</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="tn">서식 이름 <span class="req">*</span></label><input id="tn" name="templateName" class="input" required maxlength="100" placeholder="예: 출장 결과 보고"></div>
+      <div class="field"><label for="ts">쓸 사람</label><select id="ts" name="templateScope" class="select">
+        <option value="MINE">나만</option><option value="DEPT">우리 부서</option><option th:if="${loginUser.admin}" value="ALL">기관 전체</option></select></div>
+      <div class="field"><label for="tk">문서 종류</label><select id="tk" name="kind" class="select"><option th:each="k : ${kinds}" th:value="${k}" th:text="${k}">일반 기안</option></select></div>
+    </div>
+    <div class="field"><label for="tt">제목</label><input id="tt" name="title" class="input" maxlength="300"></div>
+    <div class="field"><label for="tb">본문</label><textarea id="tb" name="body" class="textarea" rows="10"
+      placeholder="1. 관련: &#10;2. 다음과 같이 보고합니다.&#10;  가. 기간: &#10;  나. 장소: "></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">서식 저장</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

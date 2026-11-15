@@ -10,6 +10,15 @@
     <h1 th:text="${doc} ? '임시저장 문서 고치기' : '기안하기'">기안하기</h1>
   </div>
   <div th:replace="~{fragments/layout :: flash}"></div>
+  <form th:unless="${doc}" th:action="@{/approval/draft}" method="get" class="search-bar" style="margin:0;">
+    <label for="tpl" style="font-weight:700;">서식</label>
+    <select id="tpl" name="template" class="select" style="flex:1;">
+      <option value="">서식 고르기</option>
+      <option th:each="t : ${templates}" th:value="${t.templateId}" th:text="'[' + ${t.scopeLabel} + '] ' + ${t.name}">서식</option>
+    </select>
+    <button type="submit" class="btn btn-outline">불러오기</button>
+    <a th:href="@{/approval/templates}">서식 관리</a>
+  </form>
 
   <form th:action="${doc} ? @{/approval/{id}/edit(id=${doc.docId})} : @{/approval/draft}" th:object="${approvalForm}"
         method="post" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:20px;">
@@ -183,6 +192,14 @@
       <div class="form-actions">
         <a class="btn btn-plain btn-lg" th:href="@{/approval}">취소</a>
         <div style="display:flex; flex-wrap:wrap; gap:10px;">
+          <span style="display:inline-flex; gap:6px; align-items:center; margin-right:auto; flex-wrap:wrap;">
+            <label for="tplname" class="sr-only">서식 이름</label>
+            <input id="tplname" name="templateName" class="input" maxlength="100" placeholder="서식 이름" style="height:48px; width:170px;">
+            <label for="tplscope" class="sr-only">공유 범위</label>
+            <select id="tplscope" name="templateScope" class="select" style="height:48px; width:120px;">
+              <option value="MINE">나만</option><option value="DEPT">우리 부서</option><option th:if="${loginUser.admin}" value="ALL">기관 전체</option></select>
+            <button type="submit" class="btn btn-plain" th:formaction="@{/approval/templates}" formnovalidate>서식으로 저장</button>
+          </span>
           <button type="submit" name="action" value="save" class="btn btn-outline btn-lg" formnovalidate>임시저장</button>
           <button type="submit" name="action" value="send" class="btn btn-primary btn-lg">결재 상신</button>
         </div>
