@@ -42,7 +42,7 @@ class AutoLogoutTest {
             MockMvc user = TestUsers.mvcAs(ctx, TestUsers.general());
             user.perform(get("/").session(session))
                     .andExpect(content().string(containsString("data-timeout=\"600\"")))
-                    .andExpect(content().string(containsString("자동 로그아웃")));
+                    .andExpect(content().string(containsString("로그아웃까지")));
             assertThat(session.getMaxInactiveInterval()).isEqualTo(600);
             user.perform(get("/session/ping").session(session)).andExpect(status().isNoContent());
         } finally {
