@@ -35,10 +35,13 @@ public class SessionRevalidationFilter extends OncePerRequestFilter {
 
     private final UserService userService;
     private final AuditService auditService;
+    private final egovframework.haengjeongnuli.cmm.org.OrgService org;
 
-    public SessionRevalidationFilter(UserService userService, AuditService auditService) {
+    public SessionRevalidationFilter(UserService userService, AuditService auditService,
+                                     egovframework.haengjeongnuli.cmm.org.OrgService org) {
         this.userService = userService;
         this.auditService = auditService;
+        this.org = org;
     }
 
     @Override
@@ -60,6 +63,11 @@ public class SessionRevalidationFilter extends OncePerRequestFilter {
             }
             if (changed) {
                 replace(request, response, a, db);
+            }
+            // 자동 로그아웃 시간 (관리자가 바꾸면 다음 요청부터 적용)
+            HttpSession s = request.getSession(false);
+            if (s != null) {
+                s.setMaxInactiveInterval(org.sessionTimeoutMinutes() * 60);
             }
         }
         chain.doFilter(request, response);

@@ -40,3 +40,54 @@
     }
   });
 })();
+
+// 자동 로그아웃: 남은 시간 표시, 1분 전 경고·연장, 시간이 다 되면 로그인 화면으로
+(function () {
+  var box = document.querySelector('.session-timer');
+  if (!box) { return; }
+  var total = parseInt(box.getAttribute('data-timeout'), 10) * 1000;
+  var left = box.querySelector('.session-left');
+  var KEY = 'hjn-last-activity';
+  function now() { return Date.now(); }
+  function mark() { try { localStorage.setItem(KEY, String(now())); } catch (e) { /* 저장 못 해도 이 창 기준으로 센다 */ } }
+  var last = now();
+  mark();
+  function lastActivity() {
+    var v = 0;
+    try { v = parseInt(localStorage.getItem(KEY) || '0', 10); } catch (e) { v = 0; }
+    return Math.max(last, v || 0); // 다른 창에서 일한 시간도 반영
+  }
+  var warned = false, banner = null;
+  function warn(on) {
+    if (on && !banner) {
+      banner = document.createElement('div');
+      banner.className = 'session-warning';
+      banner.setAttribute('role', 'alert');
+      banner.innerHTML = '1분 뒤 자동으로 로그아웃됩니다. 계속 쓰려면 <button type="button" class="btn btn-primary btn-sm">로그인 연장</button>';
+      banner.querySelector('button').addEventListener('click', extend);
+      document.body.appendChild(banner);
+    } else if (!on && banner) {
+      banner.remove();
+      banner = null;
+    }
+  }
+  function extend() {
+    fetch(box.getAttribute('data-ping'), { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) {
+        if (r.ok) { last = now(); mark(); warned = false; warn(false); }
+        else { location.href = box.getAttribute('data-expired'); }
+      });
+  }
+  box.querySelector('.session-extend').addEventListener('click', extend);
+  function tick() {
+    var remain = total - (now() - lastActivity());
+    if (remain <= 0) { location.href = box.getAttribute('data-expired'); return; }
+    var s = Math.ceil(remain / 1000);
+    left.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+    box.classList.toggle('soon', s <= 60);
+    if (s <= 60 && !warned) { warned = true; warn(true); }
+    if (s > 60 && warned) { warned = false; warn(false); }
+  }
+  tick();
+  setInterval(tick, 1000);
+})();

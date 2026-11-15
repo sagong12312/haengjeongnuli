@@ -74,6 +74,7 @@ public class LoginController {
             model.addAttribute("error", switch (error) {
                 case "locked" -> "비밀번호를 " + LoginUser.MAX_FAILED + "번 틀려 계정이 " + LoginUser.getLockMinutes()
                         + "분 동안 잠겼습니다. 잠시 뒤 다시 시도하거나 시스템 관리자에게 잠금 해제를 요청하세요.";
+                case "timeout" -> "오랫동안 사용하지 않아 자동으로 로그아웃되었습니다. 다시 로그인하세요.";
                 case "ip" -> "이 PC에서 로그인을 여러 번 틀려 잠시 로그인을 막았습니다. 몇 분 뒤 다시 시도하세요.";
                 case "revoked" -> "계정 상태가 바뀌어(사용 중지·비밀번호 재설정 등) 로그아웃되었습니다. 다시 로그인하세요.";
                 case "disabled" -> "사용이 중지된 계정입니다. 시스템 관리자에게 문의하세요.";

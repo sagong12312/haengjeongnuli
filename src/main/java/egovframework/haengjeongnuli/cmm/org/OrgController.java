@@ -48,6 +48,7 @@ public class OrgController {
         model.addAttribute("fields", OrgService.FIELDS);
         model.addAttribute("values", org.all());
         model.addAttribute("hasSeal", org.hasSeal());
+        model.addAttribute("timeout", org.sessionTimeoutMinutes());
         return "user/admin-org";
     }
 
@@ -60,6 +61,18 @@ public class OrgController {
             audit.record(AuditAction.ORG_UPDATE, "기관 정보", null);
         }
         ra.addFlashAttribute("message", problem == null ? "기관 정보를 저장했습니다." : problem);
+        return "redirect:/admin/org";
+    }
+
+    /** 자동 로그아웃 시간 (다음 요청부터 모든 직원에게 적용) */
+    @PostMapping("/admin/org/session")
+    public String sessionTimeout(@RequestParam(required = false) String minutes, @AuthenticationPrincipal LoginUser me,
+                                 RedirectAttributes ra) {
+        String problem = org.saveSessionTimeout(minutes, me.getLoginId());
+        if (problem == null) {
+            audit.record(AuditAction.ORG_UPDATE, "자동 로그아웃", minutes + "분");
+        }
+        ra.addFlashAttribute("message", problem == null ? "자동 로그아웃 시간을 " + minutes.trim() + "분으로 정했습니다." : problem);
         return "redirect:/admin/org";
     }
 

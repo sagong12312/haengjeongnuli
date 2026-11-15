@@ -32,6 +32,7 @@ public class SecurityConfig {
             @Value("${app.access.allowed-networks}") String allowedNetworks,
             egovframework.haengjeongnuli.user.service.UserService userService,
             egovframework.haengjeongnuli.cmm.audit.AuditService auditService,
+            egovframework.haengjeongnuli.cmm.org.OrgService orgService,
             LoginThrottle loginThrottle) throws Exception {
         AntPathRequestMatcher h2 = new AntPathRequestMatcher("/h2-console/**");
         http
@@ -40,7 +41,7 @@ public class SecurityConfig {
             // 같은 주소에서 로그인을 너무 많이 틀리면 잠시 막는다
             .addFilterBefore(loginThrottle.filter(), org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
             // 로그인 중인 세션이 계정의 지금 상태(사용 중지·권한·비밀번호)와 맞는지 요청마다 확인
-            .addFilterBefore(new SessionRevalidationFilter(userService, auditService),
+            .addFilterBefore(new SessionRevalidationFilter(userService, auditService, orgService),
                     org.springframework.security.web.access.intercept.AuthorizationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/password-help", "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/error").permitAll()

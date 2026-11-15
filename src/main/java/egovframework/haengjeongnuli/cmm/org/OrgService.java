@@ -30,6 +30,36 @@ public class OrgService {
     /** 관인 이미지 파일 (FileStorage 저장 이름) */
     public static final String SEAL_FILE = "sealFile";
     public static final String SEAL_TYPE = "sealType";
+    /** 자동 로그아웃: 이 시간(분) 동안 아무것도 하지 않으면 로그아웃 */
+    public static final String SESSION_TIMEOUT = "sessionTimeoutMinutes";
+    public static final int TIMEOUT_DEFAULT = 30;
+    public static final int TIMEOUT_MIN = 5;
+    public static final int TIMEOUT_MAX = 120;
+
+    public int sessionTimeoutMinutes() {
+        try {
+            int m = Integer.parseInt(get(SESSION_TIMEOUT, String.valueOf(TIMEOUT_DEFAULT)).trim());
+            return Math.max(TIMEOUT_MIN, Math.min(TIMEOUT_MAX, m));
+        } catch (NumberFormatException e) {
+            return TIMEOUT_DEFAULT;
+        }
+    }
+
+    /** 자동 로그아웃 시간을 바꾼다. 문제가 있으면 안내 문구 */
+    @Transactional
+    public String saveSessionTimeout(String minutes, String by) {
+        int m;
+        try {
+            m = Integer.parseInt(minutes == null ? "" : minutes.trim());
+        } catch (NumberFormatException e) {
+            return "자동 로그아웃 시간은 분 단위 숫자로 입력하세요.";
+        }
+        if (m < TIMEOUT_MIN || m > TIMEOUT_MAX) {
+            return "자동 로그아웃 시간은 " + TIMEOUT_MIN + "~" + TIMEOUT_MAX + "분 사이로 정하세요.";
+        }
+        put(SESSION_TIMEOUT, String.valueOf(m), by);
+        return null;
+    }
 
     private final OrgMapper mapper;
     private volatile Map<String, String> cache;

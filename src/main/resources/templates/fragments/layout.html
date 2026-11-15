@@ -42,6 +42,11 @@
           <small th:text="${#strings.isEmpty(loginUser.dept())} ? ${loginUser.role.label} : ${loginUser.dept()} + ' · ' + ${loginUser.role.label}">부서 · 권한</small>
         </span>
       </a>
+      <span th:if="${sessionTimeoutSeconds > 0}" class="session-timer" th:attr="data-timeout=${sessionTimeoutSeconds}"
+            th:data-ping="@{/session/ping}" th:data-expired="@{/login(error='timeout')}" title="아무것도 하지 않으면 자동으로 로그아웃됩니다">
+        자동 로그아웃 <b class="session-left">--:--</b>
+        <button type="button" class="session-extend">연장</button>
+      </span>
       <form th:action="@{/logout}" method="post" style="margin:0;">
         <button type="submit" class="icon-btn" style="width:auto; padding:0 14px; font:inherit; font-size:17px;">로그아웃</button>
       </form>

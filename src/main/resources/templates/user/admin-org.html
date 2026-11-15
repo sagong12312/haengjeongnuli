@@ -21,6 +21,17 @@
     <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">저장</button></div>
   </form>
 
+  <form class="panel" th:action="@{/admin/org/session}" method="post" style="gap:12px;">
+    <h2>자동 로그아웃</h2>
+    <p class="hint" style="margin:0;">이 시간 동안 아무 화면도 열거나 저장하지 않으면 자동으로 로그아웃됩니다. 화면 위쪽에 남은 시간이 보이고, 1분 전에 연장할지 묻습니다.
+      개인정보를 다루는 화면이 많으므로 기관 보안 기준에 맞춰 짧게 정하세요 (5~120분).</p>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <label for="tmin">시간(분)</label>
+      <input id="tmin" name="minutes" type="number" min="5" max="120" class="input" th:value="${timeout}" style="width:120px;">
+      <button type="submit" class="btn btn-outline">저장</button>
+    </div>
+  </form>
+
   <section class="panel" style="gap:14px;">
     <h2>관인 (전자이미지관인)</h2>
     <p class="hint" style="margin:0;">기관장 명의 시행문에 찍는 관인의 인영 이미지입니다. 관인대장에 등록된 관인을 스캔한 PNG·JPG(1MB 이하, 배경 투명 권장)를 올리세요.

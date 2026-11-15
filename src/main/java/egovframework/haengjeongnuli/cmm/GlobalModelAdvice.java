@@ -22,6 +22,16 @@ public class GlobalModelAdvice {
         return user;
     }
 
+    /** 자동 로그아웃까지의 시간(초): 머리글 남은 시간 표시용 */
+    @ModelAttribute("sessionTimeoutSeconds")
+    public int sessionTimeoutSeconds(@AuthenticationPrincipal LoginUser user, jakarta.servlet.http.HttpServletRequest request) {
+        if (user == null) {
+            return 0;
+        }
+        jakarta.servlet.http.HttpSession s = request.getSession(false);
+        return s == null ? 0 : s.getMaxInactiveInterval();
+    }
+
     /** 머리글 알림 버튼에 표시할 읽지 않은 알림 수 */
     @ModelAttribute("unreadNotifications")
     public int unreadNotifications(@AuthenticationPrincipal LoginUser user) {
