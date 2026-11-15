@@ -34,6 +34,8 @@ public class SearchController {
     static final List<Menu> MENUS = List.of(
             new Menu("기안하기", "기안 결재 문서 작성 상신", "/approval/draft"),
             new Menu("결재 대기 문서", "결재 승인 반려 문서함", "/approval?box=wait"),
+            new Menu("기록물 등록대장", "문서 등록 기록물 등록대장 생산 접수 등록번호", "/records"),
+            new Menu("접수 문서 등록", "문서 등록 접수 종이 팩스 공문", "/records/new?type=RECEIVE"),
             new Menu("지출결의", "지출 결의 집행 예산 지급", "/approval/draft?kind=지출결의"),
             new Menu("민원 목록", "민원 처리 기한", "/civil"),
             new Menu("민원 접수", "민원 접수 창구", "/civil/new"),

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('기록물 등록대장')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('approval')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div class="page-head">
+    <div><span class="crumb"><a th:href="@{/approval}">전자결재</a> › 기록물 등록대장</span>
+      <h1 th:text="${year} + '년 기록물 등록대장'">기록물 등록대장</h1></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn btn-primary" th:href="@{/records/new(type='RECEIVE')}">접수 문서 등록</a>
+      <a class="btn btn-outline" th:href="@{/records/new(type='PRODUCE')}">생산 문서 등록</a>
+    </div>
+  </div>
+  <p class="hint" th:text="'처리과(' + ${dept} + ')의 생산·접수 등록과, 내가 처리 담당으로 지정된 문서가 보입니다. 전자결재로 결재가 끝난 문서와 수신 문서를 접수한 것은 자동으로 올라옵니다. 등록정보는 임의로 고치거나 지울 수 없습니다 (공공기록물법 시행령 제20조 제2항).'">안내</p>
+
+  <form th:action="@{/records}" method="get" role="search" class="search-bar">
+    <label for="ryear" class="sr-only">연도</label>
+    <select id="ryear" name="year" class="select"><option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option></select>
+    <label for="rtype" class="sr-only">구분</label>
+    <select id="rtype" name="type" class="select"><option value="">생산·접수 전체</option>
+      <option value="PRODUCE" th:selected="${type == 'PRODUCE'}">생산</option><option value="RECEIVE" th:selected="${type == 'RECEIVE'}">접수</option></select>
+    <label for="rq" class="sr-only">검색</label>
+    <input id="rq" name="q" class="input" type="search" th:value="${q}" placeholder="제목, 등록번호, 발신·수신 기관">
+    <button type="submit" class="btn btn-outline">검색</button>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>등록 목록</h2><span class="muted" th:text="${#lists.size(rows)} + '건'">0건</span></div>
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">등록된 기록물이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list" style="min-width:980px">
+      <thead><tr><th scope="col">등록번호</th><th scope="col">구분</th><th scope="col" style="text-align:left">제목</th>
+        <th scope="col">생산·접수일</th><th scope="col">발신·수신</th><th scope="col">형태</th><th scope="col">보존</th><th scope="col">등록</th></tr></thead>
+      <tbody><tr th:each="r : ${rows}">
+        <td style="color:var(--text); font-weight:700" th:text="${r.regNo}">번호</td>
+        <td><span th:class="${r.regType == 'PRODUCE'} ? 'badge badge-blue' : 'badge badge-green'" th:text="${r.typeLabel}">생산</span></td>
+        <td class="left"><a th:href="@{/records/{id}(id=${r.regId})}" th:text="${r.title}">제목</a></td>
+        <td th:text="${r.regDate}">날짜</td>
+        <td th:text="${r.counterpart} ?: '—'">기관</td>
+        <td th:text="${r.medium}">형태</td>
+        <td th:text="${r.retention} ?: '—'">보존</td>
+        <td th:text="${r.sourceLabel}">출처</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

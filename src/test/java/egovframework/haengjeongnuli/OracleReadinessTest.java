@@ -53,7 +53,13 @@ class OracleReadinessTest {
         String schema = Files.readString(ORACLE.resolve("schema.sql"));
         String grants = Files.readString(ORACLE.resolve("accounts_and_grants.sql"));
         for (String t : all(Pattern.compile("CREATE TABLE (\\w+) \\("), schema)) {
-            assertThat(grants).as(t).contains("GRANT SELECT, INSERT, UPDATE, DELETE ON " + t + " TO HJN_APP;");
+            if (t.startsWith("DOC_REGISTRY")) {
+                // 기록물 등록정보는 읽기·추가만 (시행령 제20조 제2항)
+                assertThat(grants).as(t).contains("GRANT SELECT, INSERT ON " + t + " TO HJN_APP;")
+                        .doesNotContain("UPDATE, DELETE ON " + t + " ");
+            } else {
+                assertThat(grants).as(t).contains("GRANT SELECT, INSERT, UPDATE, DELETE ON " + t + " TO HJN_APP;");
+            }
         }
         for (String s : all(Pattern.compile("CREATE SEQUENCE (\\w+)"), schema)) {
             assertThat(grants).as(s).contains("GRANT SELECT ON " + s + " TO HJN_APP;");

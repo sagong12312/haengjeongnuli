@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('기록물')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('approval')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/records}">기록물 등록대장</a> › <span th:text="${r.regNo}">번호</span></span><h1 th:text="${r.title}">제목</h1></div>
+  <section class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+      <h2 th:text="${r.typeLabel} + ' 등록번호 ' + ${r.regNo}">등록번호</h2>
+      <span class="badge badge-gray" th:text="${r.sourceLabel}">출처</span>
+    </div>
+    <dl class="kv">
+      <div><dt>처리과</dt><dd th:text="${r.deptName}">부서</dd></div>
+      <div><dt th:text="${r.regType == 'PRODUCE'} ? '생산일' : '접수일'">날짜</dt><dd th:text="${r.regDate}">날짜</dd></div>
+      <div th:if="${r.counterpart}"><dt th:text="${r.regType == 'PRODUCE'} ? '수신처' : '발신 기관'">기관</dt><dd th:text="${r.counterpart}">기관</dd></div>
+      <div th:if="${r.counterpartNo}"><dt>상대 문서번호</dt><dd th:text="${r.counterpartNo}">번호</dd></div>
+      <div><dt>형태·쪽수</dt><dd th:text="${r.medium} + (${r.pages} ? ' · ' + ${r.pages} + '쪽' : '')">형태</dd></div>
+      <div><dt>보존기간</dt><dd th:text="${r.retention} ?: '—'">보존</dd></div>
+      <div><dt>공개 여부</dt><dd th:text="${r.disclosure}">공개</dd></div>
+      <div th:if="${r.handlerName}"><dt>처리 담당</dt><dd th:text="${r.handlerName}">담당</dd></div>
+      <div><dt>등록</dt><dd th:text="${r.registeredName} + ' · ' + ${#temporals.format(r.registeredAt, 'yyyy-MM-dd HH:mm')}">등록자</dd></div>
+      <div th:if="${r.note}"><dt>비고</dt><dd th:text="${r.note}">비고</dd></div>
+    </dl>
+    <a th:if="${r.docId}" class="btn btn-outline" th:href="@{/approval/{id}(id=${r.docId})}">전자결재 문서 보기</a>
+    <div th:unless="${#lists.isEmpty(r.files)}">
+      <b>전자 파일</b>
+      <ul style="margin:6px 0 0; padding-left:22px;"><li th:each="f : ${r.files}"><a th:href="@{/records/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a></li></ul>
+    </div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<style>
+  .kv { margin:0; display:flex; flex-direction:column; }
+  .kv div { display:flex; gap:16px; border-bottom:1px solid var(--line); padding:10px 0; }
+  .kv dt { width:130px; flex:none; color:var(--text-3); font-weight:700; }
+  .kv dd { margin:0; color:var(--text); }
+</style>
+</body>
+</html>

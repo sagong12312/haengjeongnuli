@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 기록물 등록대장. 등록정보는 추가·조회만 한다 (UPDATE·DELETE 없음, 공공기록물법 시행령 제20조 제2항) -->
+<mapper namespace="egovframework.haengjeongnuli.records.service.impl.RecordMapper">
+
+    <select id="lockCounter" resultType="java.lang.Integer">
+        SELECT LAST_SEQ FROM DOC_REG_COUNTER WHERE DEPT_NAME = #{dept} AND REG_YEAR = #{year} FOR UPDATE
+    </select>
+    <insert id="insertCounter">
+        INSERT INTO DOC_REG_COUNTER (DEPT_NAME, REG_YEAR, LAST_SEQ) VALUES (#{dept}, #{year}, #{lastSeq})
+    </insert>
+    <update id="updateCounter">
+        UPDATE DOC_REG_COUNTER SET LAST_SEQ = #{lastSeq} WHERE DEPT_NAME = #{dept} AND REG_YEAR = #{year}
+    </update>
+    <select id="maxApprovalSeq" resultType="int">
+        SELECT NVL(MAX(DOC_SEQ), 0) FROM APPROVAL_DOC WHERE DOC_YEAR = #{year} AND NVL(DRAFTER_DEPT, '행정누리') = #{dept}
+    </select>
+
+    <select id="nextId" resultType="long">SELECT SEQ_DOC_REGISTRY.NEXTVAL FROM DUAL</select>
+    <select id="nextFileId" resultType="long">SELECT SEQ_DOC_REGISTRY_FILE.NEXTVAL FROM DUAL</select>
+
+    <sql id="cols">REG_ID, REG_TYPE, REG_NO, REG_YEAR, DEPT_NAME, TITLE, REG_DATE, COUNTERPART, COUNTERPART_NO, MEDIUM,
+        PAGES, RETENTION, DISCLOSURE, SOURCE, DOC_ID, HANDLER_ID, HANDLER_NAME, NOTE, REGISTERED_BY, REGISTERED_NAME,
+        REGISTERED_AT</sql>
+
+    <insert id="insert" parameterType="egovframework.haengjeongnuli.records.service.RecordVO">
+        INSERT INTO DOC_REGISTRY (<include refid="cols"/>)
+        VALUES (#{regId}, #{regType}, #{regNo}, #{regYear}, #{deptName}, #{title}, #{regDate, jdbcType=DATE}, #{counterpart},
+                #{counterpartNo}, #{medium}, #{pages, jdbcType=NUMERIC}, #{retention}, #{disclosure}, #{source},
+                #{docId, jdbcType=NUMERIC}, #{handlerId}, #{handlerName}, #{note}, #{registeredBy}, #{registeredName},
+                #{registeredAt})
+    </insert>
+
+    <insert id="insertFile" parameterType="egovframework.haengjeongnuli.records.service.RecordFileVO">
+        INSERT INTO DOC_REGISTRY_FILE (FILE_ID, REG_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, CREATED_AT)
+        VALUES (#{fileId}, #{regId}, #{originalName}, #{storedName}, #{fileSize}, #{createdAt})
+    </insert>
+
+    <select id="select" resultType="egovframework.haengjeongnuli.records.service.RecordVO">
+        SELECT <include refid="cols"/> FROM DOC_REGISTRY WHERE REG_ID = #{id}
+    </select>
+
+    <select id="selectFiles" resultType="egovframework.haengjeongnuli.records.service.RecordFileVO">
+        SELECT FILE_ID, REG_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, CREATED_AT
+          FROM DOC_REGISTRY_FILE WHERE REG_ID = #{regId} ORDER BY FILE_ID
+    </select>
+
+    <select id="selectFile" resultType="egovframework.haengjeongnuli.records.service.RecordFileVO">
+        SELECT FILE_ID, REG_ID, ORIGINAL_NAME, STORED_NAME, FILE_SIZE, CREATED_AT FROM DOC_REGISTRY_FILE WHERE FILE_ID = #{fileId}
+    </select>
+
+    <!-- 처리과 기준으로 본다: 관리자가 아니면 우리 부서 대장 + 내가 처리 담당인 접수 문서 -->
+    <select id="selectList" resultType="egovframework.haengjeongnuli.records.service.RecordVO">
+        SELECT * FROM (
+            SELECT <include refid="cols"/> FROM DOC_REGISTRY
+             WHERE REG_YEAR = #{year}
+               <if test="!all">AND (DEPT_NAME = #{dept} OR HANDLER_ID = #{loginId} OR REGISTERED_BY = #{loginId})</if>
+               <if test="type != null">AND REG_TYPE = #{type}</if>
+               <if test="q != null">AND (TITLE LIKE '%' || #{q} || '%' OR REG_NO LIKE '%' || #{q} || '%'
+                                         OR COUNTERPART LIKE '%' || #{q} || '%')</if>
+             ORDER BY REG_DATE DESC, REG_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+</mapper>

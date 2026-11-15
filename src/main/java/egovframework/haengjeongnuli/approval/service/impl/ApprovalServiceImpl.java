@@ -40,9 +40,12 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final FileStorage fileStorage;
     private final NotificationService notificationService;
     private final FinanceService finance;
+    private final egovframework.haengjeongnuli.records.service.RecordService records;
 
     public ApprovalServiceImpl(ApprovalMapper mapper, UserService userService, FileStorage fileStorage,
-                               NotificationService notificationService, FinanceService finance) {
+                               NotificationService notificationService, FinanceService finance,
+                               egovframework.haengjeongnuli.records.service.RecordService records) {
+        this.records = records;
         this.mapper = mapper;
         this.userService = userService;
         this.fileStorage = fileStorage;
@@ -304,30 +307,18 @@ public class ApprovalServiceImpl implements ApprovalService {
      */
     private String assignNumber(ApprovalDocVO d, int year) {
         String dept = deptKey(d.getDrafterDept());
-        int seq = nextRegSeq(dept, year);
+        int seq = records.nextSeq(dept, year);
         String no = dept + "-" + seq;
         mapper.updateDocNumber(d.getDocId(), year, seq, no);
+        // 기록물 등록대장에도 생산 등록으로 남긴다
+        records.fromApproval(egovframework.haengjeongnuli.records.service.RecordVO.PRODUCE, no, year, dept, d.getTitle(),
+                LocalDateTime.now(), d.getReceiver(), null, d.getRetention(), d.getDisclosure(), d.getDocId(),
+                d.getDrafterId(), d.getDrafterName());
         return no;
     }
 
-    /** 처리과·연도별 등록일련번호. 생산·접수 등록이 같은 번호대를 이어 쓴다. 행 잠금으로 겹치지 않게 한다. */
-    private int nextRegSeq(String dept, int year) {
-        Integer last = mapper.lockRegCounter(dept, year);
-        if (last == null) {
-            try {
-                mapper.insertRegCounter(dept, year, mapper.nextDocSeq(year, dept) - 1);
-            } catch (DuplicateKeyException e) {
-                // 다른 요청이 먼저 만들었다
-            }
-            last = mapper.lockRegCounter(dept, year);
-        }
-        int next = last + 1;
-        mapper.updateRegCounter(dept, year, next);
-        return next;
-    }
-
     private static String deptKey(String dept) {
-        return blank(dept) ? "행정누리" : dept.trim();
+        return egovframework.haengjeongnuli.records.service.RecordService.deptKey(dept);
     }
 
     @Override
@@ -402,10 +393,14 @@ public class ApprovalServiceImpl implements ApprovalService {
         // 접수와 동시에 접수등록번호를 부여한다 (공공기록물법 시행규칙 제4조 제5호)
         LocalDateTime now = LocalDateTime.now();
         String dept = deptKey(me.getDeptName());
-        String receiptNo = dept + "-" + nextRegSeq(dept, now.getYear());
+        String receiptNo = dept + "-" + records.nextSeq(dept, now.getYear());
         if (mapper.markReceived(docId, me.getLoginId(), now, receiptNo) != 1) {
             throw new IllegalStateException("이미 접수된 문서입니다");
         }
+        // 기록물 등록대장에 접수 등록으로 남긴다 (발신: 기안 부서, 상대 문서번호: 생산등록번호)
+        records.fromApproval(egovframework.haengjeongnuli.records.service.RecordVO.RECEIVE, receiptNo, now.getYear(), dept,
+                d.getTitle(), now, deptKey(d.getDrafterDept()), d.getDocNo(), d.getRetention(), d.getDisclosure(), docId,
+                me.getLoginId(), me.getUserName());
         return Result.OK;
     }
 

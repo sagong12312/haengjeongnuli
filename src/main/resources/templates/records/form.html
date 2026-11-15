@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('문서 등록')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('approval')}"></header>
+
+<main class="page narrow" th:with="receive=${type == 'RECEIVE'}">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/records}">기록물 등록대장</a> › 문서 등록</span>
+    <h1 th:text="${receive} ? '접수 문서 등록' : '생산 문서 등록'">문서 등록</h1></div>
+
+  <nav class="tabs" aria-label="구분">
+    <a th:href="@{/records/new(type='RECEIVE')}" th:attr="aria-current=${receive} ? 'page' : null">접수 (밖에서 받은 문서)</a>
+    <a th:href="@{/records/new(type='PRODUCE')}" th:attr="aria-current=${!receive} ? 'page' : null">생산 (시스템 밖에서 만든 문서)</a>
+  </nav>
+  <p class="hint" th:text="${receive} ? '종이·팩스·전자우편 등으로 받은 문서를 접수와 동시에 등록합니다. 처리과는 ' + ${dept} + '이고, 등록번호는 ' + ${dept} + '-연도별 일련번호로 붙습니다.' : '전자결재를 거치지 않고 만든 문서(종이 결재 등)를 등록합니다. 전자결재 문서는 결재가 끝나면 자동으로 등록되므로 여기서 다시 등록하지 않습니다.'">안내</p>
+
+  <form class="panel" th:action="@{/records}" method="post" enctype="multipart/form-data" style="gap:16px;">
+    <input type="hidden" name="type" th:value="${type}">
+    <div class="field"><label for="rtitle">제목 <span class="req">*</span></label><input id="rtitle" name="title" class="input" maxlength="300" required></div>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="rdate" th:text="${receive} ? '접수일' : '생산일'">날짜</label>
+        <input id="rdate" name="regDate" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="rcp"><span th:text="${receive} ? '발신 기관' : '수신처'">기관</span> <span th:if="${receive}" class="req">*</span></label>
+        <input id="rcp" name="counterpart" class="input" maxlength="200" th:required="${receive}" th:placeholder="${receive} ? '예: OO도 기획조정실' : '내부결재면 비워 둡니다'"></div>
+      <div class="field" th:if="${receive}"><label for="rcpno">발신 기관 문서번호</label><input id="rcpno" name="counterpartNo" class="input" maxlength="100" placeholder="예: 기획조정실-1234"></div>
+      <div class="field"><label for="rmedium">형태</label><select id="rmedium" name="medium" class="select">
+        <option th:each="m : ${media}" th:value="${m}" th:text="${m}" th:selected="${m == (receive ? '종이문서' : '종이문서')}">형태</option></select></div>
+      <div class="field"><label for="rpages">쪽수</label><input id="rpages" name="pages" type="number" min="1" class="input"></div>
+      <div class="field"><label for="rret">보존기간</label><select id="rret" name="retention" class="select">
+        <option th:each="k : ${retentions}" th:value="${k}" th:text="${k}">1년</option></select></div>
+      <div class="field"><label for="rdis">공개 여부</label><select id="rdis" name="disclosure" class="select">
+        <option th:each="k : ${disclosures}" th:value="${k}" th:text="${k}">공개</option></select></div>
+      <div class="field"><label for="rhandler">처리 담당자</label><select id="rhandler" name="handlerId" class="select">
+        <option value="">지정 안 함</option>
+        <option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + (${u.deptName} ? ' · ' + ${u.deptName} : '')">직원</option></select></div>
+    </div>
+    <div class="field"><label for="rfiles">전자 파일 (스캔본 등)</label>
+      <input id="rfiles" name="files" type="file" multiple class="input" style="height:auto; padding:12px; border-style:dashed; background:#F8FAFC;">
+      <p class="hint" style="margin:0;" th:text="'올릴 수 있는 형식: ' + ${allowedExt} + ' (내용도 형식과 맞아야 합니다)'">형식</p></div>
+    <div class="field"><label for="rnote">비고</label><input id="rnote" name="note" class="input" maxlength="1000"></div>
+    <p class="hint" style="margin:0;">등록하면 번호가 붙고, 등록정보는 임의로 고치거나 지울 수 없습니다. 고쳐야 하면 기록물관리책임자의 확인을 받아야 합니다(시행규칙 제6조).</p>
+    <div class="form-actions">
+      <a class="btn btn-plain btn-lg" th:href="@{/records}">취소</a>
+      <button type="submit" class="btn btn-primary btn-lg">등록</button>
+    </div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

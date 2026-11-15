@@ -53,6 +53,8 @@ public enum AuditAction {
     WELFARE_VIEW("복지 신청 열람(개인정보)"),
     WELFARE_EDIT("복지 신청 처리"),
 
+    RECORD_REGISTER("기록물 직접 등록"),
+
     HOLIDAY_ADD("공휴일 추가"),
     HOLIDAY_DELETE("공휴일 삭제"),
 
