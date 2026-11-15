@@ -42,10 +42,13 @@ import jakarta.servlet.http.HttpServletResponse;
 public class CivilController {
 
     private final DeadlineCalculator deadlineCalculator;
+    private final egovframework.haengjeongnuli.civil.service.CivilProcessService process;
     private final CivilService civilService;
     private final AuditService auditService;
 
-    public CivilController(DeadlineCalculator deadlineCalculator, CivilService civilService, AuditService auditService) {
+    public CivilController(DeadlineCalculator deadlineCalculator, CivilService civilService, AuditService auditService,
+                           egovframework.haengjeongnuli.civil.service.CivilProcessService process) {
+        this.process = process;
         this.auditService = auditService;
         this.deadlineCalculator = deadlineCalculator;
         this.civilService = civilService;
@@ -88,10 +91,19 @@ public class CivilController {
             addFormOptions(model);
             return "civil/new";
         }
+        LoginUser staff = process.findStaff(form.getStaffId());
+        form.setStaff(staff == null ? null : staff.getUserName());
+        form.setStaffId(staff == null ? null : staff.getLoginId());
+        if (staff != null && (form.getDept() == null || form.getDept().isBlank())) {
+            form.setDept(staff.getDeptName());
+        }
         CivilComplaintVO saved = civilService.receive(form, loginUser.getLoginId());
+        if (staff != null && !staff.getLoginId().equals(loginUser.getLoginId())) {
+            process.assign(saved.getComplaintId(), saved.getDept(), staff.getLoginId(), loginUser);
+        }
         auditService.record(AuditAction.CIVIL_RECEIVE, "민원 " + saved.getReceiptNo(), saved.getKind().getLabel());
         ra.addFlashAttribute("message", "민원이 접수되었습니다. 접수번호: " + saved.getReceiptNo());
-        return "redirect:/civil";
+        return "redirect:/civil/" + saved.getComplaintId();
     }
 
     private void addFormOptions(Model model) {
@@ -99,6 +111,95 @@ public class CivilController {
         Map<String, java.util.List<LegalAffair>> groups = Arrays.stream(LegalAffair.values())
                 .collect(Collectors.groupingBy(LegalAffair::getGroup, LinkedHashMap::new, Collectors.toList()));
         model.addAttribute("affairGroups", groups);
+        model.addAttribute("staffList", process.staffList());
+    }
+
+    // ===== 민원 처리 =====
+
+    @GetMapping("/{id:\\d+}")
+    public String view(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                       Model model) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
+        // 민원인 개인정보가 있는 화면이므로 열람을 기록한다
+        auditService.record(AuditAction.CIVIL_VIEW, "민원 " + c.getReceiptNo(), null);
+        model.addAttribute("c", c);
+        model.addAttribute("history", process.history(id));
+        model.addAttribute("canProcess", process.canProcess(c, me));
+        model.addAttribute("staffList", process.staffList());
+        model.addAttribute("reasons", egovframework.haengjeongnuli.civil.service.ExtendReason.values());
+        model.addAttribute("resultTypes", egovframework.haengjeongnuli.civil.service.ResultType.values());
+        model.addAttribute("notifyMethods", egovframework.haengjeongnuli.civil.service.CivilProcessService.NOTIFY_METHODS);
+        return "civil/view";
+    }
+
+    @PostMapping("/{id:\\d+}/assign")
+    public String assign(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                         @org.springframework.web.bind.annotation.RequestParam(required = false) String dept,
+                         @org.springframework.web.bind.annotation.RequestParam(required = false) String assigneeId,
+                         RedirectAttributes ra) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
+        egovframework.haengjeongnuli.civil.service.CivilProcessService.Result r = process.assign(id, dept, assigneeId, me);
+        if (r.ok()) {
+            auditService.record(AuditAction.CIVIL_ASSIGN, "민원 " + c.getReceiptNo(), assigneeId);
+        }
+        ra.addFlashAttribute("message", r.message());
+        return "redirect:/civil/" + id;
+    }
+
+    @PostMapping("/{id:\\d+}/extend")
+    public String extend(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                         @org.springframework.web.bind.annotation.RequestParam(required = false) egovframework.haengjeongnuli.civil.service.ExtendReason reason,
+                         @org.springframework.web.bind.annotation.RequestParam(required = false) Integer days,
+                         @org.springframework.web.bind.annotation.RequestParam(required = false) String detail,
+                         @org.springframework.web.bind.annotation.RequestParam(defaultValue = "false") boolean consent,
+                         @org.springframework.web.bind.annotation.RequestParam(defaultValue = "false") boolean notified,
+                         RedirectAttributes ra) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
+        egovframework.haengjeongnuli.civil.service.CivilProcessService.Result r = process.extend(id, reason, days, detail, consent, notified, me);
+        if (r.ok()) {
+            auditService.record(AuditAction.CIVIL_EXTEND, "민원 " + c.getReceiptNo(), days + "일");
+        }
+        ra.addFlashAttribute("message", r.message());
+        return "redirect:/civil/" + id;
+    }
+
+    @PostMapping("/{id:\\d+}/progress")
+    public String progress(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                           @org.springframework.web.bind.annotation.RequestParam(required = false) String method,
+                           @org.springframework.web.bind.annotation.RequestParam(required = false) String detail,
+                           RedirectAttributes ra) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
+        egovframework.haengjeongnuli.civil.service.CivilProcessService.Result r = process.progressNotice(id, method, detail, me);
+        if (r.ok()) {
+            auditService.record(AuditAction.CIVIL_PROGRESS, "민원 " + c.getReceiptNo(), method);
+        }
+        ra.addFlashAttribute("message", r.message());
+        return "redirect:/civil/" + id;
+    }
+
+    @PostMapping("/{id:\\d+}/complete")
+    public String complete(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                           @org.springframework.web.bind.annotation.RequestParam(required = false) egovframework.haengjeongnuli.civil.service.ResultType type,
+                           @org.springframework.web.bind.annotation.RequestParam(required = false) String result,
+                           @org.springframework.web.bind.annotation.RequestParam(required = false) String remedy,
+                           @org.springframework.web.bind.annotation.RequestParam(required = false) String notifyMethod,
+                           RedirectAttributes ra) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
+        egovframework.haengjeongnuli.civil.service.CivilProcessService.Result r = process.complete(id, type, result, remedy, notifyMethod, me);
+        if (r.ok()) {
+            auditService.record(AuditAction.CIVIL_DONE, "민원 " + c.getReceiptNo(), type == null ? null : type.getLabel());
+        }
+        ra.addFlashAttribute("message", r.message());
+        return "redirect:/civil/" + id;
+    }
+
+    /** 없거나 볼 수 없는 민원은 404 */
+    private egovframework.haengjeongnuli.civil.service.CivilComplaintVO visible(long id, LoginUser me) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = process.get(id);
+        if (c == null || !process.canView(c, me)) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        return c;
     }
 
     /** 접수 화면에서 종류·사무를 고를 때 처리기간과 예상 처리기한을 돌려준다 */

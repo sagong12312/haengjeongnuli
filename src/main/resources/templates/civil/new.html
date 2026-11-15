@@ -126,11 +126,15 @@
       <div class="grid-fields">
         <div class="field">
           <label for="cdept">처리 부서</label>
-          <input id="cdept" th:field="*{dept}" class="input" type="text" maxlength="100" placeholder="[부서명] — 부서 목록 연동 전 직접 입력">
+          <input id="cdept" th:field="*{dept}" class="input" type="text" maxlength="100" list="dept-list" placeholder="비워 두면 담당자의 부서로 정합니다">
+          <datalist id="dept-list"><option th:each="d : ${staffList.![deptName]}" th:if="${d}" th:value="${d}"></option></datalist>
         </div>
         <div class="field">
           <label for="cstaff">담당자</label>
-          <input id="cstaff" th:field="*{staff}" class="input" type="text" maxlength="100" placeholder="비워 두면 접수 대기로 남습니다">
+          <select id="cstaff" th:field="*{staffId}" class="select">
+            <option value="">나중에 배정 (접수 대기)</option>
+            <option th:each="u : ${staffList}" th:value="${u.loginId}" th:text="${u.userName} + ' ' + ${u.position()} + (${u.deptName} ? ' · ' + ${u.deptName} : '')">직원</option>
+          </select>
         </div>
       </div>
       <label class="check" style="align-items:flex-start; background:#F8FAFC; border:1px solid var(--line); border-radius:12px; padding:14px 16px;">

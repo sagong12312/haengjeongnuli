@@ -41,6 +41,8 @@ public class CivilForm {
 
     private String dept;
     private String staff;
+    /** 담당자 아이디 (화면에서 직원 목록으로 고른다) */
+    private String staffId;
     private boolean privacyConsent;
 
     @AssertTrue(message = "법정민원은 민원 사무를 골라야 합니다.")
@@ -98,6 +100,8 @@ public class CivilForm {
     public void setContent(String content) { this.content = content; }
     public String getDept() { return dept; }
     public void setDept(String dept) { this.dept = dept; }
+    public String getStaffId() { return staffId; }
+    public void setStaffId(String staffId) { this.staffId = staffId; }
     public String getStaff() { return staff; }
     public void setStaff(String staff) { this.staff = staff; }
     public boolean isPrivacyConsent() { return privacyConsent; }

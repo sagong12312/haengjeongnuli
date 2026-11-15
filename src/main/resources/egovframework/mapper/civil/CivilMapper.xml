@@ -11,11 +11,11 @@
         INSERT INTO CIVIL_COMPLAINT (
             COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE,
             APPLICANT_NAME, MOBILE, HOME_PHONE, EMAIL, ADDRESS, NOTIFY_METHOD,
-            TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, REGISTER_ID
+            TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, REGISTER_ID, ASSIGNEE_ID, PERIOD_DAYS, EXTEND_COUNT
         ) VALUES (
             #{complaintId}, #{receiptNo}, #{kind}, #{lawInterpretYn}, #{legalAffair}, #{route},
             #{applicantName}, #{mobile}, #{homePhone}, #{email}, #{address}, #{notifyMethod},
-            #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{deadlineAt, jdbcType=TIMESTAMP}, #{registerId}
+            #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{deadlineAt, jdbcType=TIMESTAMP}, #{registerId}, #{assigneeId}, #{periodDays, jdbcType=NUMERIC}, 0
         )
     </insert>
 
@@ -35,7 +35,7 @@
             resultType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
         SELECT * FROM (
             SELECT COMPLAINT_ID, RECEIPT_NO, KIND, LEGAL_AFFAIR, APPLICANT_NAME, TITLE,
-                   DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, COMPLETED_AT
+                   DEPT, ASSIGNEE, ASSIGNEE_ID, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, COMPLETED_AT
               FROM CIVIL_COMPLAINT
             <include refid="searchWhere"/>
              ORDER BY CASE WHEN STATUS = 'DONE' THEN 1 ELSE 0 END,
@@ -47,6 +47,45 @@
     <select id="selectComplaintCount" parameterType="egovframework.haengjeongnuli.civil.service.CivilSearchVO" resultType="int">
         SELECT COUNT(*) FROM CIVIL_COMPLAINT
         <include refid="searchWhere"/>
+    </select>
+
+    <select id="selectComplaint" resultType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
+        SELECT COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE, APPLICANT_NAME, MOBILE, HOME_PHONE,
+               EMAIL, ADDRESS, NOTIFY_METHOD, TITLE, CONTENT, DEPT, ASSIGNEE, ASSIGNEE_ID, STATUS, RECEIVED_AT,
+               DEADLINE, DEADLINE_AT, COMPLETED_AT, REGISTER_ID, PERIOD_DAYS, NVL(EXTEND_COUNT, 0) AS EXTEND_COUNT,
+               RESULT_TYPE, RESULT_TEXT, REJECT_REMEDY, RESULT_NOTIFY, COMPLETED_BY
+          FROM CIVIL_COMPLAINT WHERE COMPLAINT_ID = #{id}
+    </select>
+
+    <update id="updateAssign">
+        UPDATE CIVIL_COMPLAINT
+           SET DEPT = #{dept}, ASSIGNEE = #{assignee}, ASSIGNEE_ID = #{assigneeId},
+               STATUS = CASE WHEN #{assigneeId} IS NULL THEN 'RECEIVED' ELSE 'IN_PROGRESS' END
+         WHERE COMPLAINT_ID = #{id} AND STATUS &lt;&gt; 'DONE'
+    </update>
+
+    <update id="updateDeadline">
+        UPDATE CIVIL_COMPLAINT SET DEADLINE = #{deadline, jdbcType=DATE}, DEADLINE_AT = #{deadlineAt}, EXTEND_COUNT = #{extendCount}
+         WHERE COMPLAINT_ID = #{id} AND STATUS &lt;&gt; 'DONE' AND NVL(EXTEND_COUNT, 0) = #{extendCount} - 1
+    </update>
+
+    <update id="complete" parameterType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
+        UPDATE CIVIL_COMPLAINT
+           SET STATUS = 'DONE', COMPLETED_AT = #{completedAt}, COMPLETED_BY = #{completedBy}, RESULT_TYPE = #{resultType},
+               RESULT_TEXT = #{resultText, jdbcType=CLOB}, REJECT_REMEDY = #{rejectRemedy}, RESULT_NOTIFY = #{resultNotify}
+         WHERE COMPLAINT_ID = #{complaintId} AND STATUS &lt;&gt; 'DONE'
+    </update>
+
+    <select id="nextHistoryId" resultType="long">SELECT SEQ_CIVIL_HISTORY.NEXTVAL FROM DUAL</select>
+
+    <insert id="insertHistory" parameterType="egovframework.haengjeongnuli.civil.service.CivilHistoryVO">
+        INSERT INTO CIVIL_HISTORY (HIST_ID, COMPLAINT_ID, ACTION, DETAIL, ACTOR_ID, ACTOR_NAME, ACTED_AT)
+        VALUES (#{histId}, #{complaintId}, #{action}, #{detail}, #{actorId}, #{actorName}, #{actedAt})
+    </insert>
+
+    <select id="selectHistory" resultType="egovframework.haengjeongnuli.civil.service.CivilHistoryVO">
+        SELECT HIST_ID, COMPLAINT_ID, ACTION, DETAIL, ACTOR_ID, ACTOR_NAME, ACTED_AT
+          FROM CIVIL_HISTORY WHERE COMPLAINT_ID = #{id} ORDER BY HIST_ID
     </select>
 
     <select id="selectSummary" resultType="egovframework.haengjeongnuli.civil.service.CivilSummaryVO">

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('민원 처리')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('civil')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div>
+    <span class="crumb"><a th:href="@{/civil}">민원</a> › <span th:text="${c.receiptNo}">접수번호</span></span>
+    <h1 th:text="${c.title}">민원 제목</h1>
+  </div>
+
+  <div th:if="${c.overdue}" class="alert" role="alert" style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg);">
+    처리기한이 지났습니다. 처리하거나, 사유가 있으면 처리기간을 연장하세요.</div>
+  <div th:if="${c.progressNoticeDue}" class="alert" role="status" style="background:#FFF8F0; border:1px solid var(--orange-line); color:var(--orange-fg);"
+       th:text="'접수 ' + ${c.daysSinceReceived} + '일이 지났습니다. 30일이 지날 때마다 처리진행상황과 처리완료 예정일을 민원인에게 알려야 합니다 (민원처리법 시행령 제23조).'">안내</div>
+
+  <section class="panel" aria-labelledby="info-title">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <h2 id="info-title">민원 정보</h2>
+      <span th:class="'badge ' + ${c.status.badge}" th:text="${c.status.label}">상태</span>
+    </div>
+    <dl class="kv">
+      <div><dt>접수번호</dt><dd th:text="${c.receiptNo}">번호</dd></div>
+      <div><dt>종류</dt><dd th:text="${c.kind.label} + (${c.legalAffair} ? ' · ' + ${c.legalAffair.label} : '') + (${c.lawInterpretYn == 'Y'} ? ' · 법령 해석' : '')">종류</dd></div>
+      <div><dt>접수</dt><dd th:text="${#temporals.format(c.receivedAt, 'yyyy-MM-dd HH:mm')} + ' · ' + ${c.route}">접수</dd></div>
+      <div><dt>처리기한</dt><dd>
+        <b th:text="${#temporals.format(c.deadlineAt, 'yyyy-MM-dd HH:mm')}">기한</b>
+        <span class="muted" th:text="' (처리기간 ' + (${c.periodDays == 0} ? '즉시' : ${c.periodDays} + '일') + (${c.extendCount > 0} ? ', ' + ${c.extendCount} + '회 연장' : '') + ')'">기간</span>
+      </dd></div>
+      <div><dt>처리 부서</dt><dd th:text="${c.dept} ?: '—'">부서</dd></div>
+      <div><dt>담당자</dt><dd th:text="${c.assignee} ?: '배정 전'">담당자</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel" aria-labelledby="who-title">
+    <h2 id="who-title">민원인 <span class="muted" style="font-size:16px; font-weight:400;">(개인정보 — 처리 목적 외 사용 금지, 열람이 기록됩니다)</span></h2>
+    <dl class="kv">
+      <div><dt>이름</dt><dd th:text="${c.applicantName}">이름</dd></div>
+      <div><dt>연락처</dt><dd th:text="${c.mobile} ?: (${c.homePhone} ?: '없음')">연락처</dd></div>
+      <div th:if="${c.email}"><dt>이메일</dt><dd th:text="${c.email}">이메일</dd></div>
+      <div th:if="${c.address}"><dt>주소</dt><dd th:text="${c.address}">주소</dd></div>
+      <div><dt>받기 원하는 통지</dt><dd th:text="${c.notifyMethod}">문자</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel" aria-labelledby="body-title">
+    <h2 id="body-title">민원 내용</h2>
+    <div style="white-space:pre-wrap; font-size:19px; line-height:1.8;" th:text="${c.content}">내용</div>
+  </section>
+
+  <section class="panel" th:if="${c.done}" aria-labelledby="res-title" style="border:2px solid var(--green-fg, #1E7B3C);">
+    <h2 id="res-title">처리 결과</h2>
+    <dl class="kv">
+      <div><dt>결과</dt><dd th:text="${T(egovframework.haengjeongnuli.civil.service.ResultType).valueOf(c.resultType).label}">수용</dd></div>
+      <div><dt>완료</dt><dd th:text="${#temporals.format(c.completedAt, 'yyyy-MM-dd HH:mm')} + (${c.late} ? ' (처리기한 지남)' : ' (기한 내)')">완료</dd></div>
+      <div><dt>결과 통지</dt><dd th:text="${c.resultNotify}">문서</dd></div>
+    </dl>
+    <div style="white-space:pre-wrap;" th:text="${c.resultText}">결과</div>
+    <div th:if="${c.rejectRemedy}" style="background:var(--soft); border-radius:10px; padding:12px 16px;">
+      <b>거부 이유·구제절차</b><div style="white-space:pre-wrap; margin-top:4px;" th:text="${c.rejectRemedy}">구제절차</div></div>
+  </section>
+
+  <th:block th:if="${canProcess and !c.done}">
+    <form class="panel" th:action="@{/civil/{id}/assign(id=${c.complaintId})}" method="post" style="gap:14px;">
+      <h2>담당 배정</h2>
+      <div class="grid-fields">
+        <div class="field"><label for="adept">처리 부서</label>
+          <input id="adept" name="dept" class="input" maxlength="100" th:value="${c.dept}" list="dept-list" placeholder="비워 두면 담당자의 부서">
+          <datalist id="dept-list"><option th:each="d : ${staffList.![deptName]}" th:if="${d}" th:value="${d}"></option></datalist></div>
+        <div class="field"><label for="astaff">담당자</label>
+          <select id="astaff" name="assigneeId" class="select">
+            <option value="">없음</option>
+            <option th:each="u : ${staffList}" th:value="${u.loginId}" th:selected="${u.loginId == c.assigneeId}"
+                    th:text="${u.userName} + ' ' + ${u.position()} + (${u.deptName} ? ' · ' + ${u.deptName} : '')">직원</option>
+          </select></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">배정</button></div>
+    </form>
+
+    <form class="panel" th:action="@{/civil/{id}/complete(id=${c.complaintId})}" method="post" style="gap:14px;">
+      <h2>처리 완료</h2>
+      <div class="grid-fields">
+        <div class="field"><label for="rtype">결과 구분 <span class="req">*</span></label>
+          <select id="rtype" name="type" class="select" required>
+            <option value="">선택</option>
+            <option th:each="t : ${resultTypes}" th:value="${t}" th:text="${t.label}">수용</option>
+          </select></div>
+        <div class="field"><label for="rnotify">결과 통지 방법 <span class="req">*</span></label>
+          <select id="rnotify" name="notifyMethod" class="select" required>
+            <option th:each="m : ${notifyMethods}" th:value="${m}" th:text="${m}">문서</option>
+          </select></div>
+      </div>
+      <div class="field"><label for="rtext">처리 결과 <span class="req">*</span></label>
+        <textarea id="rtext" name="result" class="textarea" rows="6" required></textarea></div>
+      <div class="field" id="remedy-field"><label for="rremedy">거부 이유와 구제절차 <span class="muted" style="font-size:16px;">(불수용·일부 수용이면 꼭 적습니다)</span></label>
+        <textarea id="rremedy" name="remedy" class="textarea" rows="3" maxlength="2000" placeholder="예: 거부 이유 … / 이 처분에 이의가 있으면 처분이 있음을 안 날부터 90일 이내에 행정심판 또는 행정소송을 제기할 수 있습니다."></textarea></div>
+      <p class="hint" style="margin:0;">처리 결과는 문서로 알리는 것이 원칙입니다. 기타민원이거나 민원인이 요청한 경우에는 문자·전화·전자우편 등으로 알릴 수 있습니다 (민원처리법 제27조).</p>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">처리 완료</button></div>
+    </form>
+
+    <form th:if="${c.extendable}" class="panel" th:action="@{/civil/{id}/extend(id=${c.complaintId})}" method="post" style="gap:14px;">
+      <h2 th:text="${c.extendCount == 0} ? '처리기간 연장' : '처리기간 다시 연장 (민원인 동의 필요)'">처리기간 연장</h2>
+      <div class="grid-fields">
+        <div class="field"><label for="ereason">연장 사유 <span class="req">*</span></label>
+          <select id="ereason" name="reason" class="select" required>
+            <option value="">선택</option>
+            <option th:each="r : ${reasons}" th:value="${r}" th:text="${r.label}">사유</option>
+          </select></div>
+        <div class="field"><label for="edays">연장 일수 <span class="req">*</span></label>
+          <input id="edays" name="days" type="number" class="input" min="1" th:max="${c.periodDays}" required>
+          <p class="hint" style="margin:0;" th:text="'처리기간(' + ${c.periodDays} + '일)의 범위에서 연장합니다.'">범위</p></div>
+      </div>
+      <div class="field"><label for="edetail">구체적인 사유 <span class="req">*</span></label>
+        <input id="edetail" name="detail" class="input" maxlength="500" required placeholder="예: 도로관리과 현장 확인 회신 대기"></div>
+      <label th:if="${c.extendCount == 1}" class="check"><input type="checkbox" name="consent" value="true">민원인의 동의를 받았습니다.</label>
+      <label class="check"><input type="checkbox" name="notified" value="true" required>연장 사유와 처리완료 예정일을 민원인에게 문서로 통지했습니다.</label>
+      <p class="hint" style="margin:0;">단순 업무과중, 담당자 지정 지연이나 부재는 연장 사유가 될 수 없습니다 (민원처리법 시행령 제21조).</p>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">연장</button></div>
+    </form>
+
+    <form class="panel" th:action="@{/civil/{id}/progress(id=${c.complaintId})}" method="post" style="gap:14px;">
+      <h2>진행상황 통지 기록</h2>
+      <div class="grid-fields">
+        <div class="field"><label for="pmethod">통지 방법</label>
+          <select id="pmethod" name="method" class="select"><option th:each="m : ${notifyMethods}" th:value="${m}" th:text="${m}">문서</option></select></div>
+        <div class="field"><label for="pdetail">알린 내용 <span class="req">*</span></label>
+          <input id="pdetail" name="detail" class="input" maxlength="500" required placeholder="예: 현장 확인 중, 12월 10일 처리 예정"></div>
+      </div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">기록</button></div>
+    </form>
+  </th:block>
+
+  <section class="panel flush" aria-labelledby="hist-title">
+    <div class="panel-head"><h2 id="hist-title">처리 이력</h2></div>
+    <p th:if="${#lists.isEmpty(history)}" class="hint" style="padding:18px 22px;">아직 처리 이력이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(history)}">
+      <table class="list" style="min-width:640px">
+        <thead><tr><th scope="col">일시</th><th scope="col">구분</th><th scope="col" style="text-align:left">내용</th><th scope="col">처리자</th></tr></thead>
+        <tbody>
+          <tr th:each="h : ${history}">
+            <td th:text="${#temporals.format(h.actedAt, 'MM-dd HH:mm')}">일시</td>
+            <td th:text="${h.actionLabel}">구분</td>
+            <td class="left" th:text="${h.detail}">내용</td>
+            <td th:text="${h.actorName}">처리자</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<style>
+  .kv { margin:0; display:flex; flex-direction:column; }
+  .kv div { display:flex; gap:16px; border-bottom:1px solid var(--line); padding:10px 0; }
+  .kv dt { width:130px; flex:none; color:var(--text-3); font-weight:700; }
+  .kv dd { margin:0; color:var(--text); }
+</style>
+</body>
+</html>

@@ -60,7 +60,7 @@ class DatabaseFlowTest {
                         .param("name", "김민원").param("mobile", "010-1234-5678").param("notify", "문자")
                         .param("title", title).param("content", "고쳐 주세요")
                         .param("privacyConsent", "true"))
-                .andExpect(redirectedUrl("/civil"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern("/civil/*"))
                 .andExpect(flash().attribute("message", startsWith("민원이 접수되었습니다. 접수번호: ")));
 
         mvc.perform(get("/civil").param("q", title))

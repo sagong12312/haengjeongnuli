@@ -23,6 +23,11 @@ public enum AuditAction {
     FILE_DOWNLOAD("파일 내려받기"),
 
     CIVIL_RECEIVE("민원 접수"),
+    CIVIL_VIEW("민원 상세 열람(개인정보)"),
+    CIVIL_ASSIGN("민원 배정"),
+    CIVIL_EXTEND("민원 처리기간 연장"),
+    CIVIL_PROGRESS("민원 진행상황 통지"),
+    CIVIL_DONE("민원 처리 완료"),
 
     APPROVAL_SAVE("기안 임시저장"),
     APPROVAL_SUBMIT("결재 상신"),

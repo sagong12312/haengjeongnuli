@@ -29,6 +29,15 @@ public class CivilComplaintVO {
     private java.time.LocalDateTime deadlineAt;
     private LocalDateTime completedAt;
     private String registerId;
+    private String assigneeId;
+    /** 처리기간 일수 (0 = 즉시) */
+    private Integer periodDays;
+    private int extendCount;
+    private String resultType;
+    private String resultText;
+    private String rejectRemedy;
+    private String resultNotify;
+    private String completedBy;
 
     /** 처리기한이 기준일 이내로 남았고 아직 끝나지 않았는지 (목록 강조용, 서비스에서 채움) */
     private boolean imminent;
@@ -77,6 +86,50 @@ public class CivilComplaintVO {
     public boolean isDeadlineHasTime() {
         return deadlineAt != null && !deadlineAt.toLocalTime().equals(java.time.LocalTime.of(18, 0));
     }
+    public String getAssigneeId() { return assigneeId; }
+    public void setAssigneeId(String assigneeId) { this.assigneeId = assigneeId; }
+    public Integer getPeriodDays() { return periodDays; }
+    public void setPeriodDays(Integer periodDays) { this.periodDays = periodDays; }
+    public int getExtendCount() { return extendCount; }
+    public void setExtendCount(int extendCount) { this.extendCount = extendCount; }
+    public String getResultType() { return resultType; }
+    public void setResultType(String resultType) { this.resultType = resultType; }
+    public String getResultText() { return resultText; }
+    public void setResultText(String resultText) { this.resultText = resultText; }
+    public String getRejectRemedy() { return rejectRemedy; }
+    public void setRejectRemedy(String rejectRemedy) { this.rejectRemedy = rejectRemedy; }
+    public String getResultNotify() { return resultNotify; }
+    public void setResultNotify(String resultNotify) { this.resultNotify = resultNotify; }
+    public String getCompletedBy() { return completedBy; }
+    public void setCompletedBy(String completedBy) { this.completedBy = completedBy; }
+
+    public boolean isDone() { return status == CivilStatus.DONE; }
+
+    /** 처리기한이 지났는데 아직 처리하지 않았는지 */
+    public boolean isOverdue() {
+        return !isDone() && deadlineAt != null && LocalDateTime.now().isAfter(deadlineAt);
+    }
+
+    /** 처리기한을 넘겨 완료했는지 */
+    public boolean isLate() {
+        return isDone() && deadlineAt != null && completedAt != null && completedAt.isAfter(deadlineAt);
+    }
+
+    /** 접수 후 지난 날수 */
+    public long getDaysSinceReceived() {
+        return receivedAt == null ? 0 : java.time.temporal.ChronoUnit.DAYS.between(receivedAt.toLocalDate(), LocalDate.now());
+    }
+
+    /** 접수 30일이 지나 진행상황을 알려야 하는지 (시행령 제23조) */
+    public boolean isProgressNoticeDue() {
+        return !isDone() && getDaysSinceReceived() >= 30;
+    }
+
+    /** 처리기간을 연장할 수 있는지 (시행령 제21조: 한 차례, 민원인 동의 시 한 차례 더. 즉시 처리 민원 제외) */
+    public boolean isExtendable() {
+        return !isDone() && periodDays != null && periodDays > 0 && extendCount < 2;
+    }
+
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
     public String getRegisterId() { return registerId; }

@@ -100,6 +100,20 @@ public class DeadlineCalculator {
         }
     }
 
+    /**
+     * 처리기간 연장 후 새 처리기한 (시행령 제21조: 처리기간의 범위에서 연장).
+     * 처리기간 5일 이하 민원은 지금 기한에서 근무시간으로, 6일 이상은 기한 다음 근무일부터 일 단위로 센다.
+     */
+    public LocalDateTime extend(LocalDateTime currentDeadline, int periodDays, int extendDays) {
+        if (extendDays < 1) {
+            throw new IllegalArgumentException("연장 일수는 1일 이상이어야 합니다: " + extendDays);
+        }
+        if (periodDays <= 5) {
+            return addWorkMinutes(currentDeadline, extendDays * 8 * 60L);
+        }
+        return deadline(currentDeadline.toLocalDate().plusDays(1), extendDays).atTime(PM_END);
+    }
+
     /** 근무시간만 세어 minutes 분 뒤의 시각 */
     LocalDateTime addWorkMinutes(LocalDateTime from, long minutes) {
         LocalDateTime t = from.withSecond(0).withNano(0);

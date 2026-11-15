@@ -62,8 +62,11 @@ public class CivilServiceImpl implements CivilService {
         vo.setContent(form.getContent());
         vo.setDept(blankToNull(form.getDept()));
         vo.setAssignee(blankToNull(form.getStaff()));
+        vo.setAssigneeId(vo.getAssignee() == null ? null : blankToNull(form.getStaffId()));
         vo.setStatus(vo.getAssignee() == null ? CivilStatus.RECEIVED : CivilStatus.IN_PROGRESS);
         vo.setReceivedAt(now);
+        vo.setPeriodDays(form.getKind() == CivilKind.LEGAL ? form.getAffair().periodDays()
+                : form.getKind().periodDays(form.isLawInterpretation()));
         LocalDateTime deadlineAt = deadlineFor(form, now);
         vo.setDeadlineAt(deadlineAt);
         vo.setDeadline(deadlineAt.toLocalDate());

@@ -71,7 +71,7 @@
           <tr th:each="c : ${complaints}" th:classappend="${c.imminent} ? 'warn'">
             <td th:text="${c.receiptNo}">2026-000001</td>
             <td style="color:var(--text)" th:text="${c.kind.shortLabel}">질의</td>
-            <td class="left"><a href="#" th:text="${c.title}">[민원 제목]</a></td>
+            <td class="left"><a th:href="@{/civil/{id}(id=${c.complaintId})}" th:text="${c.title}">민원 제목</a></td>
             <td th:text="${c.applicantName}">[민원인]</td>
             <td th:text="${#temporals.format(c.receivedAt, 'yyyy-MM-dd')}">[날짜]</td>
             <td th:text="${c.deadline} ? ${#temporals.format(c.deadline, 'yyyy-MM-dd')} + (${c.deadlineHasTime} ? ' ' + ${#temporals.format(c.deadlineAt, 'HH:mm')} : '') : '—'"
