@@ -34,6 +34,14 @@ public class FileStorage {
 
     public int getMaxCount() { return maxCount; }
 
+    /** 형식을 속인 파일을 올리면 점수를 매긴다 (없어도 동작) */
+    private egovframework.haengjeongnuli.cmm.security.AbuseGuard abuseGuard;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setAbuseGuard(@org.springframework.context.annotation.Lazy egovframework.haengjeongnuli.cmm.security.AbuseGuard abuseGuard) {
+        this.abuseGuard = abuseGuard;
+    }
+
     public FileStorage(@Value("${app.file.upload-dir:./uploads}") String uploadDir,
                        @Value("${app.file.allowed-extensions}") String allowed) throws IOException {
         this.root = Path.of(uploadDir).toAbsolutePath().normalize();
@@ -63,6 +71,9 @@ public class FileStorage {
         String name = cleanName(file.getOriginalFilename());
         String ext = extension(name);
         if (ext == null || !allowedExtensions.contains(ext)) {
+            if (abuseGuard != null && ext != null && ext.matches("exe|jsp|jspx|php|sh|bat|cmd|ps1|war|jar|dll|vbs|js|html?|svg")) {
+                abuseGuard.flag(2, "실행·스크립트 파일 " + name);
+            }
             return "올릴 수 없는 형식입니다: " + name;
         }
         if (file.isEmpty()) {
@@ -70,6 +81,9 @@ public class FileStorage {
         }
         try {
             if (!FileTypeChecker.matches(ext, file::getInputStream)) {
+                if (abuseGuard != null) {
+                    abuseGuard.flag(3, "형식을 속인 파일 " + name);
+                }
                 return "파일 내용이 확장자(" + ext + ")와 맞지 않아 올릴 수 없습니다: " + name;
             }
         } catch (IOException e) {

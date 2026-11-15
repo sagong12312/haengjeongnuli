@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('접속 차단')}"></head>
+<body style="min-height:100vh; display:flex; flex-direction:column;">
+<main style="flex:1; display:flex; align-items:center; justify-content:center; padding:24px;">
+  <div style="width:100%; max-width:560px; display:flex; flex-direction:column; gap:20px;">
+    <section class="panel" role="alert" style="padding:28px; gap:12px;">
+      <h1 style="margin:0; font-size:26px;">이 PC의 접속을 잠시 막았습니다</h1>
+      <p style="margin:0;">짧은 시간에 이상한 요청이 여러 번 들어와 보안을 위해 접속을 막았습니다.
+        <b th:text="${#temporals.format(block.untilAt, 'HH:mm')}">10:30</b>에 저절로 풀립니다.</p>
+      <p class="hint" style="margin:0;" th:text="'사유: ' + ${block['reason']}">사유</p>
+      <div th:replace="~{fragments/layout :: flash}"></div>
+    </section>
+    <form th:unless="${appealed}" class="panel" th:action="@{/blocked/appeal}" method="post" style="padding:28px; gap:14px;">
+      <h2 style="margin:0;">이의 신청</h2>
+      <p class="hint" style="margin:0;">업무 중에 잘못 막혔다면 이름과 상황을 적어 주세요. 관리자가 확인하면 바로 풀립니다.</p>
+      <div class="field"><label for="an">이름 <span class="req">*</span></label><input id="an" name="name" class="input" required maxlength="100"></div>
+      <div class="field"><label for="ac">연락처</label><input id="ac" name="contact" class="input" maxlength="100" placeholder="내선번호 등"></div>
+      <div class="field"><label for="am">상황 <span class="req">*</span></label><textarea id="am" name="message" class="textarea" rows="4" required maxlength="1000"
+        placeholder="예: 공문 본문에 프로그램 코드를 붙여 넣다가 막혔습니다."></textarea></div>
+      <button type="submit" class="btn btn-primary btn-lg">이의 신청</button>
+    </form>
+    <p th:if="${appealed}" class="hint" style="text-align:center;">이의 신청을 받았습니다. 관리자가 확인하고 있습니다.</p>
+  </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

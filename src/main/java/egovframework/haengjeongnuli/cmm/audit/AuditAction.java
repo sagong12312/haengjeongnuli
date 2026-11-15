@@ -6,6 +6,9 @@ public enum AuditAction {
     LOGIN_FAIL("로그인 실패"),
     LOGOUT("로그아웃"),
     SESSION_REVOKED("세션 강제 종료"),
+    ABUSE_BLOCK("이상 요청 주소 차단"),
+    ABUSE_RELEASE("차단 해제"),
+    ABUSE_APPEAL("차단 이의 신청"),
     PASSWORD_CHANGE("비밀번호 변경"),
 
     USER_CREATE("계정 생성"),

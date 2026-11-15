@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('접속 차단 관리')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/admin/users}">시스템 관리</a> › 접속 차단</span><h1>접속 차단 관리</h1></div>
+  <p class="hint" th:text="'공격 문구, 해킹 도구가 찾는 주소, 요청 위조, 권한 없는 접근, 형식을 속인 파일 등에 점수를 매겨 짧은 시간에 ' + ${guard.threshold} + '점이 쌓이면 그 주소를 ' + ${guard.blockMinutes} + '분 동안 막습니다. 서버 자신(127.0.0.1)은 막지 않습니다.'">안내</p>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>지금 차단 중</h2><span class="muted" th:text="${#lists.size(active)} + '곳'">0</span></div>
+    <p th:if="${#lists.isEmpty(active)}" class="hint" style="padding:14px 22px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(active)}"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">접속 주소</th><th scope="col" style="text-align:left">사유</th><th scope="col">차단</th><th scope="col">풀리는 시각</th><th scope="col">해제</th></tr></thead>
+      <tbody><tr th:each="b : ${active}">
+        <td style="color:var(--text); font-weight:700" th:text="${b['ip']}">IP</td><td class="left" th:text="${b['reason']}">사유</td>
+        <td th:text="${#temporals.format(b.blockedAt, 'MM-dd HH:mm')}">시각</td><td th:text="${#temporals.format(b.untilAt, 'HH:mm')}">시각</td>
+        <td><form th:action="@{/admin/blocks/release}" method="post" style="margin:0;"><input type="hidden" name="ip" th:value="${b['ip']}">
+          <button type="submit" class="btn btn-outline btn-sm">해제</button></form></td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>이의 신청</h2></div>
+    <p th:if="${#lists.isEmpty(appeals)}" class="hint" style="padding:14px 22px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(appeals)}"><table class="list" style="min-width:900px">
+      <thead><tr><th scope="col">신청 시각</th><th scope="col">접속 주소</th><th scope="col">이름·연락처</th><th scope="col" style="text-align:left">내용</th><th scope="col">처리</th></tr></thead>
+      <tbody><tr th:each="a : ${appeals}">
+        <td th:text="${#temporals.format(a.createdAt, 'MM-dd HH:mm')}">시각</td><td th:text="${a['ip']}">IP</td>
+        <td th:text="${a['name']} + (${a['contact']} ? ' · ' + ${a['contact']} : '')">이름</td><td class="left" th:text="${a['message']}">내용</td>
+        <td>
+          <div th:if="${a.status == 'OPEN'}" style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+            <form th:action="@{/admin/blocks/appeals/{id}(id=${a['appealId']})}" method="post" style="margin:0;"><input type="hidden" name="accept" value="true">
+              <button type="submit" class="btn btn-primary btn-sm">인정·해제</button></form>
+            <form th:action="@{/admin/blocks/appeals/{id}(id=${a['appealId']})}" method="post" style="margin:0; display:flex; gap:4px;"><input type="hidden" name="accept" value="false">
+              <label class="sr-only" th:for="'an' + ${a['appealId']}">기각 사유</label>
+              <input th:id="'an' + ${a['appealId']}" name="note" class="input" placeholder="기각 사유" style="height:40px; width:120px; font-size:15px;">
+              <button type="submit" class="btn btn-plain btn-sm">기각</button></form>
+          </div>
+          <span th:unless="${a.status == 'OPEN'}" th:text="(${a.status == 'ACCEPTED'} ? '인정' : '기각') + ' · ' + ${a['handledBy']} + (${a['handleNote']} ? ' (' + ${a['handleNote']} + ')' : '')">처리</span>
+        </td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>최근 이상 요청</h2><span class="muted">서버를 다시 시작하면 지워집니다</span></div>
+    <p th:if="${#lists.isEmpty(events)}" class="hint" style="padding:14px 22px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(events)}"><table class="list" style="min-width:700px">
+      <thead><tr><th scope="col">시각</th><th scope="col">접속 주소</th><th scope="col">점수</th><th scope="col" style="text-align:left">내용</th></tr></thead>
+      <tbody><tr th:each="e : ${events}"><td th:text="${#temporals.format(e.at, 'MM-dd HH:mm:ss')}">시각</td><td th:text="${e.ip}">IP</td>
+        <td th:text="${e.points}">1</td><td class="left" th:text="${e.reason}">내용</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush" th:unless="${#lists.isEmpty(history)}">
+    <div class="panel-head"><h2>차단 기록</h2></div>
+    <div class="table-wrap"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">차단</th><th scope="col">접속 주소</th><th scope="col" style="text-align:left">사유</th><th scope="col">해제</th></tr></thead>
+      <tbody><tr th:each="h : ${history}"><td th:text="${#temporals.format(h.blockedAt, 'MM-dd HH:mm')}">시각</td><td th:text="${h['ip']}">IP</td>
+        <td class="left" th:text="${h['reason']}">사유</td>
+        <td th:text="${h['releasedAt']} ? ${h['releasedBy']} + ' · ' + ${#temporals.format(h.releasedAt, 'MM-dd HH:mm')} : '시간 지나 풀림·차단 중'">해제</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
