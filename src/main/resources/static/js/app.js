@@ -78,7 +78,7 @@
         else { location.href = box.getAttribute('data-expired'); }
       });
   }
-  box.querySelector('.session-extend').addEventListener('click', extend);
+  box.addEventListener('click', extend);
   function tick() {
     var remain = total - (now() - lastActivity());
     if (remain <= 0) { location.href = box.getAttribute('data-expired'); return; }

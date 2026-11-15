@@ -39,14 +39,14 @@ a:hover { color: var(--brand-dark); }
 
 /* 헤더 */
 .site-header { background: var(--brand); color: #fff; }
-.site-header .inner { max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; }
+.site-header .inner { max-width: 1360px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; }
 .logo { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; }
 .logo:hover { color: #fff; }
 .logo-mark { width: 40px; height: 40px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; color: var(--brand); }
 .logo-name { display: block; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
 .logo-sub { display: block; font-size: 15px; color: #C9D8EC; }
 .gnb { display: flex; flex-wrap: wrap; gap: 2px; flex: 1 1 420px; }
-.gnb a { color: #E3ECF7; text-decoration: none; padding: 10px 11px; border-radius: 8px; font-size: 18px; white-space: nowrap; }
+.gnb a { color: #E3ECF7; text-decoration: none; padding: 10px 8px; border-radius: 8px; font-size: 18px; white-space: nowrap; }
 .gnb a:hover { background: rgba(255,255,255,0.08); color: #fff; }
 .gnb a[aria-current="page"] { color: #fff; background: rgba(255,255,255,0.14); font-weight: 700; }
 .user-chip { display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12); }
@@ -170,10 +170,10 @@ table.list td a { color: var(--text); text-decoration: none; }
 .b-table th { background: #EEF2F7; }
 
 /* 자동 로그아웃 */
-.session-timer { display:inline-flex; align-items:center; gap:6px; font-size:14px; color:#E3ECF7; }
+.session-timer { display:inline-flex; flex-direction:column; align-items:center; gap:0; padding:4px 8px; font-size:12px; line-height:1.25; color:#E3ECF7; background:transparent; border:1px solid rgba(255,255,255,.35); border-radius:8px; cursor:pointer; }
+.session-timer b { font-size:15px; }
 .session-timer b { font-variant-numeric: tabular-nums; color:#fff; }
 .session-timer.soon b { color:#FFD54F; }
-.session-extend { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; border-radius:6px; padding:2px 8px; cursor:pointer; font-size:13px; }
 .session-warning { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#fff; color:var(--text); border:2px solid var(--brand); border-radius:12px; padding:14px 18px; box-shadow:0 8px 24px rgba(0,0,0,.18); z-index:1000; font-size:18px; display:flex; gap:12px; align-items:center; }
 
 /* 한글 문서 보기 */
