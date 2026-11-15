@@ -26,7 +26,7 @@ import egovframework.haengjeongnuli.finance.service.impl.FinanceMapper;
 import egovframework.haengjeongnuli.user.service.UserService;
 
 /**
- * 재정: 예산 편성(작성 → 승인 요청 → 예산편성과 승인/반려) → 집행, 세입 예산·수납.
+ * 재정: 예산 편성(작성 → 승인 요청 → 예산편성과 승인/반려) → 지출결의(전자결재) → 집행, 세입 예산·수납.
  * <ul>
  *   <li>세출 예산은 세부사업의 소관 부서 직원이 작성하고, 예산편성과(app.finance.budget-dept) 직원이 승인한다.</li>
  *   <li>자기가 요청한 예산은 자기가 승인할 수 없다.</li>
@@ -153,7 +153,7 @@ public class FinanceService implements ApplicationRunner {
         return BudgetVO.REV.equals(b.getKind()) ? canRevenue(u) && isBudgetStaff(u) : isBudgetStaff(u);
     }
 
-    /** 승인된 세출 예산을 집행할 수 있는지 (소관 부서 직원) */
+    /** 승인된 세출 예산으로 지출결의를 올릴 수 있는지 (소관 부서 직원) */
     public boolean canExecute(BudgetVO b, LoginUser u) {
         return BudgetVO.EXP.equals(b.getKind()) && b.isApproved() && u.dept().equals(b.getDeptName());
     }
@@ -204,7 +204,7 @@ public class FinanceService implements ApplicationRunner {
         p.setProgName(n);
         switch (level == null ? "" : level) {
             case ProgramVO.POLICY -> {
-                if (!ProgramVO.TYPES.contains(type)) {
+                if (type == null || !ProgramVO.TYPES.contains(type)) {
                     return Result.fail("정책사업 구분을 고르세요.");
                 }
                 FinCodeVO f = codes(FinCodeVO.FUNC).stream().filter(c -> c.getCode().equals(funcCode)).findFirst().orElse(null);
@@ -476,26 +476,78 @@ public class FinanceService implements ApplicationRunner {
                 .collect(Collectors.toMap(TxnVO::getCode, TxnVO::getAmount));
     }
 
-    /** 승인된 세출 예산을 집행한다. 잔액을 넘을 수 없다 */
-    @Transactional
-    public Result execute(long budgetId, LocalDate date, Long amount, String party, String description, LoginUser by) {
+    /** 지출결의에 고를 수 있는 예산: 그 해 우리 부서의 승인된 세출 예산 */
+    public List<BudgetVO> spendable(LoginUser me, int year) {
+        return budgets(BudgetVO.EXP, year, me.dept(), BudgetVO.APPROVED);
+    }
+
+    /** 결재 진행 중인 지출결의 (잔액에서 미리 뺀 금액) */
+    public List<Map<String, Object>> pendingSpends(long budgetId) {
+        return mapper.selectPendingSpends(budgetId);
+    }
+
+    /** 지금 지출결의로 쓸 수 있는 금액 = 예산액 - 집행액 - 결재 중인 지출결의 금액 */
+    public long available(long budgetId, Long exceptDocId) {
         BudgetVO b = get(budgetId);
-        if (b == null || !canExecute(b, by)) {
-            return Result.fail("승인된 우리 부서 세출 예산만 집행할 수 있습니다.");
+        if (b == null || !b.isApproved()) {
+            return 0;
         }
-        String err = checkTxn(date, amount, party, description, b.getFiscalYear());
-        if (err != null) {
-            return Result.fail(err);
+        return b.getAmount() - mapper.sumUsed(budgetId) - mapper.sumReserved(budgetId, exceptDocId);
+    }
+
+    /**
+     * 지출결의를 올리거나 마지막 결재를 하기 전에 확인한다 (지방회계법 제29조 제2항: 배정된 예산의 범위,
+     * 같은 법 시행령 제33조: 예산액 이내, 소속 연도의 세출과목 일치).
+     *
+     * @param dept        기안 부서 (예산의 소관 부서와 같아야 한다)
+     * @param exceptDocId 확인하는 문서 자신 (결재 중 금액에서 뺀다)
+     * @return 문제가 있으면 안내 문구, 없으면 null
+     */
+    public String checkSpend(Long budgetId, Long amount, String dept, Long exceptDocId) {
+        BudgetVO b = budgetId == null ? null : get(budgetId);
+        if (b == null || !BudgetVO.EXP.equals(b.getKind())) {
+            return "지출할 예산(세부사업·통계목)을 고르세요.";
         }
+        if (!b.isApproved()) {
+            return "승인된 예산에서만 지출할 수 있습니다.";
+        }
+        if (dept == null || !dept.equals(b.getDeptName())) {
+            return "우리 부서 소관 예산에서만 지출할 수 있습니다.";
+        }
+        if (b.getFiscalYear() != LocalDate.now().getYear()) {
+            return b.getFiscalYear() + "년 예산은 올해 지출할 수 없습니다 (소속 연도의 세출과목과 일치해야 합니다).";
+        }
+        if (amount == null || amount <= 0 || amount > MAX_AMOUNT) {
+            return "지출 금액을 원 단위로 1원 이상 입력하세요.";
+        }
+        long avail = available(budgetId, exceptDocId);
+        if (amount > avail) {
+            return String.format("지출 가능 잔액(%,d원)을 넘습니다. 결재 중인 다른 지출결의 금액도 잔액에서 미리 뺍니다.", avail);
+        }
+        return null;
+    }
+
+    /**
+     * 결재가 끝난 지출결의를 집행으로 기록한다. 예산 줄을 잠그고 잔액을 다시 확인한다.
+     * 확인에 실패하면 예외를 던져 결재까지 되돌린다.
+     */
+    @Transactional
+    public TxnVO executeFromDoc(long docId, String title, long budgetId, long amount, String payee, String drafterId,
+                                String drafterName, String drafterDept) {
         mapper.lockBudget(budgetId);
-        long balance = b.getAmount() - mapper.sumUsed(budgetId);
-        if (amount > balance) {
-            return Result.fail(String.format("집행 잔액(%,d원)을 넘을 수 없습니다.", balance));
+        String err = checkSpend(budgetId, amount, drafterDept, docId);
+        if (err != null) {
+            throw new IllegalStateException(err);
         }
-        TxnVO t = txn(BudgetVO.EXP, b.getFiscalYear(), budgetId, b.getCode(), date, amount, party, description, by);
+        BudgetVO b = get(budgetId);
+        TxnVO t = txn(BudgetVO.EXP, b.getFiscalYear(), budgetId, b.getCode(), LocalDate.now(), amount, payee,
+                "지출결의: " + (title.length() > 480 ? title.substring(0, 480) : title), null);
+        t.setCreatedBy(drafterId);
+        t.setCreatedName(drafterName);
         t.setDeptName(b.getDeptName());
+        t.setDocId(docId);
         mapper.insertTxn(t);
-        return Result.ok(String.format("%,d원을 집행했습니다.", amount), t.getTxnId());
+        return t;
     }
 
     /** 세입 수납을 기록한다 (세입 담당) */
@@ -526,10 +578,12 @@ public class FinanceService implements ApplicationRunner {
             return Result.fail("취소할 수 없는 기록입니다.");
         }
         boolean rev = BudgetVO.REV.equals(t.getKind());
+        // 세출 집행은 결재가 끝난 지출결의로 생기므로 예산편성과만 취소(정정)한다
         boolean allowed = rev ? canRevenue(by) && (by.getLoginId().equals(t.getCreatedBy()) || isBudgetStaff(by))
-                : by.getLoginId().equals(t.getCreatedBy()) || isBudgetStaff(by);
+                : isBudgetStaff(by);
         if (!allowed) {
-            return Result.fail("기록한 직원" + (rev ? "" : "이나 " + budgetDept + " 직원") + "만 취소할 수 있습니다.");
+            return Result.fail(rev ? "기록한 직원이나 " + budgetDept + " 직원만 취소할 수 있습니다."
+                    : "집행 취소는 " + budgetDept + " 직원만 할 수 있습니다.");
         }
         mapper.cancelTxn(txnId, by.getLoginId(), LocalDateTime.now());
         return Result.ok((rev ? "수납" : "집행") + " 기록을 취소했습니다.", t.getBudgetId());
@@ -567,8 +621,10 @@ public class FinanceService implements ApplicationRunner {
         t.setAmount(amount);
         t.setParty(party == null || party.isBlank() ? null : party.trim());
         t.setDescription(description.trim());
-        t.setCreatedBy(by.getLoginId());
-        t.setCreatedName(by.getUserName());
+        if (by != null) {
+            t.setCreatedBy(by.getLoginId());
+            t.setCreatedName(by.getUserName());
+        }
         t.setCreatedAt(LocalDateTime.now());
         return t;
     }

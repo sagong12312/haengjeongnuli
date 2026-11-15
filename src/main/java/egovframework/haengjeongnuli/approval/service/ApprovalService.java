@@ -11,10 +11,13 @@ import egovframework.haengjeongnuli.cmm.LoginUser;
 /** 전자결재 서비스 */
 public interface ApprovalService {
 
-    enum Result { OK, NOT_FOUND, FORBIDDEN, NOT_YOUR_TURN, BAD_STATE }
+    enum Result { OK, NOT_FOUND, FORBIDDEN, NOT_YOUR_TURN, BAD_STATE, BUDGET_SHORT }
 
     /** 입력값을 확인한다. 문제가 있으면 입력칸 이름 → 안내 문구 (상신이면 더 엄격하게) */
-    Map<String, String> validate(ApprovalForm form, boolean submit, LoginUser me);
+    Map<String, String> validate(ApprovalForm form, boolean submit, LoginUser me, Long docId);
+
+    /** 지출결의를 지금 마칠 수 없는 이유 (예산 잔액 등). 문제 없으면 null */
+    String spendingProblem(long docId);
 
     /** 새 문서를 임시저장하거나 상신하고 문서 번호(DOC_ID)를 돌려준다 */
     long create(ApprovalForm form, boolean submit, List<MultipartFile> files, LoginUser me) throws IOException;

@@ -11,19 +11,22 @@
         D.DOC_ID, D.DOC_NO, D.DOC_YEAR, D.DOC_SEQ, D.KIND, D.RETENTION, D.DISCLOSURE, D.RESTRICT_REASONS,
         D.RESTRICT_DETAIL, D.RECEIVER_TYPE, D.RECEIVER, D.VIA, D.REFERENCE_TO, D.SENDER, D.EFFECTIVE_DATE,
         D.TITLE, D.STATUS, D.DRAFTER_ID, D.DRAFTER_NAME, D.DRAFTER_POSITION, D.DRAFTER_DEPT,
-        D.CREATED_AT, D.UPDATED_AT, D.SUBMITTED_AT, D.COMPLETED_AT, D.RECEIVED_BY, D.RECEIVED_AT, D.RECEIPT_NO
+        D.CREATED_AT, D.UPDATED_AT, D.SUBMITTED_AT, D.COMPLETED_AT, D.RECEIVED_BY, D.RECEIVED_AT, D.RECEIPT_NO,
+        D.BUDGET_ID, D.PAY_AMOUNT, D.PAYEE, D.PAY_METHOD
     </sql>
 
     <insert id="insertDoc" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
         INSERT INTO APPROVAL_DOC (
             DOC_ID, KIND, RETENTION, DISCLOSURE, RESTRICT_REASONS, RESTRICT_DETAIL, RECEIVER_TYPE, RECEIVER,
             VIA, REFERENCE_TO, SENDER, EFFECTIVE_DATE, TITLE, BODY, STATUS, DRAFTER_ID, DRAFTER_NAME,
-            DRAFTER_POSITION, DRAFTER_DEPT, CREATED_AT, SUBMITTED_AT, DELETED_YN
+            DRAFTER_POSITION, DRAFTER_DEPT, CREATED_AT, SUBMITTED_AT, DELETED_YN,
+            BUDGET_ID, PAY_AMOUNT, PAYEE, PAY_METHOD
         ) VALUES (
             #{docId}, #{kind}, #{retention}, #{disclosure}, #{restrictReasons}, #{restrictDetail}, #{receiverType}, #{receiver},
             #{via}, #{referenceTo}, #{sender}, #{effectiveDate, jdbcType=DATE}, #{title}, #{body, jdbcType=CLOB}, #{status},
             #{drafterId}, #{drafterName}, #{drafterPosition}, #{drafterDept}, #{createdAt},
-            #{submittedAt, jdbcType=TIMESTAMP}, 'N'
+            #{submittedAt, jdbcType=TIMESTAMP}, 'N',
+            #{budgetId, jdbcType=NUMERIC}, #{payAmount, jdbcType=NUMERIC}, #{payee}, #{payMethod}
         )
     </insert>
 
@@ -34,7 +37,9 @@
                RESTRICT_REASONS = #{restrictReasons}, RESTRICT_DETAIL = #{restrictDetail},
                RECEIVER_TYPE = #{receiverType}, RECEIVER = #{receiver}, VIA = #{via}, REFERENCE_TO = #{referenceTo},
                SENDER = #{sender}, EFFECTIVE_DATE = #{effectiveDate, jdbcType=DATE}, TITLE = #{title},
-               BODY = #{body, jdbcType=CLOB}, UPDATED_AT = #{updatedAt}
+               BODY = #{body, jdbcType=CLOB}, UPDATED_AT = #{updatedAt},
+               BUDGET_ID = #{budgetId, jdbcType=NUMERIC}, PAY_AMOUNT = #{payAmount, jdbcType=NUMERIC},
+               PAYEE = #{payee}, PAY_METHOD = #{payMethod}
          WHERE DOC_ID = #{docId} AND STATUS = 'DRAFT' AND DELETED_YN = 'N'
     </update>
 

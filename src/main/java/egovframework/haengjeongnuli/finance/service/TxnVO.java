@@ -22,6 +22,14 @@ public class TxnVO {
     private String cancelledYn = "N";
     private String cancelledBy;
     private LocalDateTime cancelledAt;
+    /** 이 집행을 만든 지출결의 문서 */
+    private Long docId;
+    private String docNo;
+
+    public Long getDocId() { return docId; }
+    public void setDocId(Long docId) { this.docId = docId; }
+    public String getDocNo() { return docNo; }
+    public void setDocNo(String docNo) { this.docNo = docNo; }
 
     public boolean isCancelled() { return "Y".equals(cancelledYn); }
 

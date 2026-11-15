@@ -15,6 +15,10 @@ public class ApprovalForm {
     /** 정보공개법 제9조 제1항 각 호 */
     public static final List<String> REASONS = List.of("1", "2", "3", "4", "5", "6", "7", "8");
     public static final int MAX_REVIEWERS = 4;
+    /** 지출결의 문서 종류 */
+    public static final String SPENDING = "지출결의";
+    /** 지급 방법 (지방회계법 시행령 제36조·제37조: 계좌 지급이 원칙, 현금은 제52조의 경우) */
+    public static final List<String> PAY_METHODS = List.of("계좌이체", "현금");
 
     private String kind = "일반 기안";
     private String retention = "1년";
@@ -34,6 +38,24 @@ public class ApprovalForm {
     private List<String> reviewers = new ArrayList<>();
     /** 결재권자 아이디 */
     private String finalApprover;
+
+    // 지출결의
+    private Long budgetId;
+    /** 쉼표가 들어간 입력을 받는다 */
+    private String payAmount;
+    private String payee;
+    private String payMethod = "계좌이체";
+
+    public boolean isSpending() { return SPENDING.equals(kind); }
+
+    /** "1,234,000" → 1234000, 잘못된 값이면 null */
+    public Long payAmountValue() {
+        if (payAmount == null) {
+            return null;
+        }
+        String t = payAmount.replace(",", "").replace("원", "").trim();
+        return t.matches("\\d{1,15}") ? Long.valueOf(t) : null;
+    }
 
     /** 빈 칸을 뺀 검토자 */
     public List<String> realReviewers() {
@@ -64,6 +86,10 @@ public class ApprovalForm {
         f.effectiveDate = d.getEffectiveDate();
         f.title = d.getTitle();
         f.body = d.getBody();
+        f.budgetId = d.getBudgetId();
+        f.payAmount = d.getPayAmount() == null ? null : String.format("%,d", d.getPayAmount());
+        f.payee = d.getPayee();
+        f.payMethod = d.getPayMethod() == null ? "계좌이체" : d.getPayMethod();
         List<ApprovalLineVO> lines = d.getLines();
         for (int i = 0; i < lines.size(); i++) {
             if (i == lines.size() - 1) {
@@ -75,6 +101,14 @@ public class ApprovalForm {
         return f;
     }
 
+    public Long getBudgetId() { return budgetId; }
+    public void setBudgetId(Long budgetId) { this.budgetId = budgetId; }
+    public String getPayAmount() { return payAmount; }
+    public void setPayAmount(String payAmount) { this.payAmount = payAmount; }
+    public String getPayee() { return payee; }
+    public void setPayee(String payee) { this.payee = payee; }
+    public String getPayMethod() { return payMethod; }
+    public void setPayMethod(String payMethod) { this.payMethod = payMethod; }
     public String getKind() { return kind; }
     public void setKind(String kind) { this.kind = kind; }
     public String getRetention() { return retention; }

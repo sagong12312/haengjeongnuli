@@ -55,5 +55,7 @@ public interface FinanceMapper {
     long sumUsed(@Param("budgetId") long budgetId);
     /** 세입 목별 수납액 합계 */
     List<TxnVO> sumReceiptsByCode(@Param("year") int year);
+    long sumReserved(@Param("budgetId") long budgetId, @Param("exceptDocId") Long exceptDocId);
+    List<java.util.Map<String, Object>> selectPendingSpends(@Param("budgetId") long budgetId);
     int cancelTxn(@Param("txnId") long txnId, @Param("by") String by, @Param("at") LocalDateTime at);
 }

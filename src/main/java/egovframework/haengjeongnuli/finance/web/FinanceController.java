@@ -30,7 +30,7 @@ import egovframework.haengjeongnuli.finance.service.ProgramVO;
 import egovframework.haengjeongnuli.finance.service.TxnVO;
 import jakarta.servlet.http.HttpServletResponse;
 
-/** 재정·세무: 세출 예산 편성·집행(area=fin), 세입 예산·수납(area=rev, 세입 담당만) */
+/** 재정·세무: 세출 예산 편성(area=fin, 집행은 전자결재 지출결의로), 세입 예산·수납(area=rev, 세입 담당만) */
 @Controller
 public class FinanceController {
 
@@ -172,6 +172,8 @@ public class FinanceController {
         model.addAttribute("canEdit", finance.canEdit(b, me));
         model.addAttribute("canReview", finance.canReview(b, me));
         model.addAttribute("canExecute", finance.canExecute(b, me));
+        model.addAttribute("pendingSpends", BudgetVO.EXP.equals(b.getKind()) ? finance.pendingSpends(id) : List.of());
+        model.addAttribute("available", b.isApproved() ? finance.available(id, null) : 0L);
         model.addAttribute("isBudgetStaff", finance.isBudgetStaff(me));
         model.addAttribute("today", LocalDate.now());
         return "finance/budget-view";
@@ -267,20 +269,6 @@ public class FinanceController {
     }
 
     // ===== 집행·수납 =====
-
-    @PostMapping("/finance/budget/{id}/execute")
-    public String execute(@AuthenticationPrincipal LoginUser me, @PathVariable long id,
-                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                          @RequestParam(required = false) String amount, @RequestParam(required = false) String party,
-                          @RequestParam(required = false) String description, RedirectAttributes ra) {
-        visible(id, me);
-        Result r = finance.execute(id, date, parseAmount(amount), party, description, me);
-        if (r.ok()) {
-            auditService.record(AuditAction.FIN_EXECUTE, "예산 " + id, amount + "원 " + description);
-        }
-        ra.addFlashAttribute("message", r.message());
-        return "redirect:/finance/budget/" + id + "#txns";
-    }
 
     @PostMapping("/finance/receipts")
     public String receipt(@AuthenticationPrincipal LoginUser me, @RequestParam int year,

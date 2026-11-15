@@ -70,6 +70,37 @@
         </div>
       </div>
 
+      <!-- 지출결의: 문서 종류가 지출결의일 때 -->
+      <fieldset id="spend" th:hidden="${approvalForm.kind != '지출결의'}" style="margin:0; border:2px solid var(--line); border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+        <legend style="padding:0 6px; font-size:19px; font-weight:700;">지출 내용</legend>
+        <p th:if="${#lists.isEmpty(spendable)}" class="hint" style="margin:0;">올해 우리 부서의 승인된 세출 예산이 없습니다. 재정 화면에서 예산을 작성해 승인을 받은 뒤 지출결의를 올리세요.</p>
+        <div class="field">
+          <label for="sbudget">예산 (세부사업 / 통계목) <span class="req">*</span></label>
+          <select id="sbudget" th:field="*{budgetId}" class="select">
+            <option value="">선택</option>
+            <option th:each="b : ${spendable}" th:value="${b.budgetId}"
+                    th:text="${b.detailName} + ' / ' + ${b.code} + ' ' + ${b.codeName} + ' — 지출 가능 ' + ${#numbers.formatInteger(available[b.budgetId], 1, 'COMMA')} + '원'">예산</option>
+          </select>
+        </div>
+        <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+          <div class="field">
+            <label for="samount">지출 금액(원) <span class="req">*</span></label>
+            <input id="samount" th:field="*{payAmount}" class="input" inputmode="numeric" placeholder="예: 3,450,000">
+            <p class="hint" id="samount-text" aria-live="polite" style="margin:0;"></p>
+          </div>
+          <div class="field">
+            <label for="spayee">채권자(지급받는 곳) <span class="req">*</span></label>
+            <input id="spayee" th:field="*{payee}" class="input" maxlength="200" placeholder="예: (주)문구나라">
+          </div>
+          <div class="field">
+            <label for="smethod">지급 방법</label>
+            <select id="smethod" th:field="*{payMethod}" class="select"><option th:each="m : ${payMethods}" th:value="${m}" th:text="${m}">계좌이체</option></select>
+          </div>
+        </div>
+        <p class="hint" style="margin:0;">배정된 예산 범위에서만 지출할 수 있습니다(지방회계법 제29조). 상신할 때와 마지막 결재 때 잔액을 확인하고, 결재가 끝나면 예산 집행으로 기록합니다.
+          현금 지급은 계좌 입금이 불가능한 경우 등 지방회계법 시행령 제52조의 경우에만 씁니다.</p>
+      </fieldset>
+
       <!-- 비공개 사유: 부분공개·비공개일 때 -->
       <fieldset id="restrict" th:hidden="${approvalForm.disclosure == '공개'}" style="margin:0; border:2px solid var(--orange-line); background:#FFF8F0; border-radius:12px; padding:18px 20px; display:flex; flex-direction:column; gap:12px;">
         <legend style="padding:0 6px; font-size:19px; font-weight:700; color:var(--orange-fg);">비공개 사유 (정보공개법 제9조 제1항, 하나 이상 선택) <span class="req">*</span></legend>
@@ -160,6 +191,31 @@
     var open = document.getElementById('dopen');
     var restrict = document.getElementById('restrict');
     open.addEventListener('change', function () { restrict.hidden = open.value === '공개'; });
+
+    var kind = document.getElementById('dkind');
+    var spend = document.getElementById('spend');
+    kind.addEventListener('change', function () { spend.hidden = kind.value !== '지출결의'; });
+
+    // 지출 금액: 세 자리마다 쉼표, 한글 금액
+    var D = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'], S = ['', '십', '백', '천'], B = ['', '만', '억', '조'];
+    function hangul(n) {
+      var s = String(n), out = '';
+      for (var i = 0; i < s.length; i++) {
+        var d = +s[i], pos = s.length - 1 - i;
+        if (d) { out += D[d] + S[pos % 4]; }
+        if (pos % 4 === 0 && pos > 0 && /[1-9]/.test(s.substring(Math.max(0, i - 3), i + 1))) { out += B[pos / 4]; }
+      }
+      return out || '영';
+    }
+    var amt = document.getElementById('samount'), amtText = document.getElementById('samount-text');
+    function showAmount() {
+      var raw = amt.value.replace(/[^0-9]/g, '');
+      if (!raw) { amtText.textContent = ''; return; }
+      amt.value = Number(raw).toLocaleString('ko-KR');
+      amtText.textContent = '금' + amt.value + '원(금' + hangul(raw.replace(/^0+/, '') || '0') + '원)';
+    }
+    amt.addEventListener('input', showAmount);
+    showAmount();
 
     var recvType = document.getElementById('drecvtype');
     recvType.addEventListener('change', function () {

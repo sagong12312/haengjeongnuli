@@ -139,17 +139,44 @@ class FinanceTest {
         assertThat(finance.get(id).getStatus()).isEqualTo(BudgetVO.APPROVED);
         assertThat(body(writer.mvc(), "/finance/budget/" + id)).contains("금1,000,000원(금일백만원)");
 
-        // 집행: 잔액을 넘을 수 없다
-        writer.mvc().perform(post("/finance/budget/" + id + "/execute").param("date", LocalDate.now().toString())
-                .param("amount", "600,000").param("description", "복사용지"))
-                .andExpect(flash().attribute("message", "600,000원을 집행했습니다."));
-        writer.mvc().perform(post("/finance/budget/" + id + "/execute").param("date", LocalDate.now().toString())
-                        .param("amount", "500000").param("description", "토너"))
-                .andExpect(flash().attribute("message", "집행 잔액(400,000원)을 넘을 수 없습니다."));
+        // 집행은 전자결재 지출결의로 한다
+        Staff chief = staff("과장", dept, false);
+        MvcResult first = writer.mvc().perform(post("/approval/draft").param("action", "send").param("kind", "지출결의")
+                .param("title", "복사용지 구입").param("body", "복사용지를 구입하고자 합니다.")
+                .param("budgetId", "" + id).param("payAmount", "600,000").param("payee", "(주)문구나라")
+                .param("payMethod", "계좌이체").param("finalApprover", chief.u().getLoginId())).andReturn();
+        assertThat(first.getResponse().getStatus()).as(first.getResponse().getContentAsString(StandardCharsets.UTF_8)).isEqualTo(302);
+        long doc1 = Long.parseLong(first.getResponse().getRedirectedUrl().replaceAll("\\D", ""));
+        // 결재 중인 600,000원은 잔액에서 미리 빠지므로 500,000원은 올릴 수 없다
+        writer.mvc().perform(post("/approval/draft").param("action", "send").param("kind", "지출결의")
+                        .param("title", "토너 구입").param("body", "토너").param("budgetId", "" + id)
+                        .param("payAmount", "500000").param("payee", "가게").param("finalApprover", chief.u().getLoginId()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("지출 가능 잔액(400,000원)")));
+        assertThat(finance.get(id).getUsed()).isZero();
+        assertThat(body(writer.mvc(), "/finance/budget/" + id)).contains("결재 중인 지출결의").contains("복사용지 구입");
+
+        // 마지막 결재가 끝나면 집행으로 기록된다
+        chief.mvc().perform(post("/approval/" + doc1 + "/approve"))
+                .andExpect(flash().attribute("message", containsString("지출 600,000원을 예산 집행으로 기록했습니다")));
+        assertThat(finance.get(id).getUsed()).isEqualTo(600_000L);
+        assertThat(finance.txnsOf(id).get(0).getDocId()).isEqualTo(doc1);
+        assertThat(finance.txnsOf(id).get(0).getParty()).isEqualTo("(주)문구나라");
+        assertThat(body(writer.mvc(), "/approval/" + doc1)).contains("금600,000원(금육십만원)");
+        assertThat(finance.available(id, null)).isEqualTo(400_000L);
+
+        // 다른 부서 예산으로는 지출결의를 올릴 수 없다
+        other.mvc().perform(post("/approval/draft").param("action", "send").param("kind", "지출결의")
+                        .param("title", "남의 예산").param("body", "x").param("budgetId", "" + id)
+                        .param("payAmount", "1000").param("payee", "가게").param("finalApprover", chief.u().getLoginId()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("우리 부서 소관 예산에서만")));
+
+        // 집행 취소(정정)는 예산편성과만
         long txn = finance.txnsOf(id).get(0).getTxnId();
-        other.mvc().perform(post("/finance/txn/" + txn + "/cancel"))
-                .andExpect(flash().attribute("message", containsString("만 취소할 수 있습니다")));
-        writer.mvc().perform(post("/finance/txn/" + txn + "/cancel"));
+        writer.mvc().perform(post("/finance/txn/" + txn + "/cancel"))
+                .andExpect(flash().attribute("message", containsString("직원만 할 수 있습니다")));
+        planner.mvc().perform(post("/finance/txn/" + txn + "/cancel"));
         assertThat(finance.get(id).getUsed()).isZero();
 
         // 예산편성과 직원이 자기 부서 예산을 요청하면 다른 직원이 승인해야 한다

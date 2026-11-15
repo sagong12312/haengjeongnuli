@@ -57,29 +57,39 @@
       <span th:if="${b.approved}" class="muted" th:text="'집행 ' + ${#numbers.formatInteger(b.used, 1, 'COMMA')} + '원 · 잔액 ' + ${#numbers.formatInteger(b.balance, 1, 'COMMA')} + '원 · 집행률 ' + ${b.rate} + '%'">잔액</span>
     </div>
     <p th:unless="${b.approved}" class="hint">승인된 예산만 집행할 수 있습니다.</p>
-    <form th:if="${canExecute}" th:action="@{/finance/budget/{id}/execute(id=${b.budgetId})}" method="post" class="grid-fields"
-          style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); align-items:end;">
-      <div class="field"><label for="xdate">집행일 <span class="req">*</span></label><input id="xdate" name="date" type="date" class="input" required th:value="${today}"></div>
-      <div class="field"><label for="xamount">금액(원) <span class="req">*</span></label><input id="xamount" name="amount" class="input" inputmode="numeric" required></div>
-      <div class="field"><label for="xparty">지급처</label><input id="xparty" name="party" class="input" maxlength="200"></div>
-      <div class="field"><label for="xdesc">내용 <span class="req">*</span></label><input id="xdesc" name="description" class="input" maxlength="500" required placeholder="예: 사무용품 구입"></div>
-      <div class="field"><button type="submit" class="btn btn-primary">집행</button></div>
-    </form>
+    <div th:if="${b.approved}" class="stat-grid">
+      <div class="stat"><small>예산액</small><strong th:text="${#numbers.formatInteger(b.amount, 1, 'COMMA')} + '원'">0</strong></div>
+      <div class="stat"><small>집행액</small><strong th:text="${#numbers.formatInteger(b.used, 1, 'COMMA')} + '원'">0</strong></div>
+      <div class="stat"><small>결재 중인 지출결의</small><strong th:text="${#numbers.formatInteger(b.balance - available, 1, 'COMMA')} + '원'">0</strong></div>
+      <div class="stat blue"><small style="color:#1D3A5F">지출 가능 잔액</small><strong th:text="${#numbers.formatInteger(available, 1, 'COMMA')} + '원'">0</strong></div>
+    </div>
+    <div th:if="${canExecute}" style="display:flex; flex-wrap:wrap; align-items:center; gap:12px;">
+      <a class="btn btn-primary" th:href="@{/approval/draft(kind='지출결의',budgetId=${b.budgetId})}">지출결의 작성</a>
+      <span class="hint" style="margin:0;">지출은 전자결재 '지출결의'로 합니다. 결재가 끝나면 여기에 집행으로 기록됩니다.</span>
+    </div>
+    <div th:unless="${#lists.isEmpty(pendingSpends)}">
+      <b>결재 중인 지출결의</b>
+      <ul style="margin:6px 0 0; padding-left:22px;">
+        <li th:each="p : ${pendingSpends}"><a th:href="@{/approval/{id}(id=${p.docId})}" th:text="${p.title}">제목</a>
+          <span class="muted" th:text="' · ' + ${#numbers.formatInteger(p.amount, 1, 'COMMA')} + '원 · ' + ${p.drafterName}">금액</span></li>
+      </ul>
+    </div>
     <p th:if="${#lists.isEmpty(txns)}" class="hint">집행 기록이 없습니다.</p>
     <div class="table-wrap" th:unless="${#lists.isEmpty(txns)}">
       <table class="list" style="min-width:720px">
         <thead><tr><th scope="col">집행일</th><th scope="col" style="text-align:right">금액</th><th scope="col">지급처</th>
-          <th scope="col" style="text-align:left">내용</th><th scope="col">기록</th><th scope="col"></th></tr></thead>
+          <th scope="col" style="text-align:left">내용</th><th scope="col">결재 문서</th><th scope="col">기안</th><th scope="col"></th></tr></thead>
         <tbody>
           <tr th:each="t : ${txns}" th:style="${t.cancelled} ? 'opacity:.55; text-decoration:line-through;' : null">
             <td th:text="${#temporals.format(t.txnDate, 'yyyy-MM-dd')}">날짜</td>
             <td class="right" th:text="${#numbers.formatInteger(t.amount, 1, 'COMMA')}">0</td>
             <td th:text="${t.party} ?: '—'">지급처</td>
             <td class="left" th:text="${t.description}">내용</td>
+            <td><a th:if="${t.docId}" th:href="@{/approval/{id}(id=${t.docId})}" th:text="${t.docNo} ?: '문서 보기'">문서</a><span th:unless="${t.docId}">—</span></td>
             <td th:text="${t.createdName}">기록</td>
             <td>
               <span th:if="${t.cancelled}" class="badge badge-gray">취소</span>
-              <form th:if="${!t.cancelled and (t.createdBy == loginUser.loginId or isBudgetStaff)}" th:action="@{/finance/txn/{id}/cancel(id=${t.txnId})}" method="post" style="margin:0;"
+              <form th:if="${!t.cancelled and isBudgetStaff}" th:action="@{/finance/txn/{id}/cancel(id=${t.txnId})}" method="post" style="margin:0;"
                     onsubmit="return confirm('이 집행 기록을 취소할까요?');"><button type="submit" class="btn btn-plain" style="height:36px; font-size:15px; padding:0 10px;">취소</button></form>
             </td>
           </tr>

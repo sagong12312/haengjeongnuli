@@ -27,6 +27,7 @@ import egovframework.haengjeongnuli.approval.service.ApprovalService;
 import egovframework.haengjeongnuli.cmm.LoginUser;
 import egovframework.haengjeongnuli.cmm.file.FileStorage;
 import egovframework.haengjeongnuli.cmm.notification.NotificationService;
+import egovframework.haengjeongnuli.finance.service.FinanceService;
 import egovframework.haengjeongnuli.user.service.UserService;
 
 @Service("approvalService")
@@ -38,30 +39,32 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final UserService userService;
     private final FileStorage fileStorage;
     private final NotificationService notificationService;
+    private final FinanceService finance;
 
     public ApprovalServiceImpl(ApprovalMapper mapper, UserService userService, FileStorage fileStorage,
-                               NotificationService notificationService) {
+                               NotificationService notificationService, FinanceService finance) {
         this.mapper = mapper;
         this.userService = userService;
         this.fileStorage = fileStorage;
         this.notificationService = notificationService;
+        this.finance = finance;
     }
 
     @Override
-    public Map<String, String> validate(ApprovalForm f, boolean submit, LoginUser me) {
+    public Map<String, String> validate(ApprovalForm f, boolean submit, LoginUser me, Long docId) {
         Map<String, String> err = new LinkedHashMap<>();
         if (blank(f.getTitle())) {
             err.put("title", "제목을 입력하세요.");
         } else if (f.getTitle().trim().length() > 300) {
             err.put("title", "제목은 300자 이내로 입력하세요.");
         }
-        if (!ApprovalForm.KINDS.contains(f.getKind())) {
+        if (f.getKind() == null || !ApprovalForm.KINDS.contains(f.getKind())) {
             err.put("kind", "문서 종류를 고르세요.");
         }
-        if (!ApprovalForm.RETENTIONS.contains(f.getRetention())) {
+        if (f.getRetention() == null || !ApprovalForm.RETENTIONS.contains(f.getRetention())) {
             err.put("retention", "보존기간을 고르세요.");
         }
-        if (!ApprovalForm.DISCLOSURES.contains(f.getDisclosure())) {
+        if (f.getDisclosure() == null || !ApprovalForm.DISCLOSURES.contains(f.getDisclosure())) {
             err.put("disclosure", "공개 여부를 고르세요.");
         }
         if (!"internal".equals(f.getReceiverType()) && !"external".equals(f.getReceiverType())) {
@@ -96,6 +99,27 @@ public class ApprovalServiceImpl implements ApprovalService {
             err.put("reviewers", "결재선에는 사용 중인 다른 직원만 넣을 수 있습니다.");
         } else if (new HashSet<>(all).size() != all.size()) {
             err.put("reviewers", "같은 직원을 결재선에 두 번 넣을 수 없습니다.");
+        }
+
+        if (f.isSpending()) {
+            if (f.getPayMethod() == null || !ApprovalForm.PAY_METHODS.contains(f.getPayMethod())) {
+                err.put("payMethod", "지급 방법을 고르세요.");
+            }
+            if (!blank(f.getPayAmount()) && f.payAmountValue() == null) {
+                err.put("payAmount", "지출 금액은 숫자로 입력하세요.");
+            }
+            if (len(f.getPayee()) > 200) {
+                err.put("payee", "채권자(지급받는 곳)는 200자 이내로 입력하세요.");
+            }
+            if (submit) {
+                if (blank(f.getPayee())) {
+                    err.put("payee", "채권자(지급받는 곳)를 입력하세요.");
+                }
+                String problem = finance.checkSpend(f.getBudgetId(), f.payAmountValue(), me.getDeptName(), docId);
+                if (problem != null) {
+                    err.putIfAbsent(f.getBudgetId() == null ? "budgetId" : "payAmount", problem);
+                }
+            }
         }
 
         if (submit) {
@@ -234,6 +258,10 @@ public class ApprovalServiceImpl implements ApprovalService {
             return Result.NOT_YOUR_TURN;
         }
         ApprovalLineVO line = d.getPendingLine();
+        boolean last = d.getLines().stream().noneMatch(l -> l.getStepNo() == line.getStepNo() + 1);
+        if (last && d.isSpending() && spendingProblem(d) != null) {
+            return Result.BUDGET_SHORT;
+        }
         LocalDateTime now = LocalDateTime.now();
         if (mapper.actLine(line.getLineId(), me.getLoginId(), ApprovalLineVO.APPROVED, trim(opinion, 1000), now) == 0) {
             return Result.NOT_YOUR_TURN;
@@ -250,6 +278,11 @@ public class ApprovalServiceImpl implements ApprovalService {
             throw new IllegalStateException("결재 상태가 바뀌었습니다");
         }
         String docNo = assignNumber(d, now.getYear());
+        if (d.isSpending()) {
+            // 지출결의는 결재가 끝나면 집행으로 기록한다 (잔액이 모자라면 예외로 결재까지 되돌린다)
+            finance.executeFromDoc(docId, d.getTitle(), d.getBudgetId(), d.getPayAmount(), d.getPayee(),
+                    d.getDrafterId(), d.getDrafterName(), d.getDrafterDept());
+        }
         notificationService.notify(d.getDrafterId(),
                 "'" + d.getTitle() + "' 결재가 끝났습니다. (문서번호 " + docNo + ")", link(docId));
         if (d.isExternal() && !blank(d.getReceiver())) {
@@ -295,6 +328,19 @@ public class ApprovalServiceImpl implements ApprovalService {
 
     private static String deptKey(String dept) {
         return blank(dept) ? "행정누리" : dept.trim();
+    }
+
+    @Override
+    public String spendingProblem(long docId) {
+        ApprovalDocVO d = get(docId);
+        return d == null ? null : spendingProblem(d);
+    }
+
+    private String spendingProblem(ApprovalDocVO d) {
+        if (!d.isSpending()) {
+            return null;
+        }
+        return finance.checkSpend(d.getBudgetId(), d.getPayAmount(), d.getDrafterDept(), d.getDocId());
     }
 
     @Override
@@ -410,6 +456,11 @@ public class ApprovalServiceImpl implements ApprovalService {
         d.setEffectiveDate(f.getEffectiveDate());
         d.setTitle(f.getTitle().trim());
         d.setBody(f.getBody());
+        boolean spending = f.isSpending();
+        d.setBudgetId(spending ? f.getBudgetId() : null);
+        d.setPayAmount(spending ? f.payAmountValue() : null);
+        d.setPayee(spending ? trim(f.getPayee(), 200) : null);
+        d.setPayMethod(spending ? f.getPayMethod() : null);
     }
 
     /** 검토자들 다음에 결재권자. 결재권자가 비어 있으면(임시저장) 검토자만 둔다. */

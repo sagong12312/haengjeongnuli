@@ -83,6 +83,19 @@
     </dl>
   </section>
 
+  <section class="panel" th:if="${doc.spending}" aria-labelledby="spend-title">
+    <h2 id="spend-title">지출 내용</h2>
+    <dl class="doc-info">
+      <div><dt>예산</dt><dd>
+        <a th:if="${budget}" th:href="@{/finance/budget/{id}(id=${budget.budgetId})}"
+           th:text="${budget.detailName} + ' / ' + ${budget.code} + ' ' + ${budget.codeName}">예산</a></dd></div>
+      <div><dt>금액</dt><dd style="font-weight:700;" th:text="${payText}">금액</dd></div>
+      <div><dt>채권자</dt><dd th:text="${doc.payee}">채권자</dd></div>
+      <div><dt>지급 방법</dt><dd th:text="${doc.payMethod}">계좌이체</dd></div>
+      <div><dt>집행</dt><dd th:text="${doc.status == 'DONE'} ? '결재 완료와 함께 예산 집행으로 기록됨' : (${doc.status == 'PROG'} ? '결재 중 (잔액에서 미리 빼 둠)' : '집행 안 됨')">상태</dd></div>
+    </dl>
+  </section>
+
   <section class="panel" aria-labelledby="body-title">
     <h2 id="body-title">본문</h2>
     <div style="white-space:pre-wrap; font-size:19px; line-height:1.8;" th:text="${doc.body}">본문</div>

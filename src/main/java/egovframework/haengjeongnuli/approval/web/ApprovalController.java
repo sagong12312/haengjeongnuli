@@ -58,11 +58,14 @@ public class ApprovalController {
     private final ApprovalService approvalService;
     private final AuditService auditService;
     private final FileStorage fileStorage;
+    private final egovframework.haengjeongnuli.finance.service.FinanceService finance;
 
-    public ApprovalController(ApprovalService approvalService, AuditService auditService, FileStorage fileStorage) {
+    public ApprovalController(ApprovalService approvalService, AuditService auditService, FileStorage fileStorage,
+                              egovframework.haengjeongnuli.finance.service.FinanceService finance) {
         this.approvalService = approvalService;
         this.auditService = auditService;
         this.fileStorage = fileStorage;
+        this.finance = finance;
     }
 
     @GetMapping
@@ -96,8 +99,13 @@ public class ApprovalController {
     /** 새 기안. from 을 주면 그 문서(반려·완료 등 내가 볼 수 있는 문서)의 내용을 옮겨 온다 */
     @GetMapping("/draft")
     public String draftForm(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Long from,
+                            @RequestParam(required = false) String kind, @RequestParam(required = false) Long budgetId,
                             Model model) {
         ApprovalForm form = new ApprovalForm();
+        if (kind != null && ApprovalForm.KINDS.contains(kind)) {
+            form.setKind(kind);
+        }
+        form.setBudgetId(budgetId);
         if (from != null) {
             ApprovalDocVO src = approvalService.get(from);
             if (src != null && src.isDraftedBy(me)) {
@@ -115,7 +123,7 @@ public class ApprovalController {
                               @RequestParam(value = "files", required = false) List<MultipartFile> files,
                               Model model, RedirectAttributes ra, HttpServletResponse response) throws IOException {
         boolean submit = !"save".equals(action);
-        check(form, submit, files, me, result);
+        check(form, submit, files, me, result, null);
         if (result.hasErrors()) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             return formView(me, null, model);
@@ -131,6 +139,10 @@ public class ApprovalController {
             return "redirect:/approval/" + docId + "/edit";
         }
         model.addAttribute("doc", d);
+        if (d.isSpending()) {
+            model.addAttribute("budget", finance.get(d.getBudgetId()));
+            model.addAttribute("payText", egovframework.haengjeongnuli.cmm.KoreanAmount.official(d.getPayAmount() == null ? 0 : d.getPayAmount()));
+        }
         return "approval/view";
     }
 
@@ -155,7 +167,7 @@ public class ApprovalController {
                              Model model, RedirectAttributes ra, HttpServletResponse response) throws IOException {
         ApprovalDocVO d = visible(docId, me);
         boolean submit = !"save".equals(action);
-        check(form, submit, files, me, result);
+        check(form, submit, files, me, result, docId);
         if (result.hasErrors()) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             return formView(me, d, model);
@@ -182,10 +194,13 @@ public class ApprovalController {
             auditService.record(AuditAction.APPROVAL_APPROVE, "결재 " + docId, d.getTitle());
             ra.addFlashAttribute("message", ApprovalDocVO.DONE.equals(d.getStatus())
                     ? "결재했습니다. 결재가 끝나 문서번호 " + d.getDocNo() + "이(가) 붙었습니다."
+                        + (d.isSpending() ? String.format(" 지출 %,d원을 예산 집행으로 기록했습니다.", d.getPayAmount()) : "")
                     : "결재했습니다. 다음 결재자에게 넘어갔습니다.");
             return "redirect:/approval?box=wait";
         }
-        ra.addFlashAttribute("message", "지금 결재할 차례가 아닙니다.");
+        ra.addFlashAttribute("message", r == Result.BUDGET_SHORT
+                ? "결재를 마칠 수 없습니다: " + approvalService.spendingProblem(docId) + " 반려해서 기안자가 금액을 고치게 하세요."
+                : "지금 결재할 차례가 아닙니다.");
         return "redirect:/approval/" + docId;
     }
 
@@ -274,8 +289,8 @@ public class ApprovalController {
     }
 
     private void check(ApprovalForm form, boolean submit, List<MultipartFile> files, LoginUser me,
-                       BindingResult result) {
-        for (Map.Entry<String, String> e : approvalService.validate(form, submit, me).entrySet()) {
+                       BindingResult result, Long docId) {
+        for (Map.Entry<String, String> e : approvalService.validate(form, submit, me, docId).entrySet()) {
             result.rejectValue(e.getKey(), e.getKey(), e.getValue());
         }
         if (files != null) {
@@ -305,6 +320,14 @@ public class ApprovalController {
         model.addAttribute("retentions", ApprovalForm.RETENTIONS);
         model.addAttribute("disclosures", ApprovalForm.DISCLOSURES);
         model.addAttribute("maxReviewers", ApprovalForm.MAX_REVIEWERS);
+        model.addAttribute("payMethods", ApprovalForm.PAY_METHODS);
+        // 지출결의에 고를 수 있는 예산과 지금 쓸 수 있는 금액
+        Long selfId = doc == null ? null : doc.getDocId();
+        java.util.List<egovframework.haengjeongnuli.finance.service.BudgetVO> spendable =
+                finance.spendable(me, java.time.Year.now().getValue());
+        model.addAttribute("spendable", spendable);
+        model.addAttribute("available", spendable.stream().collect(java.util.stream.Collectors.toMap(
+                egovframework.haengjeongnuli.finance.service.BudgetVO::getBudgetId, b -> finance.available(b.getBudgetId(), selfId))));
         model.addAttribute("allowedExt", String.join(", ", fileStorage.getAllowedExtensions().stream().sorted().toList()));
         return "approval/draft";
     }

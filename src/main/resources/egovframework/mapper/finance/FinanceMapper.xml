@@ -133,14 +133,16 @@
 
     <insert id="insertTxn" parameterType="egovframework.haengjeongnuli.finance.service.TxnVO">
         INSERT INTO FIN_TXN (TXN_ID, KIND, FISCAL_YEAR, BUDGET_ID, CODE, TXN_DATE, AMOUNT, PARTY, DESCRIPTION,
-                             DEPT_NAME, CREATED_BY, CREATED_NAME, CREATED_AT, CANCELLED_YN)
+                             DEPT_NAME, CREATED_BY, CREATED_NAME, CREATED_AT, CANCELLED_YN, DOC_ID)
         VALUES (#{txnId}, #{kind}, #{fiscalYear}, #{budgetId, jdbcType=NUMERIC}, #{code}, #{txnDate, jdbcType=DATE},
-                #{amount}, #{party}, #{description}, #{deptName}, #{createdBy}, #{createdName}, #{createdAt}, 'N')
+                #{amount}, #{party}, #{description}, #{deptName}, #{createdBy}, #{createdName}, #{createdAt}, 'N',
+                #{docId, jdbcType=NUMERIC})
     </insert>
 
     <sql id="txnCols">
         T.TXN_ID, T.KIND, T.FISCAL_YEAR, T.BUDGET_ID, T.CODE, T.TXN_DATE, T.AMOUNT, T.PARTY, T.DESCRIPTION,
         T.DEPT_NAME, T.CREATED_BY, T.CREATED_NAME, T.CREATED_AT, T.CANCELLED_YN, T.CANCELLED_BY, T.CANCELLED_AT,
+        T.DOC_ID, (SELECT A.DOC_NO FROM APPROVAL_DOC A WHERE A.DOC_ID = T.DOC_ID) AS DOC_NO,
         (SELECT C.CODE_NAME FROM FIN_CODE C
           WHERE C.CODE_TYPE = CASE WHEN T.KIND = 'EXP' THEN 'ITEM' ELSE 'REV' END AND C.CODE = T.CODE) AS CODE_NAME
     </sql>
@@ -170,6 +172,21 @@
         SELECT T.CODE, SUM(T.AMOUNT) AS AMOUNT FROM FIN_TXN T
          WHERE T.KIND = 'REV' AND T.FISCAL_YEAR = #{year} AND T.CANCELLED_YN = 'N'
          GROUP BY T.CODE
+    </select>
+
+    <!-- 결재가 진행 중인 지출결의 금액 (아직 집행되지 않았지만 잔액에서 미리 뺀다) -->
+    <select id="sumReserved" resultType="long">
+        SELECT NVL(SUM(PAY_AMOUNT), 0) FROM APPROVAL_DOC
+         WHERE BUDGET_ID = #{budgetId} AND STATUS = 'PROG' AND DELETED_YN = 'N'
+           <if test="exceptDocId != null">AND DOC_ID &lt;&gt; #{exceptDocId}</if>
+    </select>
+
+    <select id="selectPendingSpends" resultType="map">
+        SELECT DOC_ID AS "docId", TITLE AS "title", PAY_AMOUNT AS "amount", DRAFTER_NAME AS "drafterName",
+               SUBMITTED_AT AS "submittedAt"
+          FROM APPROVAL_DOC
+         WHERE BUDGET_ID = #{budgetId} AND STATUS = 'PROG' AND DELETED_YN = 'N'
+         ORDER BY SUBMITTED_AT
     </select>
 
     <update id="cancelTxn">
