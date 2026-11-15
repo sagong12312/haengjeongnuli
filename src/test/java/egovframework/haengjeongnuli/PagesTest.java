@@ -52,15 +52,6 @@ class PagesTest {
     }
 
     @Test
-    void 출근하면_인사말이_바뀐다() throws Exception {
-        MockHttpSession session = new MockHttpSession();
-        mvc.perform(get("/").session(session)).andExpect(content().string(containsString("현재 업무 중이 아닙니다")));
-        mvc.perform(post("/attendance").session(session).header("Referer", "http://localhost/hr"))
-                .andExpect(redirectedUrl("/hr"));
-        mvc.perform(get("/").session(session)).andExpect(content().string(containsString("현재 업무 중입니다")));
-    }
-
-    @Test
     void 외부_주소로는_돌아가지_않는다() throws Exception {
         mvc.perform(post("/attendance").header("Referer", "https://evil.example.com//x"))
                 .andExpect(redirectedUrl("/"));

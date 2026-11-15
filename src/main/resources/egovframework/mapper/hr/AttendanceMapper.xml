@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 출퇴근 기록. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
+<mapper namespace="egovframework.haengjeongnuli.hr.service.impl.AttendanceMapper">
+
+    <sql id="cols">ATT_ID, LOGIN_ID, USER_NAME, DEPT_NAME, WORK_DATE, IN_AT, OUT_AT, IN_IP, OUT_IP</sql>
+
+    <select id="nextId" resultType="long">SELECT SEQ_ATTENDANCE.NEXTVAL FROM DUAL</select>
+
+    <insert id="insert" parameterType="egovframework.haengjeongnuli.hr.service.AttendanceVO">
+        INSERT INTO ATTENDANCE (ATT_ID, LOGIN_ID, USER_NAME, DEPT_NAME, WORK_DATE, IN_AT, IN_IP)
+        VALUES (#{attId}, #{loginId}, #{userName}, #{deptName}, #{workDate, jdbcType=DATE}, #{inAt}, #{inIp})
+    </insert>
+
+    <select id="selectLatest" resultType="egovframework.haengjeongnuli.hr.service.AttendanceVO">
+        SELECT * FROM (
+            SELECT <include refid="cols"/> FROM ATTENDANCE WHERE LOGIN_ID = #{loginId} ORDER BY WORK_DATE DESC
+        ) WHERE ROWNUM = 1
+    </select>
+
+    <select id="selectDay" resultType="egovframework.haengjeongnuli.hr.service.AttendanceVO">
+        SELECT <include refid="cols"/> FROM ATTENDANCE WHERE LOGIN_ID = #{loginId} AND WORK_DATE = #{day, jdbcType=DATE}
+    </select>
+
+    <update id="reopen">
+        UPDATE ATTENDANCE SET OUT_AT = NULL, OUT_IP = NULL WHERE ATT_ID = #{attId} AND OUT_AT IS NOT NULL
+    </update>
+
+    <update id="close">
+        UPDATE ATTENDANCE SET OUT_AT = #{at}, OUT_IP = #{ip} WHERE ATT_ID = #{attId} AND OUT_AT IS NULL
+    </update>
+
+    <select id="selectRange" resultType="egovframework.haengjeongnuli.hr.service.AttendanceVO">
+        SELECT <include refid="cols"/> FROM ATTENDANCE
+         WHERE LOGIN_ID = #{loginId} AND WORK_DATE &gt;= #{from, jdbcType=DATE} AND WORK_DATE &lt; #{to, jdbcType=DATE}
+         ORDER BY WORK_DATE
+    </select>
+</mapper>

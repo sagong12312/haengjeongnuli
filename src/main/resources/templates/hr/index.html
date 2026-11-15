@@ -10,6 +10,8 @@
     <h1>인사</h1>
   </div>
 
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
   <div class="row">
     <!-- 왼쪽: 내 정보 + 근태 -->
     <div class="col-side" style="flex: 1 1 340px; gap: 20px;">
@@ -34,20 +36,47 @@
       <section class="panel" aria-labelledby="att-title">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
           <h2 id="att-title">오늘 근태</h2>
+          <span th:if="${working}" class="badge badge-green" style="font-size:17px;"><span class="dot" style="background:#22A04B"></span>업무 중</span>
           <span th:unless="${working}" class="badge badge-gray" style="font-size:17px;"><span class="dot" style="background:#8A96A8"></span>업무 중 아님</span>
         </div>
         <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;">
-          <div class="stat"><small>출근 시각</small><strong th:text="${inTime} ?: '--:--'">--:--</strong></div>
-          <div class="stat"><small>퇴근 시각</small><strong th:text="${outTime} ?: '--:--'">--:--</strong></div>
+          <div class="stat"><small>출근 시각</small><strong th:text="${today} ? ${#temporals.format(today.inAt, 'HH:mm')} : '--:--'">--:--</strong></div>
+          <div class="stat"><small>퇴근 시각</small><strong th:text="${today != null and today.outAt != null} ? ${#temporals.format(today.outAt, 'HH:mm')} : '--:--'">--:--</strong></div>
         </div>
         <form th:action="@{/attendance}" method="post">
+          <input type="hidden" name="action" th:value="${working} ? 'out' : 'in'">
           <button type="submit" th:class="${working} ? 'btn btn-plain btn-lg' : 'btn btn-primary btn-lg'" style="width:100%;" th:text="${working} ? '퇴근하기' : '출근하기'">출근하기</button>
         </form>
       </section>
     </div>
 
-    <!-- 오른쪽: 신청 + 연가 + 내역 -->
+    <!-- 오른쪽: 출퇴근 기록 + 신청 + 연가 + 내역 -->
     <div class="col-main">
+      <section class="panel flush" aria-labelledby="att-month-title">
+        <div class="panel-head" style="flex-wrap:wrap; gap:10px;">
+          <h2 id="att-month-title" th:text="${ym.year} + '년 ' + ${ym.monthValue} + '월 출퇴근 기록'">출퇴근 기록</h2>
+          <nav aria-label="달 바꾸기" style="display:flex; gap:8px; align-items:center; font-size:17px;">
+            <a class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;" th:href="@{/hr(month=${prevMonth})}">‹ 이전 달</a>
+            <a th:if="${nextMonth}" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;" th:href="@{/hr(month=${nextMonth})}">다음 달 ›</a>
+            <span class="muted" th:text="'출근 ' + ${daysWorked} + '일'">출근 0일</span>
+          </nav>
+        </div>
+        <p th:if="${#lists.isEmpty(records)}" class="hint" style="padding:18px 22px;">이 달에는 출퇴근 기록이 없습니다.</p>
+        <div class="table-wrap" th:unless="${#lists.isEmpty(records)}">
+          <table class="list" style="min-width:560px">
+            <thead><tr><th scope="col">날짜</th><th scope="col">출근</th><th scope="col">퇴근</th><th scope="col">근무 시간</th></tr></thead>
+            <tbody>
+              <tr th:each="r : ${records}">
+                <td style="color:var(--text)" th:text="${#temporals.format(r.workDate, 'MM-dd')} + ' (' + ${r.weekday} + ')'">날짜</td>
+                <td th:text="${#temporals.format(r.inAt, 'HH:mm')}">09:00</td>
+                <td th:text="${r.outAt} ? ${#temporals.format(r.outAt, 'HH:mm')} + (${r.outAt.toLocalDate() != r.workDate} ? ' (다음 날)' : '') : '—'">18:00</td>
+                <td th:text="${r.workedText} ?: '—'">9시간</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section aria-labelledby="req-title" style="display:flex; flex-direction:column; gap:14px;">
         <h2 id="req-title" style="font-size:24px;">복무 신청</h2>
         <div class="card-grid" style="grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));">
