@@ -66,7 +66,23 @@ public class LoginUser implements UserDetails {
     public String getRecordsManagerYn() { return recordsManagerYn; }
     public void setRecordsManagerYn(String recordsManagerYn) { this.recordsManagerYn = recordsManagerYn; }
     public void setWelfareYn(String welfareYn) { this.welfareYn = welfareYn; }
-    public boolean isLocked() { return failedCount >= MAX_FAILED; }
+    /** 잠기는 시간(분). 지나면 저절로 풀린다 (LoginPolicy 가 설정값으로 바꾼다) */
+    private static volatile int lockMinutes = 15;
+    public static void setLockMinutes(int minutes) { lockMinutes = Math.max(1, minutes); }
+    public static int getLockMinutes() { return lockMinutes; }
+
+    /** 비밀번호를 MAX_FAILED 번 틀린 뒤 lockMinutes 분이 지나지 않았으면 잠김 (잠긴 시각이 없는 예전 기록은 풀린 것으로 본다) */
+    public boolean isLocked() {
+        return failedCount >= MAX_FAILED && lockedAt != null && lockedAt.isAfter(LocalDateTime.now().minusMinutes(lockMinutes));
+    }
+
+    /** 권한·상태가 바뀔 때마다 올라가는 번호 (로그인 중인 세션이 최신인지 확인) */
+    private long securityVersion;
+    private LocalDateTime lockedAt;
+    public long getSecurityVersion() { return securityVersion; }
+    public void setSecurityVersion(long securityVersion) { this.securityVersion = securityVersion; }
+    public LocalDateTime getLockedAt() { return lockedAt; }
+    public void setLockedAt(LocalDateTime lockedAt) { this.lockedAt = lockedAt; }
 
     /**
      * 비밀번호를 바꿔야 하는지: 처음 받은(관리자가 정해 준) 비밀번호이거나 maxDays 일이 지났으면 true

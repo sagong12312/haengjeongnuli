@@ -239,6 +239,7 @@ public class AdminUserController {
         model.addAttribute("pwRequests", passwordReset.recent(20));
         java.util.List<LoginUser> users = userService.list();
         model.addAttribute("users", users);
+        model.addAttribute("activeAdmins", users.stream().filter(u -> u.isEnabled() && u.isAdmin()).count());
         model.addAttribute("depts", deptService.activeNames());
         model.addAttribute("roles", LoginUser.Role.values());
         model.addAttribute("rule", PasswordPolicy.DESCRIPTION);

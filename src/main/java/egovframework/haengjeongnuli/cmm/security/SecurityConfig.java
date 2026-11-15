@@ -25,11 +25,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-            @Value("${app.access.allowed-networks}") String allowedNetworks) throws Exception {
+            @Value("${app.access.allowed-networks}") String allowedNetworks,
+            egovframework.haengjeongnuli.user.service.UserService userService,
+            egovframework.haengjeongnuli.cmm.audit.AuditService auditService,
+            LoginThrottle loginThrottle) throws Exception {
         AntPathRequestMatcher h2 = new AntPathRequestMatcher("/h2-console/**");
         http
             // 허용한 네트워크(기본: 이 PC + 집 내부망)가 아니면 로그인 화면조차 보여주지 않는다
             .addFilterBefore(new AllowedNetworkFilter(allowedNetworks), DisableEncodeUrlFilter.class)
+            // 같은 주소에서 로그인을 너무 많이 틀리면 잠시 막는다
+            .addFilterBefore(loginThrottle.filter(), org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+            // 로그인 중인 세션이 계정의 지금 상태(사용 중지·권한·비밀번호)와 맞는지 요청마다 확인
+            .addFilterBefore(new SessionRevalidationFilter(userService, auditService),
+                    org.springframework.security.web.access.intercept.AuthorizationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/password-help", "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/error").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -40,7 +48,7 @@ public class SecurityConfig {
                 .usernameParameter("loginId")
                 .passwordParameter("password")
                 .defaultSuccessUrl("/", false)
-                .failureHandler(failureHandler())
+                .failureHandler(failureHandler(loginThrottle))
                 .permitAll())
             .logout(logout -> logout
                 .logoutUrl("/logout")
@@ -55,8 +63,9 @@ public class SecurityConfig {
     }
 
     /** 실패 이유에 따라 로그인 화면 안내를 다르게 한다 */
-    private AuthenticationFailureHandler failureHandler() {
+    private AuthenticationFailureHandler failureHandler(LoginThrottle throttle) {
         return (request, response, ex) -> {
+            throttle.recordFailure(request.getRemoteAddr());
             String reason = ex instanceof LockedException ? "locked"
                     : ex instanceof DisabledException ? "disabled"
                     : "bad";

@@ -24,7 +24,7 @@ public interface UserMapper {
 
     int insertUser(LoginUser user);
 
-    int increaseFailedCount(@Param("loginId") String loginId);
+    int increaseFailedCount(@Param("loginId") String loginId, @Param("max") int max, @Param("now") LocalDateTime now);
 
     int markLoginSuccess(@Param("loginId") String loginId, @Param("now") LocalDateTime now);
 

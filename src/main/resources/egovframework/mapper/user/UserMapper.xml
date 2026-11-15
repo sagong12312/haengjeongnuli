@@ -5,7 +5,7 @@
 
     <sql id="cols">
         USER_ID, LOGIN_ID, PASSWORD_HASH, USER_NAME, POSITION_NAME, DEPT_NAME, ROLE,
-        ENABLED_YN, FAILED_COUNT, LAST_LOGIN_AT, CREATED_AT, PASSWORD_CHANGED_AT, NVL(REVENUE_YN, 'N') AS REVENUE_YN, NVL(WELFARE_YN, 'N') AS WELFARE_YN, NVL(RECORDS_MANAGER_YN, 'N') AS RECORDS_MANAGER_YN, EMP_NO, JOB_SERIES, HIRED_ON, EXTENSION
+        ENABLED_YN, FAILED_COUNT, LAST_LOGIN_AT, CREATED_AT, PASSWORD_CHANGED_AT, NVL(REVENUE_YN, 'N') AS REVENUE_YN, NVL(WELFARE_YN, 'N') AS WELFARE_YN, NVL(RECORDS_MANAGER_YN, 'N') AS RECORDS_MANAGER_YN, NVL(SECURITY_VERSION, 0) AS SECURITY_VERSION, LOCKED_AT, EMP_NO, JOB_SERIES, HIRED_ON, EXTENSION
     </sql>
 
     <select id="nextId" resultType="long">
@@ -39,24 +39,26 @@
     </insert>
 
     <update id="increaseFailedCount">
-        UPDATE USER_ACCOUNT SET FAILED_COUNT = FAILED_COUNT + 1 WHERE LOGIN_ID = #{loginId}
+        UPDATE USER_ACCOUNT SET FAILED_COUNT = FAILED_COUNT + 1,
+               LOCKED_AT = CASE WHEN FAILED_COUNT + 1 &gt;= #{max} THEN #{now} ELSE LOCKED_AT END
+         WHERE LOGIN_ID = #{loginId}
     </update>
 
     <update id="markLoginSuccess">
-        UPDATE USER_ACCOUNT SET FAILED_COUNT = 0, LAST_LOGIN_AT = #{now} WHERE LOGIN_ID = #{loginId}
+        UPDATE USER_ACCOUNT SET FAILED_COUNT = 0, LOCKED_AT = NULL, LAST_LOGIN_AT = #{now} WHERE LOGIN_ID = #{loginId}
     </update>
 
     <update id="resetFailedCount">
-        UPDATE USER_ACCOUNT SET FAILED_COUNT = 0 WHERE USER_ID = #{userId}
+        UPDATE USER_ACCOUNT SET FAILED_COUNT = 0, LOCKED_AT = NULL WHERE USER_ID = #{userId}
     </update>
 
     <update id="updatePassword">
-        UPDATE USER_ACCOUNT SET PASSWORD_HASH = #{passwordHash}, PASSWORD_CHANGED_AT = #{changedAt, jdbcType=TIMESTAMP}
+        UPDATE USER_ACCOUNT SET PASSWORD_HASH = #{passwordHash}, PASSWORD_CHANGED_AT = #{changedAt, jdbcType=TIMESTAMP}, SECURITY_VERSION = NVL(SECURITY_VERSION, 0) + 1
          WHERE USER_ID = #{userId}
     </update>
 
     <update id="updateEnabled">
-        UPDATE USER_ACCOUNT SET ENABLED_YN = #{enabledYn} WHERE USER_ID = #{userId}
+        UPDATE USER_ACCOUNT SET ENABLED_YN = #{enabledYn}, SECURITY_VERSION = NVL(SECURITY_VERSION, 0) + 1 WHERE USER_ID = #{userId}
     </update>
 
     <update id="updateProfile">
@@ -67,20 +69,20 @@
     </update>
 
     <update id="updateWelfare">
-        UPDATE USER_ACCOUNT SET WELFARE_YN = #{welfareYn} WHERE USER_ID = #{userId}
+        UPDATE USER_ACCOUNT SET WELFARE_YN = #{welfareYn}, SECURITY_VERSION = NVL(SECURITY_VERSION, 0) + 1 WHERE USER_ID = #{userId}
     </update>
 
     <update id="updateRecordsManager">
-        UPDATE USER_ACCOUNT SET RECORDS_MANAGER_YN = #{yn} WHERE USER_ID = #{userId}
+        UPDATE USER_ACCOUNT SET RECORDS_MANAGER_YN = #{yn}, SECURITY_VERSION = NVL(SECURITY_VERSION, 0) + 1 WHERE USER_ID = #{userId}
     </update>
 
     <update id="updateRevenue">
-        UPDATE USER_ACCOUNT SET REVENUE_YN = #{revenueYn} WHERE USER_ID = #{userId}
+        UPDATE USER_ACCOUNT SET REVENUE_YN = #{revenueYn}, SECURITY_VERSION = NVL(SECURITY_VERSION, 0) + 1 WHERE USER_ID = #{userId}
     </update>
 
     <!-- 부서 이동 -->
     <update id="updateDept">
-        UPDATE USER_ACCOUNT SET DEPT_NAME = #{deptName} WHERE USER_ID = #{userId}
+        UPDATE USER_ACCOUNT SET DEPT_NAME = #{deptName}, SECURITY_VERSION = NVL(SECURITY_VERSION, 0) + 1 WHERE USER_ID = #{userId}
     </update>
 
     <insert id="insertDeptHistory">

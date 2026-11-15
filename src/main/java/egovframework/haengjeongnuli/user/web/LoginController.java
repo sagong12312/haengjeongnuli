@@ -72,7 +72,10 @@ public class LoginController {
                         @RequestParam(required = false) String logout, Model model) {
         if (error != null) {
             model.addAttribute("error", switch (error) {
-                case "locked" -> "비밀번호를 " + LoginUser.MAX_FAILED + "번 틀려 계정이 잠겼습니다. 시스템 관리자에게 잠금 해제를 요청하세요.";
+                case "locked" -> "비밀번호를 " + LoginUser.MAX_FAILED + "번 틀려 계정이 " + LoginUser.getLockMinutes()
+                        + "분 동안 잠겼습니다. 잠시 뒤 다시 시도하거나 시스템 관리자에게 잠금 해제를 요청하세요.";
+                case "ip" -> "이 PC에서 로그인을 여러 번 틀려 잠시 로그인을 막았습니다. 몇 분 뒤 다시 시도하세요.";
+                case "revoked" -> "계정 상태가 바뀌어(사용 중지·비밀번호 재설정 등) 로그아웃되었습니다. 다시 로그인하세요.";
                 case "disabled" -> "사용이 중지된 계정입니다. 시스템 관리자에게 문의하세요.";
                 default -> "아이디 또는 비밀번호가 맞지 않습니다.";
             });
@@ -94,7 +97,8 @@ public class LoginController {
                                  @RequestParam String currentPassword,
                                  @RequestParam String newPassword,
                                  @RequestParam String confirmPassword,
-                                 Model model, RedirectAttributes ra) {
+                                 Model model, RedirectAttributes ra,
+                                 jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
         String problem = !newPassword.equals(confirmPassword) ? "새 비밀번호 확인이 맞지 않습니다."
                 : newPassword.equals(currentPassword) ? "지금 비밀번호와 다른 비밀번호를 입력하세요."
                 : PasswordPolicy.check(newPassword, me.getLoginId());
@@ -106,8 +110,10 @@ public class LoginController {
             addPasswordInfo(me, model);
             return "user/password";
         }
-        // 지금 로그인 정보에도 바로 반영해서 변경 화면으로 다시 보내지 않게 한다
-        me.setPasswordChangedAt(java.time.LocalDateTime.now());
+        // 지금 로그인 정보도 새 비밀번호·보안 번호로 바꿔서 세션이 끊기거나 변경 화면으로 다시 가지 않게 한다
+        LoginUser fresh = userService.findByLoginId(me.getLoginId());
+        egovframework.haengjeongnuli.cmm.security.SessionRevalidationFilter.replace(request, response,
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication(), fresh);
         auditService.record(AuditAction.PASSWORD_CHANGE, me.getLoginId(), null);
         ra.addFlashAttribute("message", "비밀번호를 바꿨습니다.");
         return "redirect:/";

@@ -132,7 +132,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void recordFailure(String loginId) {
         if (loginId != null) {
-            userMapper.increaseFailedCount(loginId.trim());
+            userMapper.increaseFailedCount(loginId.trim(), LoginUser.MAX_FAILED, LocalDateTime.now());
         }
     }
 

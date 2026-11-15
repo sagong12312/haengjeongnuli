@@ -5,6 +5,7 @@ public enum AuditAction {
     LOGIN_SUCCESS("로그인"),
     LOGIN_FAIL("로그인 실패"),
     LOGOUT("로그아웃"),
+    SESSION_REVOKED("세션 강제 종료"),
     PASSWORD_CHANGE("비밀번호 변경"),
 
     USER_CREATE("계정 생성"),

@@ -99,6 +99,8 @@ CREATE TABLE USER_ACCOUNT (
     PASSWORD_CHANGED_AT TIMESTAMP,            -- 비어 있으면 첫 로그인 때 변경
     REVENUE_YN     CHAR(1)        DEFAULT 'N', -- 세입 담당 직원
     RECORDS_MANAGER_YN CHAR(1)    DEFAULT 'N', -- 처리과 기록물관리책임자
+    SECURITY_VERSION NUMBER(10)   DEFAULT 0,   -- 권한·상태가 바뀌면 올라감 (로그인 중인 세션 무효화)
+    LOCKED_AT      TIMESTAMP,                  -- 로그인 잠금 시각 (일정 시간 뒤 저절로 풀림)
     EMP_NO         VARCHAR2(20 CHAR),
     JOB_SERIES     VARCHAR2(50 CHAR),
     HIRED_ON       DATE,

@@ -18,10 +18,17 @@ public class LoginEventListener {
 
     private final UserService userService;
     private final AuditService auditService;
+    private final LoginThrottle throttle;
 
-    public LoginEventListener(UserService userService, AuditService auditService) {
+    public LoginEventListener(UserService userService, AuditService auditService, LoginThrottle throttle) {
         this.userService = userService;
         this.auditService = auditService;
+        this.throttle = throttle;
+    }
+
+    private static String ip(org.springframework.security.core.Authentication a) {
+        return a.getDetails() instanceof org.springframework.security.web.authentication.WebAuthenticationDetails d
+                ? d.getRemoteAddress() : null;
     }
 
     @EventListener
@@ -44,6 +51,7 @@ public class LoginEventListener {
     public void onSuccess(AuthenticationSuccessEvent event) {
         if (event.getAuthentication().getPrincipal() instanceof LoginUser user) {
             userService.recordSuccess(user.getLoginId());
+            throttle.reset(ip(event.getAuthentication()));
             auditService.recordAs(user.getLoginId(), AuditAction.LOGIN_SUCCESS, null, null);
         }
     }

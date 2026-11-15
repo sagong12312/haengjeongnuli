@@ -73,6 +73,12 @@ app:
     civil-hours: 24
     # 상신한 지 이 날수가 지나도 결재 중인 문서를 지금 차례인 사람에게 알린다
     approval-days: 3
+  login:
+    # 비밀번호를 5번 틀리면 이 시간(분) 동안 잠기고 저절로 풀린다 (관리자는 바로 풀 수 있다)
+    lock-minutes: 15
+    # 한 접속 주소에서 ip-window-minutes 분 안에 ip-max-failures 번 틀리면 그 주소의 로그인을 잠시 막는다
+    ip-max-failures: 20
+    ip-window-minutes: 10
   audit:
     # 접속기록 점검 화면에서 '확인 필요'로 표시할 기간 내 건수
     download-alert: 100
