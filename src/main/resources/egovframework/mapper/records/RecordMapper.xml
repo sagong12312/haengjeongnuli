@@ -62,6 +62,17 @@
         ) WHERE ROWNUM &lt;= #{limit}
     </select>
 
+    <select id="selectYear" resultType="egovframework.haengjeongnuli.records.service.RecordVO">
+        SELECT <include refid="cols"/>, CANCELED_YN FROM DOC_REGISTRY
+         WHERE REG_YEAR = #{year} AND CANCELED_YN = 'N'
+        <if test="dept != null">AND DEPT_NAME = #{dept}</if>
+         ORDER BY DEPT_NAME, REG_DATE, REG_ID
+    </select>
+
+    <select id="selectDepts" resultType="string">
+        SELECT DISTINCT DEPT_NAME FROM DOC_REGISTRY ORDER BY DEPT_NAME
+    </select>
+
     <!-- 등록정보 수정 (공공기록물법 시행규칙 제6조) -->
     <select id="nextFixId" resultType="long">SELECT SEQ_DOC_REGISTRY_FIX.NEXTVAL FROM DUAL</select>
 

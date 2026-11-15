@@ -41,4 +41,9 @@ public interface RecordMapper {
     /** 확인된 수정을 등록정보에 반영한다 (칸 이름은 XML 에서 정해진 것만) */
     int updateField(@Param("regId") long regId, @Param("field") String field, @Param("value") String value,
                     @Param("pages") Integer pages);
+
+    /** 생산현황·이관 목록용: 처리과(비우면 전체)의 한 해 등록 기록물 (등록 취소 제외) */
+    List<RecordVO> selectYear(@Param("dept") String dept, @Param("year") int year);
+    /** 등록대장이 있는 처리과 이름 */
+    List<String> selectDepts();
 }

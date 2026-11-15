@@ -68,6 +68,32 @@ public class RecordController {
         return "records/list";
     }
 
+    /** 기록물 생산현황 (처리과별, 전년도 1.1.~12.31. 생산·접수 기록물을 다음 해 기록관에 통보) */
+    @GetMapping("/records/report")
+    public String report(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Integer year,
+                         @RequestParam(required = false) String dept, Model model) {
+        int now = Year.now().getValue();
+        int y = year == null || year < 2000 || year > now ? now - 1 : year;
+        model.addAttribute("rep", records.report(me, dept, y));
+        model.addAttribute("years", java.util.stream.IntStream.rangeClosed(now - 5, now).boxed().sorted(java.util.Comparator.reverseOrder()).toList());
+        model.addAttribute("depts", me.isAdmin() ? records.reportDepts() : List.of());
+        return "records/report";
+    }
+
+    /** 이관 목록 CSV */
+    @GetMapping("/records/report.csv")
+    public ResponseEntity<byte[]> reportCsv(@AuthenticationPrincipal LoginUser me, @RequestParam int year,
+                                            @RequestParam(required = false) String dept) {
+        RecordService.Report rep = records.report(me, dept, year);
+        audit.record(AuditAction.RECORD_TRANSFER_LIST, (rep.dept() == null ? "전체" : rep.dept()) + " " + year, rep.rows().size() + "건");
+        String name = year + "_" + (rep.dept() == null ? "전체" : rep.dept()) + "_이관목록.csv";
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(name, StandardCharsets.UTF_8).build().toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(records.transferCsv(rep).getBytes(StandardCharsets.UTF_8));
+    }
+
     @GetMapping("/records/new")
     public String form(@AuthenticationPrincipal LoginUser me, @RequestParam(defaultValue = "RECEIVE") String type, Model model) {
         model.addAttribute("type", RecordVO.PRODUCE.equals(type) ? RecordVO.PRODUCE : RecordVO.RECEIVE);

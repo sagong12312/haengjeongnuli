@@ -376,4 +376,75 @@ public class RecordService {
             default -> "고칠 수 없는 항목입니다.";
         };
     }
+
+    // ===== 생산현황 보고·이관 목록 =====
+
+    /** 생산현황 집계 한 줄 */
+    public record Count(String label, long produce, long receive) {
+        public long total() { return produce + receive; }
+    }
+
+    /** 생산현황: 처리과(관리자는 전체 또는 고른 처리과)의 한 해 기록물을 항목별로 센다 */
+    public record Report(int year, String dept, List<RecordVO> rows, List<Count> byMedium, List<Count> byRetention,
+                         List<Count> byDisclosure, long produce, long receive) {}
+
+    /** 볼 수 있는 처리과: 관리자는 고른 처리과(비우면 전체), 그 밖에는 내 처리과 */
+    public String reportDept(LoginUser me, String wanted) {
+        if (me.isAdmin()) {
+            return wanted == null || wanted.isBlank() ? null : wanted.trim();
+        }
+        return deptKey(me.getDeptName());
+    }
+
+    public List<String> reportDepts() {
+        return mapper.selectDepts();
+    }
+
+    public Report report(LoginUser me, String wantedDept, int year) {
+        String dept = reportDept(me, wantedDept);
+        List<RecordVO> rows = mapper.selectYear(dept, year);
+        return new Report(year, dept, rows,
+                count(rows, r -> "전자문서".equals(r.getMedium()) ? "전자기록물" : "비전자기록물(" + r.getMedium() + ")"),
+                count(rows, r -> r.getRetention() == null ? "미지정" : r.getRetention()),
+                count(rows, RecordVO::getDisclosure),
+                rows.stream().filter(r -> RecordVO.PRODUCE.equals(r.getRegType())).count(),
+                rows.stream().filter(r -> RecordVO.RECEIVE.equals(r.getRegType())).count());
+    }
+
+    private static List<Count> count(List<RecordVO> rows, java.util.function.Function<RecordVO, String> key) {
+        java.util.Map<String, long[]> m = new java.util.TreeMap<>();
+        for (RecordVO r : rows) {
+            long[] c = m.computeIfAbsent(key.apply(r), k -> new long[2]);
+            c[RecordVO.PRODUCE.equals(r.getRegType()) ? 0 : 1]++;
+        }
+        return m.entrySet().stream().map(e -> new Count(e.getKey(), e.getValue()[0], e.getValue()[1])).toList();
+    }
+
+    /** 이관 목록 CSV (엑셀에서 바로 열리도록 UTF-8 BOM) */
+    public String transferCsv(Report rep) {
+        StringBuilder sb = new StringBuilder("\uFEFF");
+        sb.append("처리과,등록번호,구분,제목,생산·접수일자,발신·수신,형태,쪽수,보존기간,공개여부,전자결재 연결\r\n");
+        for (RecordVO r : rep.rows()) {
+            sb.append(String.join(",", csv(r.getDeptName()), csv(r.getRegNo()), csv(r.getTypeLabel()), csv(r.getTitle()),
+                    csv(String.valueOf(r.getRegDate())), csv(r.getCounterpart()), csv(r.getMedium()),
+                    csv(r.getPages() == null ? "" : String.valueOf(r.getPages())), csv(r.getRetention()),
+                    csv(r.getDisclosure()), csv(r.getDocId() == null ? "" : "예"))).append("\r\n");
+        }
+        return sb.toString();
+    }
+
+    /** CSV 칸: 쉼표·따옴표·줄바꿈을 감싸고, 수식으로 읽히는 값(=,+,-,@ 시작)은 앞에 ' 를 붙인다 */
+    static String csv(String v) {
+        if (v == null) {
+            return "";
+        }
+        String t = v;
+        if (!t.isEmpty() && "=+-@".indexOf(t.charAt(0)) >= 0) {
+            t = "'" + t;
+        }
+        if (t.contains(",") || t.contains("\"") || t.contains("\n") || t.contains("\r")) {
+            t = "\"" + t.replace("\"", "\"\"") + "\"";
+        }
+        return t;
+    }
 }

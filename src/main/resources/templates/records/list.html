@@ -12,6 +12,7 @@
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <a class="btn btn-primary" th:href="@{/records/new(type='RECEIVE')}">접수 문서 등록</a>
       <a class="btn btn-outline" th:href="@{/records/new(type='PRODUCE')}">생산 문서 등록</a>
+      <a class="btn btn-outline" th:href="@{/records/report}">생산현황·이관 목록</a>
     </div>
   </div>
   <p class="hint" th:text="'처리과(' + ${dept} + ')의 생산·접수 등록과, 내가 처리 담당으로 지정된 문서가 보입니다. 전자결재로 결재가 끝난 문서와 수신 문서를 접수한 것은 자동으로 올라옵니다. 등록정보는 임의로 고치거나 지울 수 없습니다 (공공기록물법 시행령 제20조 제2항).'">안내</p>
