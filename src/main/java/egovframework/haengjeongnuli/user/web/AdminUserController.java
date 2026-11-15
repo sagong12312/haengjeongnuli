@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import egovframework.haengjeongnuli.cmm.LoginUser;
+import egovframework.haengjeongnuli.cmm.audit.AuditAction;
+import egovframework.haengjeongnuli.cmm.audit.AuditService;
 import egovframework.haengjeongnuli.user.service.PasswordPolicy;
 import egovframework.haengjeongnuli.user.service.UserForm;
 import egovframework.haengjeongnuli.user.service.UserService;
@@ -26,9 +28,11 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AdminUserController {
 
     private final UserService userService;
+    private final AuditService auditService;
 
-    public AdminUserController(UserService userService) {
+    public AdminUserController(UserService userService, AuditService auditService) {
         this.userService = userService;
+        this.auditService = auditService;
     }
 
     @GetMapping
@@ -50,6 +54,7 @@ public class AdminUserController {
         if (!result.hasErrors()) {
             try {
                 LoginUser u = userService.create(form);
+                auditService.record(AuditAction.USER_CREATE, u.getLoginId(), u.getRole().getLabel());
                 ra.addFlashAttribute("message", u.getUserName() + "(" + u.getLoginId() + ") 계정을 만들었습니다. 초기 비밀번호를 본인에게 따로 전달하세요.");
                 return "redirect:/admin/users";
             } catch (IllegalStateException e) {
@@ -64,6 +69,7 @@ public class AdminUserController {
     @PostMapping("/{userId}/unlock")
     public String unlock(@PathVariable long userId, RedirectAttributes ra) {
         userService.unlock(userId);
+        auditService.record(AuditAction.USER_UNLOCK, "사용자 " + userId, null);
         ra.addFlashAttribute("message", "잠금을 풀었습니다.");
         return "redirect:/admin/users";
     }
@@ -76,6 +82,7 @@ public class AdminUserController {
             return "redirect:/admin/users";
         }
         userService.setEnabled(userId, value);
+        auditService.record(value ? AuditAction.USER_ENABLE : AuditAction.USER_DISABLE, "사용자 " + userId, null);
         ra.addFlashAttribute("message", value ? "계정을 다시 사용하게 했습니다." : "계정 사용을 중지했습니다.");
         return "redirect:/admin/users";
     }
@@ -88,6 +95,7 @@ public class AdminUserController {
             return "redirect:/admin/users";
         }
         userService.resetPassword(userId, newPassword);
+        auditService.record(AuditAction.USER_PASSWORD_RESET, "사용자 " + userId, null);
         ra.addFlashAttribute("message", "비밀번호를 새로 정하고 잠금도 풀었습니다. 본인에게 따로 전달하세요.");
         return "redirect:/admin/users";
     }
@@ -105,6 +113,7 @@ public class AdminUserController {
             ra.addFlashAttribute("message", "없는 계정입니다.");
             return "redirect:/admin/users";
         }
+        auditService.record(AuditAction.USER_DEPT_MOVE, "사용자 " + userId, "→ " + dept);
         ra.addFlashAttribute("message", "부서를 '" + dept + "'(으)로 옮겼습니다."
                 + (me.getUserId() == userId ? " 머리글의 부서는 다시 로그인하면 바뀝니다." : ""));
         return "redirect:/admin/users";

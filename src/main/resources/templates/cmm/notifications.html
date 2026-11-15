@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('알림')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('')}"></header>
+
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div class="page-head">
+    <div>
+      <span class="crumb"><a th:href="@{/}">홈</a> › 알림</span>
+      <h1>알림</h1>
+    </div>
+    <form th:action="@{/notifications/read-all}" method="post" style="margin:0;">
+      <button type="submit" class="btn btn-plain">모두 읽음</button>
+    </form>
+  </div>
+
+  <section class="panel flush" aria-label="알림 목록">
+    <p th:if="${#lists.isEmpty(notifications)}" class="hint" style="padding:28px 22px;">알림이 없습니다.</p>
+    <ul th:unless="${#lists.isEmpty(notifications)}" style="list-style:none; margin:0; padding:0;">
+      <li th:each="n : ${notifications}" style="border-top:1px solid var(--line-2);">
+        <a th:href="@{/notifications/{id}(id=${n.notiId})}"
+           style="display:flex; gap:12px; align-items:flex-start; padding:16px 22px; text-decoration:none; color:var(--text);"
+           th:styleappend="${n.read} ? 'background:#fff;' : 'background:#F5F8FC;'">
+          <span class="dot" th:style="${n.read} ? 'background:transparent; margin-top:9px;' : 'background:var(--brand); margin-top:9px;'"
+                th:attr="aria-label=${n.read} ? null : '읽지 않음'"></span>
+          <span style="flex:1; min-width:0;">
+            <span style="display:block; font-size:18px;" th:style="${n.read} ? null : 'font-weight:700'" th:text="${n.message}">알림</span>
+            <span class="muted" style="font-size:15px;" th:text="${#temporals.format(n.createdAt, 'yyyy-MM-dd HH:mm')}">시각</span>
+          </span>
+        </a>
+      </li>
+    </ul>
+  </section>
+  <p class="hint">최근 100건까지 보여줍니다.</p>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

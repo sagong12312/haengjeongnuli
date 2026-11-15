@@ -34,6 +34,9 @@ app:
   # 계정이 하나도 없을 때 만드는 첫 관리자(admin) 비밀번호. 비워 두면 무작위로 만들어 서버 창에 한 번 보여준다.
   init-admin:
     password: ${APP_INIT_ADMIN_PASSWORD:}
+  password:
+    # 비밀번호를 이 일수마다 바꾸게 한다
+    max-age-days: 90
   civil:
     # 처리기한이 며칠 이내로 남으면 '기한 임박'으로 볼지
     imminent-days: 2

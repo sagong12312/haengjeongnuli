@@ -25,6 +25,7 @@ public final class TestUsers {
         u.setPositionName("주무관");
         u.setDeptName("민원봉사과");
         u.setRole(role);
+        u.setPasswordChangedAt(java.time.LocalDateTime.now());
         return u;
     }
 

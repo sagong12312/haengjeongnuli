@@ -26,6 +26,13 @@
       <a th:if="${loginUser != null and loginUser.admin}" th:href="@{/admin/users}" th:attr="aria-current=${active == 'admin'} ? 'page' : null">계정 관리</a>
     </nav>
     <div th:if="${loginUser}" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <a class="icon-btn" th:href="@{/notifications}" style="position:relative; text-decoration:none;"
+         th:attr="aria-label=${unreadNotifications > 0} ? '알림 ' + ${unreadNotifications} + '건 읽지 않음' : '알림'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+        <span th:if="${unreadNotifications > 0}" aria-hidden="true"
+              style="position:absolute; top:-6px; right:-6px; min-width:22px; height:22px; padding:0 6px; border-radius:999px; background:#D93636; color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center;"
+              th:text="${unreadNotifications > 99} ? '99+' : ${unreadNotifications}">3</span>
+      </a>
       <a class="user-chip" th:href="@{/mypage/password}" style="color:#fff; text-decoration:none;" title="내 정보 · 비밀번호 변경">
         <span class="avatar" th:text="${loginUser.initial()}">홍</span>
         <span>

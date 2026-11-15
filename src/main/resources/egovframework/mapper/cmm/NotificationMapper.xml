@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 알림. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
+<mapper namespace="egovframework.haengjeongnuli.cmm.notification.NotificationMapper">
+
+    <insert id="insertNotification" parameterType="egovframework.haengjeongnuli.cmm.notification.NotificationVO">
+        INSERT INTO NOTIFICATION (NOTI_ID, LOGIN_ID, MESSAGE, LINK, CREATED_AT, READ_YN)
+        VALUES (SEQ_NOTIFICATION.NEXTVAL, #{loginId}, #{message}, #{link}, #{createdAt}, 'N')
+    </insert>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM NOTIFICATION WHERE LOGIN_ID = #{loginId} AND READ_YN = 'N'
+    </select>
+
+    <select id="selectRecent" resultType="egovframework.haengjeongnuli.cmm.notification.NotificationVO">
+        SELECT * FROM (
+            SELECT NOTI_ID, LOGIN_ID, MESSAGE, LINK, CREATED_AT, READ_YN
+              FROM NOTIFICATION
+             WHERE LOGIN_ID = #{loginId}
+             ORDER BY CREATED_AT DESC, NOTI_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+
+    <select id="selectOne" resultType="egovframework.haengjeongnuli.cmm.notification.NotificationVO">
+        SELECT NOTI_ID, LOGIN_ID, MESSAGE, LINK, CREATED_AT, READ_YN FROM NOTIFICATION WHERE NOTI_ID = #{notiId}
+    </select>
+
+    <update id="markRead">
+        UPDATE NOTIFICATION SET READ_YN = 'Y' WHERE NOTI_ID = #{notiId} AND LOGIN_ID = #{loginId}
+    </update>
+
+    <update id="markAllRead">
+        UPDATE NOTIFICATION SET READ_YN = 'Y' WHERE LOGIN_ID = #{loginId} AND READ_YN = 'N'
+    </update>
+
+</mapper>

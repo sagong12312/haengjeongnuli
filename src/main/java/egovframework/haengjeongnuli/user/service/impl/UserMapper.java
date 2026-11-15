@@ -30,7 +30,9 @@ public interface UserMapper {
 
     int resetFailedCount(@Param("userId") long userId);
 
-    int updatePassword(@Param("userId") long userId, @Param("passwordHash") String passwordHash);
+    /** changedAt 이 null 이면 '처음 받은 비밀번호'로 보고 다음 로그인 때 바꾸게 한다 */
+    int updatePassword(@Param("userId") long userId, @Param("passwordHash") String passwordHash,
+                       @Param("changedAt") LocalDateTime changedAt);
 
     int updateEnabled(@Param("userId") long userId, @Param("enabledYn") String enabledYn);
 

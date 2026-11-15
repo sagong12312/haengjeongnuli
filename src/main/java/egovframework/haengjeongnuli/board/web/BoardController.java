@@ -33,6 +33,8 @@ import egovframework.haengjeongnuli.board.service.BoardPostVO;
 import egovframework.haengjeongnuli.board.service.BoardService;
 import egovframework.haengjeongnuli.board.service.impl.BoardServiceImpl;
 import egovframework.haengjeongnuli.cmm.LoginUser;
+import egovframework.haengjeongnuli.cmm.audit.AuditAction;
+import egovframework.haengjeongnuli.cmm.audit.AuditService;
 import egovframework.haengjeongnuli.cmm.file.AttachFileVO;
 import egovframework.haengjeongnuli.cmm.file.FileStorage;
 import jakarta.servlet.http.HttpServletResponse;
@@ -51,9 +53,11 @@ public class BoardController {
             new Tab("archive", "자료실"));
 
     private final BoardService boardService;
+    private final AuditService auditService;
     private final FileStorage fileStorage;
 
-    public BoardController(BoardService boardService, FileStorage fileStorage) {
+    public BoardController(BoardService boardService, FileStorage fileStorage, AuditService auditService) {
+        this.auditService = auditService;
         this.boardService = boardService;
         this.fileStorage = fileStorage;
     }
@@ -118,6 +122,9 @@ public class BoardController {
                              @RequestParam(defaultValue = "") String content,
                              RedirectAttributes ra, HttpServletResponse response) {
         BoardService.CommentResult r = boardService.addComment(postId, content, loginUser);
+        if (r == BoardService.CommentResult.DONE) {
+            auditService.record(AuditAction.COMMENT_CREATE, "게시글 " + postId, null);
+        }
         return commentResult(r, postId, "댓글을 달았습니다.", ra, response);
     }
 
@@ -125,6 +132,9 @@ public class BoardController {
     public String deleteComment(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long postId,
                                 @PathVariable long commentId, RedirectAttributes ra, HttpServletResponse response) {
         BoardService.CommentResult r = boardService.deleteComment(postId, commentId, loginUser);
+        if (r == BoardService.CommentResult.DONE) {
+            auditService.record(AuditAction.COMMENT_DELETE, "게시글 " + postId + " 댓글 " + commentId, null);
+        }
         return commentResult(r, postId, "댓글을 삭제했습니다.", ra, response);
     }
 
@@ -166,7 +176,8 @@ public class BoardController {
             addFileRules(model);
             return "board/write";
         }
-        boardService.write(form, files, loginUser);
+        BoardPostVO saved = boardService.write(form, files, loginUser);
+        auditService.record(AuditAction.POST_CREATE, "게시글 " + saved.getPostId(), saved.getTitle());
         ra.addFlashAttribute("message", "게시글이 등록되었습니다.");
         return "redirect:/board?tab=" + form.getBoard();
     }
@@ -191,7 +202,8 @@ public class BoardController {
             addFileRules(model);
             return "board/upload";
         }
-        boardService.write(form, files, loginUser);
+        BoardPostVO saved = boardService.write(form, files, loginUser);
+        auditService.record(AuditAction.POST_CREATE, "게시글 " + saved.getPostId(), saved.getTitle());
         ra.addFlashAttribute("message", "자료가 등록되었습니다.");
         return "redirect:/board?tab=archive";
     }
@@ -245,6 +257,9 @@ public class BoardController {
         if (!result.hasErrors()) {
             BoardService.UpdateResult r = boardService.update(postId, form, files, removeFileIds, loginUser);
             if (r == BoardService.UpdateResult.UPDATED) {
+                auditService.record(AuditAction.POST_UPDATE, "게시글 " + postId, form.getTitle());
+            }
+            if (r == BoardService.UpdateResult.UPDATED) {
                 ra.addFlashAttribute("message", "게시물을 수정했습니다.");
                 return "redirect:/board/" + postId;
             }
@@ -264,6 +279,9 @@ public class BoardController {
                          @RequestParam(defaultValue = "notice") String tab,
                          RedirectAttributes ra, HttpServletResponse response) {
         BoardService.DeleteResult r = boardService.delete(postId, loginUser);
+        if (r == BoardService.DeleteResult.DELETED) {
+            auditService.record(AuditAction.POST_DELETE, "게시글 " + postId, null);
+        }
         if (r == BoardService.DeleteResult.FORBIDDEN) {
             response.setStatus(HttpStatus.FORBIDDEN.value());
             return "error/403";
@@ -278,6 +296,9 @@ public class BoardController {
     @GetMapping("/files/{fileId}")
     public ResponseEntity<Resource> download(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long fileId) {
         AttachFileVO f = boardService.fileForDownload(fileId, loginUser);
+        if (f != null) {
+            auditService.record(AuditAction.FILE_DOWNLOAD, "파일 " + fileId, f.getOriginalName());
+        }
         if (f == null) {
             return ResponseEntity.notFound().build();
         }

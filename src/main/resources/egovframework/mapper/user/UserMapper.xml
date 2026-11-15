@@ -5,7 +5,7 @@
 
     <sql id="cols">
         USER_ID, LOGIN_ID, PASSWORD_HASH, USER_NAME, POSITION_NAME, DEPT_NAME, ROLE,
-        ENABLED_YN, FAILED_COUNT, LAST_LOGIN_AT, CREATED_AT
+        ENABLED_YN, FAILED_COUNT, LAST_LOGIN_AT, CREATED_AT, PASSWORD_CHANGED_AT
     </sql>
 
     <select id="nextId" resultType="long">
@@ -51,7 +51,8 @@
     </update>
 
     <update id="updatePassword">
-        UPDATE USER_ACCOUNT SET PASSWORD_HASH = #{passwordHash} WHERE USER_ID = #{userId}
+        UPDATE USER_ACCOUNT SET PASSWORD_HASH = #{passwordHash}, PASSWORD_CHANGED_AT = #{changedAt, jdbcType=TIMESTAMP}
+         WHERE USER_ID = #{userId}
     </update>
 
     <update id="updateEnabled">

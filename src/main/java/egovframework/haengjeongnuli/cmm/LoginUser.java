@@ -37,6 +37,7 @@ public class LoginUser implements UserDetails {
     private int failedCount;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
+    private LocalDateTime passwordChangedAt;
 
     // 화면에서 쓰는 이름들
     public String name() { return userName; }
@@ -45,6 +46,13 @@ public class LoginUser implements UserDetails {
     public boolean isCounterStaff() { return role == Role.COUNTER; }
     public boolean isAdmin() { return role == Role.ADMIN; }
     public boolean isLocked() { return failedCount >= MAX_FAILED; }
+
+    /**
+     * 비밀번호를 바꿔야 하는지: 처음 받은(관리자가 정해 준) 비밀번호이거나 maxDays 일이 지났으면 true
+     */
+    public boolean isPasswordExpired(int maxDays) {
+        return passwordChangedAt == null || passwordChangedAt.isBefore(LocalDateTime.now().minusDays(maxDays));
+    }
 
     public String initial() {
         return (userName == null || userName.isBlank()) ? "?" : userName.substring(0, 1);
@@ -84,4 +92,6 @@ public class LoginUser implements UserDetails {
     public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getPasswordChangedAt() { return passwordChangedAt; }
+    public void setPasswordChangedAt(LocalDateTime passwordChangedAt) { this.passwordChangedAt = passwordChangedAt; }
 }

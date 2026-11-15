@@ -32,6 +32,8 @@ import egovframework.haengjeongnuli.civil.service.CivilStatus;
 import egovframework.haengjeongnuli.civil.service.DeadlineCalculator;
 import egovframework.haengjeongnuli.civil.service.LegalAffair;
 import egovframework.haengjeongnuli.cmm.LoginUser;
+import egovframework.haengjeongnuli.cmm.audit.AuditAction;
+import egovframework.haengjeongnuli.cmm.audit.AuditService;
 import jakarta.servlet.http.HttpServletResponse;
 
 /** 민원: 목록, 접수(창구 직원 전용), 처리기한 계산 */
@@ -41,8 +43,10 @@ public class CivilController {
 
     private final DeadlineCalculator deadlineCalculator;
     private final CivilService civilService;
+    private final AuditService auditService;
 
-    public CivilController(DeadlineCalculator deadlineCalculator, CivilService civilService) {
+    public CivilController(DeadlineCalculator deadlineCalculator, CivilService civilService, AuditService auditService) {
+        this.auditService = auditService;
         this.deadlineCalculator = deadlineCalculator;
         this.civilService = civilService;
     }
@@ -85,6 +89,7 @@ public class CivilController {
             return "civil/new";
         }
         CivilComplaintVO saved = civilService.receive(form, loginUser.getLoginId());
+        auditService.record(AuditAction.CIVIL_RECEIVE, "민원 " + saved.getReceiptNo(), saved.getKind().getLabel());
         ra.addFlashAttribute("message", "민원이 접수되었습니다. 접수번호: " + saved.getReceiptNo());
         return "redirect:/civil";
     }

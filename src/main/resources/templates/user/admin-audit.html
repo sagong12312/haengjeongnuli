@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('접속·작업 기록')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page">
+  <div class="page-head">
+    <div>
+      <span class="crumb"><a th:href="@{/}">홈</a> › <a th:href="@{/admin/users}">시스템 관리</a> › 접속·작업 기록</span>
+      <h1>접속·작업 기록</h1>
+    </div>
+    <a class="btn btn-plain" th:href="@{/admin/users}">직원 계정 관리</a>
+  </div>
+
+  <form class="search-bar" role="search" th:action="@{/admin/audit}" method="get" th:object="${search}">
+    <label for="aactor" class="sr-only">아이디</label>
+    <input id="aactor" th:field="*{actorId}" class="input" type="search" placeholder="아이디" style="flex:0 1 180px;">
+    <label for="aaction" class="sr-only">작업</label>
+    <select id="aaction" th:field="*{action}" class="select">
+      <option value="">모든 작업</option>
+      <option th:each="a : ${actions}" th:value="${a}" th:text="${a.label}">작업</option>
+    </select>
+    <label for="afrom" class="sr-only">시작일</label>
+    <input id="afrom" th:field="*{from}" class="input" type="date" style="flex:0 1 180px;">
+    <span aria-hidden="true">~</span>
+    <label for="ato" class="sr-only">종료일</label>
+    <input id="ato" th:field="*{to}" class="input" type="date" style="flex:0 1 180px;">
+    <button type="submit" class="btn btn-outline">조회</button>
+  </form>
+
+  <section class="panel flush" aria-label="기록 목록">
+    <div class="panel-head" style="font-size:17px; color:var(--text-2);">
+      <span>전체 <b style="color:var(--text)" th:text="${total}">0</b>건</span><span>최신순 · 50건씩</span>
+    </div>
+    <div class="table-wrap">
+      <table class="list" style="min-width:960px">
+        <thead><tr>
+          <th scope="col" style="width:170px">일시</th><th scope="col" style="width:130px">아이디</th>
+          <th scope="col" style="width:150px">작업</th><th scope="col" style="text-align:left">대상</th>
+          <th scope="col" style="text-align:left">내용</th><th scope="col" style="width:140px">접속 주소</th>
+        </tr></thead>
+        <tbody>
+          <tr th:if="${#lists.isEmpty(logs)}"><td colspan="6" style="padding:40px 12px;">조건에 맞는 기록이 없습니다.</td></tr>
+          <tr th:each="l : ${logs}">
+            <td th:text="${#temporals.format(l.occurredAt, 'yyyy-MM-dd HH:mm:ss')}">일시</td>
+            <td style="color:var(--text)" th:text="${l.actorId} ?: '—'">아이디</td>
+            <td>
+              <span th:class="${l.action.name() == 'LOGIN_FAIL' or l.action.name().endsWith('DELETE') or l.action.name() == 'USER_DISABLE'} ? 'badge badge-red' : 'badge badge-gray'"
+                    th:text="${l.action.label}">작업</span>
+            </td>
+            <td class="left" th:text="${l.target} ?: '—'">대상</td>
+            <td class="left muted" style="font-size:16px;" th:text="${l.detail} ?: ''">내용</td>
+            <td th:text="${l.clientIp} ?: '—'">주소</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav class="pager" aria-label="페이지" th:if="${totalPages > 1}">
+    <a th:if="${search.page > 1}" aria-label="이전 페이지"
+       th:href="@{/admin/audit(actorId=${search.actorId},action=${search.action},from=${search.from},to=${search.to},page=${search.page - 1})}">‹</a>
+    <span style="align-self:center; padding:0 8px;" th:text="${search.page} + ' / ' + ${totalPages}">1 / 1</span>
+    <a th:if="${search.page < totalPages}" aria-label="다음 페이지"
+       th:href="@{/admin/audit(actorId=${search.actorId},action=${search.action},from=${search.from},to=${search.to},page=${search.page + 1})}">›</a>
+  </nav>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

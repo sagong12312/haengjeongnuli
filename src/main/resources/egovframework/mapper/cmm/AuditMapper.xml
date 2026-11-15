@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 접속·작업 기록. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
+<mapper namespace="egovframework.haengjeongnuli.cmm.audit.AuditMapper">
+
+    <insert id="insertLog" parameterType="egovframework.haengjeongnuli.cmm.audit.AuditLogVO">
+        INSERT INTO AUDIT_LOG (LOG_ID, OCCURRED_AT, ACTOR_ID, ACTION, TARGET, DETAIL, CLIENT_IP)
+        VALUES (SEQ_AUDIT_LOG.NEXTVAL, #{occurredAt}, #{actorId}, #{action}, #{target}, #{detail}, #{clientIp})
+    </insert>
+
+    <sql id="where">
+        <where>
+            <if test="actorId != null">AND ACTOR_ID = #{actorId}</if>
+            <if test="action != null">AND ACTION = #{action}</if>
+            <if test="from != null">AND OCCURRED_AT &gt;= #{from}</if>
+            <if test="toExclusive != null">AND OCCURRED_AT &lt; #{toExclusive}</if>
+        </where>
+    </sql>
+
+    <select id="selectLogs" parameterType="egovframework.haengjeongnuli.cmm.audit.AuditSearchVO"
+            resultType="egovframework.haengjeongnuli.cmm.audit.AuditLogVO">
+        SELECT * FROM (
+            SELECT A.*, ROWNUM AS RN FROM (
+                SELECT LOG_ID, OCCURRED_AT, ACTOR_ID, ACTION, TARGET, DETAIL, CLIENT_IP
+                  FROM AUDIT_LOG
+                <include refid="where"/>
+                 ORDER BY OCCURRED_AT DESC, LOG_ID DESC
+            ) A WHERE ROWNUM &lt;= #{endRow}
+        ) WHERE RN &gt; #{startRow}
+    </select>
+
+    <select id="selectLogCount" parameterType="egovframework.haengjeongnuli.cmm.audit.AuditSearchVO" resultType="int">
+        SELECT COUNT(*) FROM AUDIT_LOG
+        <include refid="where"/>
+    </select>
+
+</mapper>

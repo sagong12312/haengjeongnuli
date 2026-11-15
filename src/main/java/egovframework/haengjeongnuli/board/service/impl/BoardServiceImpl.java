@@ -20,16 +20,19 @@ import egovframework.haengjeongnuli.board.service.BoardService;
 import egovframework.haengjeongnuli.cmm.LoginUser;
 import egovframework.haengjeongnuli.cmm.file.AttachFileVO;
 import egovframework.haengjeongnuli.cmm.file.FileStorage;
+import egovframework.haengjeongnuli.cmm.notification.NotificationService;
 
 @Service("boardService")
 public class BoardServiceImpl implements BoardService {
 
     private final BoardMapper boardMapper;
     private final FileStorage fileStorage;
+    private final NotificationService notificationService;
 
-    public BoardServiceImpl(BoardMapper boardMapper, FileStorage fileStorage) {
+    public BoardServiceImpl(BoardMapper boardMapper, FileStorage fileStorage, NotificationService notificationService) {
         this.boardMapper = boardMapper;
         this.fileStorage = fileStorage;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -197,6 +200,12 @@ public class BoardServiceImpl implements BoardService {
         c.setWriterDept(by.dept().isEmpty() ? null : by.dept());
         c.setCreatedAt(LocalDateTime.now());
         boardMapper.insertComment(c);
+        // 글쓴이에게 알림 (내 글에 내가 단 댓글은 알리지 않음)
+        if (post.getWriterId() != null && !post.getWriterId().equals(by.getLoginId())) {
+            notificationService.notify(post.getWriterId(),
+                    by.name() + "님이 '" + post.getTitle() + "'에 댓글을 달았습니다.",
+                    "/board/" + postId + "#comments");
+        }
         return CommentResult.DONE;
     }
 

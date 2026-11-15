@@ -79,7 +79,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void resetPassword(long userId, String newPassword) {
-        userMapper.updatePassword(userId, passwordEncoder.encode(newPassword));
+        // 관리자가 정해 준 비밀번호는 다음 로그인 때 본인이 바꾸게 한다
+        userMapper.updatePassword(userId, passwordEncoder.encode(newPassword), null);
         userMapper.resetFailedCount(userId);
     }
 
@@ -90,7 +91,7 @@ public class UserServiceImpl implements UserService {
         if (u == null || currentPassword == null || !passwordEncoder.matches(currentPassword, u.getPasswordHash())) {
             return false;
         }
-        userMapper.updatePassword(userId, passwordEncoder.encode(newPassword));
+        userMapper.updatePassword(userId, passwordEncoder.encode(newPassword), LocalDateTime.now());
         return true;
     }
 
