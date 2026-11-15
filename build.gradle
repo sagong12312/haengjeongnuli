@@ -60,4 +60,14 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // 테스트는 src/test/resources/application-local.yml (메모리 H2) 로 실행
+    systemProperty 'spring.profiles.active', 'local'
+}
+
+// PC에서 gradlew bootRun 으로 실행하면 프로필을 정하지 않았을 때 local(H2 파일 DB)로 실행한다.
+// 운영 서버는 jar 를 SPRING_PROFILES_ACTIVE=oracle 등으로 실행하며, 프로필이 없으면 시작하지 않는다.
+tasks.named('bootRun') {
+    if (!System.getenv('SPRING_PROFILES_ACTIVE') && !System.getProperty('spring.profiles.active')) {
+        systemProperty 'spring.profiles.active', 'local'
+    }
 }

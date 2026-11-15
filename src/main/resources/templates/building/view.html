@@ -37,7 +37,7 @@
       <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">연장</button></div>
     </form>
     <form class="panel" th:action="@{/building/{id}/cancel(id=${c.caseId})}" method="post" style="gap:12px;"
-          onsubmit="return confirm('처리할까요? 되돌릴 수 없습니다.');">
+          data-confirm="처리할까요? 되돌릴 수 없습니다.">
       <h2 th:text="${c.kind == 'PERMIT'} ? '허가 취소' : '신고 효력 상실 처리'">취소</h2>
       <div class="field"><label for="creason">사유</label><input id="creason" name="reason" class="input" maxlength="500" required placeholder="예: 착수기한 내 미착공"></div>
       <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">처리</button></div>

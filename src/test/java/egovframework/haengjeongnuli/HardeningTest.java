@@ -39,11 +39,22 @@ class HardeningTest {
     void 운영에서는_첫_관리자_비밀번호_없이_시작하지_않는다() {
         UserService none = Mockito.mock(UserService.class);
         Mockito.when(none.hasAnyUser()).thenReturn(false);
-        assertThatThrownBy(() -> new InitialAdminRunner(none, "", true).run(null))
+        assertThatThrownBy(() -> new InitialAdminRunner(none, "", true, "build/x.txt").run(null))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("APP_INIT_ADMIN_PASSWORD");
         // 약한 비밀번호도 거부
-        assertThatThrownBy(() -> new InitialAdminRunner(none, "1234", true).run(null))
+        assertThatThrownBy(() -> new InitialAdminRunner(none, "1234", true, "build/x.txt").run(null))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("비밀번호 규칙");
         Mockito.verify(none, Mockito.never()).create(Mockito.any());
+    }
+
+    @Test
+    void 무작위_첫_관리자_비밀번호는_로그가_아니라_파일에_적는다(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        UserService none = Mockito.mock(UserService.class);
+        Mockito.when(none.hasAnyUser()).thenReturn(false);
+        java.nio.file.Path file = dir.resolve("initial-admin-password.txt");
+        new InitialAdminRunner(none, "", false, file.toString()).run(null);
+        String text = java.nio.file.Files.readString(file);
+        assertThat(text).contains("아이디: admin").containsPattern("비밀번호: \\S{9,}");
+        Mockito.verify(none).create(Mockito.argThat(f -> text.contains(f.getPassword())));
     }
 }

@@ -72,7 +72,7 @@
       <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">연장</button></div>
     </form>
 
-    <form class="panel" th:action="@{/welfare/{id}/withdraw(id=${c.caseId})}" method="post" style="gap:12px;" onsubmit="return confirm('취하로 처리할까요?');">
+    <form class="panel" th:action="@{/welfare/{id}/withdraw(id=${c.caseId})}" method="post" style="gap:12px;" data-confirm="취하로 처리할까요?">
       <h2>취하</h2>
       <div class="field"><label for="wnote">사유</label><input id="wnote" name="note" class="input" maxlength="500" required></div>
       <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">취하 처리</button></div>

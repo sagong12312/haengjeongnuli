@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title th:text="'시행문 · ' + ${doc.title}">시행문</title>
   <link rel="stylesheet" th:href="@{/css/app.css}">
+  <script th:src="@{/js/app.js}" defer></script>
   <style>
     body { background:#E9EDF2; }
     .sheet { background:#fff; color:#111; max-width:210mm; min-height:297mm; margin:24px auto; padding:20mm 18mm; box-sizing:border-box;
@@ -28,7 +29,7 @@
 <body>
 <div class="toolbar">
   <a class="btn btn-plain" th:href="@{/approval/{id}(id=${doc.docId})}">문서로 돌아가기</a>
-  <button type="button" class="btn btn-primary" onclick="window.print()">인쇄</button>
+  <button type="button" class="btn btn-primary" data-print>인쇄</button>
 </div>
 <article class="sheet" aria-label="시행문">
   <div class="org" th:text="${@orgService.get('orgName', '(행정기관명)')}">행정기관명</div>

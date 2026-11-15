@@ -28,7 +28,7 @@
     <div th:if="${hasSeal}" style="display:flex; gap:16px; align-items:center;">
       <img th:src="@{/org/seal}" alt="등록된 관인" style="width:96px; height:96px; object-fit:contain; border:1px solid var(--line); border-radius:8px; background:#fff;">
       <form th:action="@{/admin/org/seal/delete}" method="post" style="margin:0;">
-        <button type="submit" class="btn btn-plain btn-sm" onclick="return confirm('관인 이미지를 지울까요?');">관인 이미지 지우기</button></form>
+        <button type="submit" class="btn btn-plain btn-sm" data-confirm="관인 이미지를 지울까요?">관인 이미지 지우기</button></form>
     </div>
     <p th:unless="${hasSeal}" class="hint" style="margin:0;">등록된 관인 이미지가 없습니다. 시행문에는 관인 자리만 표시됩니다.</p>
     <form th:action="@{/admin/org/seal}" method="post" enctype="multipart/form-data" style="display:flex; gap:10px; flex-wrap:wrap; margin:0;">

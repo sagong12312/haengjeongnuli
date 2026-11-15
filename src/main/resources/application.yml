@@ -24,9 +24,8 @@ server:
 spring:
   application:
     name: haengjeongnuli
-  profiles:
-    # 아무 프로필도 지정하지 않으면 local(H2) 로 실행
-    default: local
+  # 프로필(local / oracle / tibero)을 꼭 정해야 시작한다. 정하지 않으면 시작하지 않는다 (HaengjeongnuliApplication).
+  #   PC에서 gradlew bootRun 으로 실행하면 local 로 정해진다 (build.gradle).
   thymeleaf:
     cache: false
   servlet:
@@ -41,12 +40,10 @@ mybatis:
     jdbc-type-for-null: VARCHAR
 
 app:
-  # 접속을 허용할 네트워크 (쉼표로 구분, CIDR 표기).
-  # 기본값: 이 PC(127.0.0.1, ::1) + 집 공유기 내부망(사설 IP 대역). 그 밖(인터넷)에서 오는 접속은 막는다.
-  # 이 PC에서만 쓰려면: 127.0.0.1/32,::1/128
-  # 특정 대역만 허용하려면 예: 127.0.0.1/32,::1/128,192.168.0.0/24
+  # 접속을 허용할 네트워크 (쉼표로 구분, CIDR 표기). 기본값: 이 PC(127.0.0.1, ::1)만.
+  # 다른 PC에서도 쓰려면 APP_ALLOWED_NETWORKS 로 정한다. 예: 127.0.0.1/32,::1/128,192.168.0.0/24
   access:
-    allowed-networks: ${APP_ALLOWED_NETWORKS:127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,fe80::/10,fc00::/7}
+    allowed-networks: ${APP_ALLOWED_NETWORKS:127.0.0.1/32,::1/128}
   # 계정이 하나도 없을 때 만드는 첫 관리자(admin) 비밀번호. 비워 두면 무작위로 만들어 서버 창에 한 번 보여준다.
   init-admin:
     password: ${APP_INIT_ADMIN_PASSWORD:}

@@ -31,7 +31,7 @@
             <td><span th:class="${extra.containsKey(h.key)} ? 'badge badge-orange' : 'badge badge-gray'" th:text="${extra.containsKey(h.key)} ? '직접 등록' : '규정'">규정</span></td>
             <td>
               <form th:if="${extra.containsKey(h.key)}" th:action="@{/admin/holidays/delete}" method="post" style="margin:0;"
-                    onsubmit="return confirm('이 공휴일을 지울까요?');">
+                    data-confirm="이 공휴일을 지울까요?">
                 <input type="hidden" name="day" th:value="${h.key}">
                 <button type="submit" class="btn btn-plain" style="height:40px; font-size:16px; padding:0 12px;">지우기</button>
               </form>

@@ -21,7 +21,7 @@
         <td style="white-space:nowrap;">
           <a class="btn btn-outline btn-sm" th:href="@{/approval/draft(template=${t.templateId})}">이 서식으로 기안</a>
           <form th:if="${t.ownerId == loginUser.loginId or loginUser.admin}" th:action="@{/approval/templates/{id}/delete(id=${t.templateId})}" method="post" style="display:inline; margin:0;">
-            <button type="submit" class="btn btn-plain btn-sm" onclick="return confirm('이 서식을 지울까요?');">지우기</button></form>
+            <button type="submit" class="btn btn-plain btn-sm" data-confirm="이 서식을 지울까요?">지우기</button></form>
         </td>
       </tr></tbody>
     </table></div>

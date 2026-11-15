@@ -67,7 +67,7 @@
     <p class="hint" style="margin:0;">잘못 등록했거나 같은 문서를 두 번 등록한 경우에 씁니다. 등록대장에서 지우지 않고 '등록 취소'로 표시해 남기며, 등록번호는 다시 쓰지 않습니다. 기록물관리책임자가 확인해야 취소됩니다.</p>
     <input type="hidden" name="field" value="canceled"><input type="hidden" name="newValue" value="Y">
     <div class="field"><label for="creason">취소 사유 <span class="req">*</span></label><input id="creason" name="reason" class="input" required maxlength="500" placeholder="예: 같은 공문을 두 번 등록함 (OO-12와 중복)"></div>
-    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline btn-lg" onclick="return confirm('등록 취소를 요청할까요?');">등록 취소 요청</button></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline btn-lg" data-confirm="등록 취소를 요청할까요?">등록 취소 요청</button></div>
   </form>
 
   <section class="panel flush" th:unless="${#lists.isEmpty(fixes)}">

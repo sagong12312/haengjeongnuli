@@ -15,7 +15,8 @@ import egovframework.haengjeongnuli.user.service.UserService;
 
 /**
  * 계정이 하나도 없으면 첫 관리자 계정(admin)을 만든다.
- * 비밀번호는 환경변수 APP_INIT_ADMIN_PASSWORD 로 정할 수 있고, 없으면 무작위로 만들어 서버 창에 한 번만 보여준다.
+ * 비밀번호는 환경변수 APP_INIT_ADMIN_PASSWORD 로 정할 수 있고, 없으면 무작위로 만들어 파일(app.init-admin.password-file)에
+ * 적는다. 서버 로그에는 비밀번호를 남기지 않는다 (로그는 여러 사람이 보거나 오래 보관될 수 있다).
  */
 @Component
 public class InitialAdminRunner implements ApplicationRunner {
@@ -26,13 +27,16 @@ public class InitialAdminRunner implements ApplicationRunner {
     private final UserService userService;
     private final String configuredPassword;
     private final boolean requirePassword;
+    private final String passwordFile;
 
     public InitialAdminRunner(UserService userService,
                               @Value("${app.init-admin.password:}") String configuredPassword,
-                              @Value("${app.init-admin.require-password:false}") boolean requirePassword) {
+                              @Value("${app.init-admin.require-password:false}") boolean requirePassword,
+                              @Value("${app.init-admin.password-file:./data/initial-admin-password.txt}") String passwordFile) {
         this.userService = userService;
         this.configuredPassword = configuredPassword;
         this.requirePassword = requirePassword;
+        this.passwordFile = passwordFile;
     }
 
     @Override
@@ -61,12 +65,26 @@ public class InitialAdminRunner implements ApplicationRunner {
         userService.create(form);
 
         if (generated) {
+            java.nio.file.Path file = java.nio.file.Path.of(passwordFile).toAbsolutePath().normalize();
+            try {
+                java.nio.file.Files.createDirectories(file.getParent());
+                java.nio.file.Files.writeString(file, "아이디: admin\n비밀번호: " + password
+                        + "\n\n처음 로그인하면 비밀번호를 바꾸게 됩니다. 로그인한 뒤 이 파일을 지우세요.\n",
+                        java.nio.charset.StandardCharsets.UTF_8);
+                try {
+                    java.nio.file.Files.setPosixFilePermissions(file, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
+                } catch (UnsupportedOperationException ignored) {
+                    // Windows: 파일 권한은 폴더 권한을 따른다
+                }
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("첫 관리자 비밀번호를 파일에 쓰지 못했습니다: " + file
+                        + " (APP_INIT_ADMIN_PASSWORD 로 정해서 시작할 수도 있습니다)", e);
+            }
             log.warn("\n\n==========================================================\n"
-                    + "  첫 관리자 계정을 만들었습니다. 지금 한 번만 보여줍니다.\n"
-                    + "    아이디   : admin\n"
-                    + "    비밀번호 : {}\n"
-                    + "  로그인한 뒤 '내 정보 > 비밀번호 변경'에서 바꾸세요.\n"
-                    + "==========================================================\n", password);
+                    + "  첫 관리자 계정(admin)을 만들었습니다.\n"
+                    + "  비밀번호는 이 파일에 적었습니다: {}\n"
+                    + "  로그인해서 비밀번호를 바꾼 뒤 파일을 지우세요.\n"
+                    + "==========================================================\n", file);
         } else {
             log.warn("첫 관리자 계정(admin)을 APP_INIT_ADMIN_PASSWORD 로 만들었습니다.");
         }

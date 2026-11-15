@@ -55,7 +55,7 @@
       </div>
       <div class="form-actions" style="justify-content:flex-end;">
         <button type="submit" class="btn btn-outline btn-lg" th:formaction="@{/approval/{id}/reject(id=${doc.docId})}"
-                onclick="var o=document.getElementById('opinion'); if(!o.value.trim()){alert('반려 사유를 적어 주세요.'); o.focus(); return false;} return confirm('반려할까요?');">반려</button>
+                data-require="opinion" data-require-msg="반려 사유를 적어 주세요." data-confirm="반려할까요?">반려</button>
         <button type="submit" class="btn btn-primary btn-lg" th:formaction="@{/approval/{id}/approve(id=${doc.docId})}">승인</button>
       </div>
     </form>
@@ -136,7 +136,7 @@
     <a class="btn btn-plain btn-lg" th:href="@{/approval}">목록</a>
     <div style="display:flex; flex-wrap:wrap; gap:10px;">
       <form th:if="${doc.canWithdraw(loginUser)}" th:action="@{/approval/{id}/withdraw(id=${doc.docId})}" method="post" style="margin:0;"
-            onsubmit="return confirm('회수하면 임시저장 문서로 돌아갑니다. 회수할까요?');">
+            data-confirm="회수하면 임시저장 문서로 돌아갑니다. 회수할까요?">
         <button type="submit" class="btn btn-outline btn-lg">회수</button>
       </form>
       <a th:if="${doc.status == 'REJECTED' and doc.isDraftedBy(loginUser)}" class="btn btn-primary btn-lg"

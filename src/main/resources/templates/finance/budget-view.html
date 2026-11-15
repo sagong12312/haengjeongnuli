@@ -34,7 +34,7 @@
     <div style="display:flex; flex-wrap:wrap; gap:10px;" th:if="${canEdit}">
       <a class="btn btn-outline" th:href="@{/finance/budget/{id}/edit(id=${b.budgetId})}">고치기</a>
       <form th:action="@{/finance/budget/{id}/request(id=${b.budgetId})}" method="post" style="margin:0;"><button type="submit" class="btn btn-primary">승인 요청</button></form>
-      <form th:action="@{/finance/budget/{id}/delete(id=${b.budgetId})}" method="post" style="margin:0;" onsubmit="return confirm('이 예산을 지울까요?');"><button type="submit" class="btn btn-plain">지우기</button></form>
+      <form th:action="@{/finance/budget/{id}/delete(id=${b.budgetId})}" method="post" style="margin:0;" data-confirm="이 예산을 지울까요?"><button type="submit" class="btn btn-plain">지우기</button></form>
     </div>
   </section>
 
@@ -45,7 +45,7 @@
         <textarea id="note" name="note" class="textarea" rows="3" maxlength="1000"></textarea></div>
       <div class="form-actions" style="justify-content:flex-end;">
         <button type="submit" class="btn btn-outline btn-lg" th:formaction="@{/finance/budget/{id}/reject(id=${b.budgetId})}"
-                onclick="var n=document.getElementById('note'); if(!n.value.trim()){alert('반려 사유를 적어 주세요.'); n.focus(); return false;} return confirm('반려할까요?');">반려</button>
+                data-require="note" data-require-msg="반려 사유를 적어 주세요." data-confirm="반려할까요?">반려</button>
         <button type="submit" class="btn btn-primary btn-lg" th:formaction="@{/finance/budget/{id}/approve(id=${b.budgetId})}">승인</button>
       </div>
     </form>
@@ -131,7 +131,7 @@
             <td>
               <span th:if="${t.cancelled}" class="badge badge-gray">취소</span>
               <form th:if="${!t.cancelled and isBudgetStaff}" th:action="@{/finance/txn/{id}/cancel(id=${t.txnId})}" method="post" style="margin:0;"
-                    onsubmit="return confirm('이 집행 기록을 취소할까요?');"><button type="submit" class="btn btn-plain" style="height:36px; font-size:15px; padding:0 10px;">취소</button></form>
+                    data-confirm="이 집행 기록을 취소할까요?"><button type="submit" class="btn btn-plain" style="height:36px; font-size:15px; padding:0 10px;">취소</button></form>
             </td>
           </tr>
         </tbody>

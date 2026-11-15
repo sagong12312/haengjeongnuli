@@ -1,3 +1,10 @@
+# 운영은 HTTPS 로 한다: 세션 쿠키를 HTTPS 에서만 보낸다. 내부망에서 어쩔 수 없이 HTTP 로 시험할 때만 APP_COOKIE_SECURE=false.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: ${APP_COOKIE_SECURE:true}
+
 # Tibero 연결. 드라이버 jar(tibero7-jdbc.jar 등)를 프로젝트의 libs/ 폴더에 넣어야 한다.
 # 접속 정보는 환경변수로 넘긴다.
 #   DB_URL       예: jdbc:tibero:thin:@db-host:8629:DB_NAME

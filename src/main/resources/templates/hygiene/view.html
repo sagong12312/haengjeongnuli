@@ -46,7 +46,7 @@
   </section>
 
   <form th:if="${canEdit and b.open}" class="panel" th:action="@{/hygiene/{id}/close(id=${b.bizId})}" method="post" style="gap:12px;"
-        onsubmit="return confirm('폐업으로 처리할까요?');">
+        data-confirm="폐업으로 처리할까요?">
     <h2>폐업 처리</h2>
     <div class="field"><label for="clo">폐업일</label><input id="clo" name="on" type="date" class="input" required th:max="${today}"></div>
     <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">폐업 처리</button></div>

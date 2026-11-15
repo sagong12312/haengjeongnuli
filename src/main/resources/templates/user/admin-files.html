@@ -40,7 +40,7 @@
         <td th:text="${o.removable} ? '지울 수 있음' : '하루 뒤 정리 (올리는 중일 수 있음)'">정리</td></tr></tbody>
     </table></div>
     <form th:unless="${#lists.isEmpty(r.orphans)}" th:action="@{/admin/files/orphans/delete}" method="post" style="padding:14px 22px; margin:0;">
-      <button type="submit" class="btn btn-outline" onclick="return confirm('하루 넘게 DB에 없는 파일을 지울까요? 되돌릴 수 없습니다.');">하루 지난 남는 파일 지우기</button>
+      <button type="submit" class="btn btn-outline" data-confirm="하루 넘게 DB에 없는 파일을 지울까요? 되돌릴 수 없습니다.">하루 지난 남는 파일 지우기</button>
     </form>
   </section>
 </main>

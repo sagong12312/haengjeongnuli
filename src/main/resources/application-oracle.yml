@@ -1,3 +1,10 @@
+# 운영은 HTTPS 로 한다: 세션 쿠키를 HTTPS 에서만 보낸다. 내부망에서 어쩔 수 없이 HTTP 로 시험할 때만 APP_COOKIE_SECURE=false.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: ${APP_COOKIE_SECURE:true}
+
 # Oracle 연결. 접속 정보는 환경변수로 넘긴다 (비밀번호를 파일에 적지 않는다).
 #   DB_URL       예: jdbc:oracle:thin:@//db-host:1521/SERVICE_NAME
 #   DB_USERNAME

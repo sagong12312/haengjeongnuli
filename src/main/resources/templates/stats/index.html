@@ -9,7 +9,7 @@
     <div><span class="crumb"><a th:href="@{/}">홈</a> › 통계·보고</span><h1 th:text="${year} + '년 업무 통계'">업무 통계</h1></div>
     <form th:action="@{/stats}" method="get" style="display:flex; gap:10px; align-items:center;">
       <label for="syear" style="font-weight:700;">연도</label>
-      <select id="syear" name="year" class="select" style="height:52px;" onchange="this.form.submit()">
+      <select id="syear" name="year" class="select" style="height:52px;" data-autosubmit>
         <option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option></select>
       <a class="btn btn-outline" th:href="@{/stats/civil.csv(year=${year})}">민원 통계 내려받기 (CSV)</a>
     </form>

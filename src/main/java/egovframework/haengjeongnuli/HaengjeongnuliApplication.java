@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class HaengjeongnuliApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(HaengjeongnuliApplication.class, args);
+        SpringApplication app = new SpringApplication(HaengjeongnuliApplication.class);
+        app.addListeners(new StartupGuard());
+        app.run(args);
     }
 }

@@ -39,7 +39,7 @@
         <td>
           <div th:if="${r.status == 'OPEN'}" style="display:flex; gap:6px; justify-content:center;">
             <form th:action="@{/admin/users/pw-requests/{id}/issue(id=${r.reqId})}" method="post" style="margin:0;">
-              <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('본인임을 확인했나요? 임시 비밀번호를 발급합니다.');">임시 비밀번호 발급</button></form>
+              <button type="submit" class="btn btn-outline btn-sm" data-confirm="본인임을 확인했나요? 임시 비밀번호를 발급합니다.">임시 비밀번호 발급</button></form>
             <form th:action="@{/admin/users/pw-requests/{id}/reject(id=${r.reqId})}" method="post" style="margin:0;">
               <button type="submit" class="btn btn-plain btn-sm">반려</button></form>
           </div>
