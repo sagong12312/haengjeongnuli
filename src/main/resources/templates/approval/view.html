@@ -122,7 +122,7 @@
 
   <section class="panel" aria-labelledby="body-title">
     <h2 id="body-title">본문</h2>
-    <div style="white-space:pre-wrap; font-size:19px; line-height:1.8;" th:text="${doc.body}">본문</div>
+    <div th:utext="${@bodyRenderer.render(doc.body)}">본문</div>
     <div th:unless="${#lists.isEmpty(doc.files)}" style="border-top:1px solid var(--line); padding-top:14px;">
       <b>붙임</b>
       <ol style="margin:6px 0 0; padding-left:22px;">

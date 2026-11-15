@@ -12,7 +12,8 @@
     .org { text-align:center; font-size:28px; font-weight:800; letter-spacing:6px; margin-bottom:14px; }
     .row { display:flex; gap:10px; } .row b { width:56px; flex:none; }
     .title-row { border-top:2px solid #111; border-bottom:1px solid #111; padding:8px 0; font-weight:700; }
-    .body { white-space:pre-wrap; min-height:60mm; padding:8px 0; }
+    .body { min-height:60mm; padding:8px 0; }
+    .sheet .doc-body { font-size:16px; line-height:1.7; }
     .sender { position:relative; text-align:center; font-size:26px; font-weight:800; letter-spacing:4px; margin:24px 0 12px; }
     .seal { position:absolute; width:26mm; height:26mm; object-fit:contain; margin-left:-8mm; margin-top:-9mm; opacity:.92; }
     .seal-empty { display:inline-block; width:22mm; height:22mm; border:1px dashed #999; border-radius:4px; vertical-align:middle; margin-left:8px;
@@ -34,7 +35,7 @@
   <div class="row"><b>수신</b><span th:text="${receiver}">수신자</span></div>
   <div class="row" th:if="${doc.via}"><b>(경유)</b><span th:text="${doc.via}">경유</span></div>
   <div class="row title-row"><b>제목</b><span th:text="${doc.title}">제목</span></div>
-  <div class="body" th:text="${doc.body}">본문</div>
+  <div class="body" th:utext="${@bodyRenderer.render(doc.body)}">본문</div>
   <div th:unless="${#lists.isEmpty(doc.files)}">
     <div th:each="f, st : ${doc.files}" th:text="(${st.first} ? '붙임  ' : '      ') + ${st.count} + '. ' + ${f.originalName} + ' 1부.' + (${st.last} ? '  끝.' : '')">붙임</div>
   </div>

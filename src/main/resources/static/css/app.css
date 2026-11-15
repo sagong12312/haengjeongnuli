@@ -159,3 +159,12 @@ table.list td a { color: var(--text); text-decoration: none; }
 
 .sign-mark { display:inline-block; margin-left:6px; padding:0 6px; border:1.5px solid var(--red-fg); color:var(--red-fg); border-radius:4px; font-size:14px; font-weight:700; line-height:20px; }
 .sign-proxy { display:block; margin-top:2px; }
+
+/* 문서 본문: 항목 들여쓰기와 표 (BodyRenderer) */
+.doc-body { font-size: 19px; line-height: 1.8; }
+.doc-body .b-gap { height: .8em; }
+.doc-body .b-line { white-space: pre-wrap; }
+.b-table-wrap { overflow-x: auto; margin: 6px 0; }
+.b-table { border-collapse: collapse; font-size: 17px; }
+.b-table th, .b-table td { border: 1px solid #555; padding: 4px 10px; text-align: center; }
+.b-table th { background: #EEF2F7; }
