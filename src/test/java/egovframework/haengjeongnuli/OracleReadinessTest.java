@@ -53,10 +53,17 @@ class OracleReadinessTest {
         String schema = Files.readString(ORACLE.resolve("schema.sql"));
         String grants = Files.readString(ORACLE.resolve("accounts_and_grants.sql"));
         for (String t : all(Pattern.compile("CREATE TABLE (\\w+) \\("), schema)) {
-            if (t.startsWith("DOC_REGISTRY")) {
-                // 기록물 등록정보는 읽기·추가만 (시행령 제20조 제2항)
+            if (t.equals("DOC_REGISTRY_FIX")) {
+                // 수정 이력은 지울 수 없다 (상태만 바꾼다)
+                assertThat(grants).as(t).contains("GRANT SELECT, INSERT, UPDATE ON " + t + " TO HJN_APP;")
+                        .doesNotContain("DELETE ON " + t + " ");
+            } else if (t.startsWith("DOC_REGISTRY")) {
+                // 기록물 등록정보는 읽기·추가만, 확인된 수정은 정해진 칸만 (시행령 제20조 제2항, 시행규칙 제6조)
                 assertThat(grants).as(t).contains("GRANT SELECT, INSERT ON " + t + " TO HJN_APP;")
-                        .doesNotContain("UPDATE, DELETE ON " + t + " ");
+                        .doesNotContain("UPDATE, DELETE ON " + t + " ").doesNotContain("DELETE ON " + t + " ");
+                if (t.equals("DOC_REGISTRY")) {
+                    assertThat(grants).contains("GRANT UPDATE (TITLE, COUNTERPART, COUNTERPART_NO, MEDIUM, PAGES, RETENTION, DISCLOSURE, NOTE, CANCELED_YN) ON DOC_REGISTRY TO HJN_APP;");
+                }
             } else {
                 assertThat(grants).as(t).contains("GRANT SELECT, INSERT, UPDATE, DELETE ON " + t + " TO HJN_APP;");
             }

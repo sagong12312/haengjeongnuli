@@ -32,6 +32,9 @@ public interface UserService extends UserDetailsService {
     /** 사회복지 담당 표시를 켜고 끈다 */
     void setWelfareStaff(long userId, boolean value);
 
+    /** 처리과 기록물관리책임자 표시를 켜고 끈다 */
+    void setRecordsManager(long userId, boolean value);
+
     /** 세입 담당 표시를 켜고 끈다 */
     void setRevenueStaff(long userId, boolean value);
 

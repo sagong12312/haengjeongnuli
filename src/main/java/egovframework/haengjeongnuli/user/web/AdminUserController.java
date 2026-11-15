@@ -182,6 +182,16 @@ public class AdminUserController {
         return "redirect:/admin/users";
     }
 
+    /** 처리과 기록물관리책임자 지정·해제 (등록정보 수정을 확인한다, 공공기록물법 시행규칙 제15조) */
+    @PostMapping("/{userId}/records-manager")
+    public String recordsManager(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {
+        userService.setRecordsManager(userId, value);
+        auditService.record(AuditAction.USER_RECORDS_MANAGER, "사용자 " + userId, value ? "지정" : "해제");
+        ra.addFlashAttribute("message", value ? "기록물관리책임자로 지정했습니다. 다시 로그인하면 반영됩니다."
+                : "기록물관리책임자를 해제했습니다. 다시 로그인하면 반영됩니다.");
+        return "redirect:/admin/users";
+    }
+
     /** 세입 담당 지정·해제 (세입 화면은 지정된 직원만 연다) */
     @PostMapping("/{userId}/revenue")
     public String revenue(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {

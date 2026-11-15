@@ -64,6 +64,7 @@ public class RecordController {
         model.addAttribute("q", q);
         model.addAttribute("rows", records.list(me, y, type, q));
         model.addAttribute("dept", RecordService.deptKey(me.getDeptName()));
+        model.addAttribute("toConfirm", records.fixesToConfirm(me));
         return "records/list";
     }
 
@@ -107,7 +108,42 @@ public class RecordController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         model.addAttribute("r", r);
+        model.addAttribute("fixes", records.fixes(id));
+        model.addAttribute("canRequestFix", !r.isCanceled() && records.canRequestFix(r, me));
+        model.addAttribute("canConfirmFix", records.canConfirmFix(r, me));
+        model.addAttribute("fields", egovframework.haengjeongnuli.records.service.RecordFixVO.FIELDS);
+        model.addAttribute("media", RecordVO.MEDIA);
+        model.addAttribute("retentions", ApprovalForm.RETENTIONS);
+        model.addAttribute("disclosures", ApprovalForm.DISCLOSURES);
         return "records/view";
+    }
+
+    /** 등록정보 수정·등록 취소 요청 (기록물관리책임자 확인 뒤 반영, 공공기록물법 시행규칙 제6조) */
+    @PostMapping("/records/{id:\\d+}/fix")
+    public String requestFix(@AuthenticationPrincipal LoginUser me, @PathVariable long id,
+                             @RequestParam(required = false) String field, @RequestParam(required = false) String newValue,
+                             @RequestParam(required = false) String reason, RedirectAttributes ra) {
+        RecordVO r = records.get(id);
+        if (r == null || !records.canView(r, me)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        RecordService.Result res = records.requestFix(id, field, newValue, reason, me);
+        if (res.ok()) {
+            audit.record(AuditAction.RECORD_FIX_REQUEST, "기록물 " + id, field + ": " + reason);
+        }
+        ra.addFlashAttribute("message", res.message());
+        return "redirect:/records/" + id;
+    }
+
+    @PostMapping("/records/fixes/{fixId:\\d+}")
+    public String confirmFix(@AuthenticationPrincipal LoginUser me, @PathVariable long fixId,
+                             @RequestParam boolean approve, RedirectAttributes ra) {
+        RecordService.Result res = records.confirmFix(fixId, approve, me);
+        if (res.ok()) {
+            audit.record(AuditAction.RECORD_FIX_CONFIRM, "수정 요청 " + fixId, approve ? "반영" : "반려");
+        }
+        ra.addFlashAttribute("message", res.message());
+        return res.id() == null ? "redirect:/records" : "redirect:/records/" + res.id();
     }
 
     @GetMapping("/records/files/{fileId:\\d+}")

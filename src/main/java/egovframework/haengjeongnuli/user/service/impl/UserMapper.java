@@ -49,4 +49,7 @@ public interface UserMapper {
                           @Param("movedBy") String movedBy);
 
     List<egovframework.haengjeongnuli.user.service.DeptMoveVO> selectRecentDeptMoves(@Param("limit") int limit);
+
+    void updateRecordsManager(@org.apache.ibatis.annotations.Param("userId") long userId,
+                              @org.apache.ibatis.annotations.Param("yn") String yn);
 }

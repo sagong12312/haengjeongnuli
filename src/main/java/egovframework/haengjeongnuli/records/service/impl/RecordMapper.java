@@ -27,4 +27,18 @@ public interface RecordMapper {
     List<RecordVO> selectList(@Param("all") boolean all, @Param("dept") String dept, @Param("loginId") String loginId,
                               @Param("year") int year,
                               @Param("type") String type, @Param("q") String q, @Param("limit") int limit);
+
+    // 등록정보 수정 (기록물관리책임자 확인)
+    long nextFixId();
+    void insertFix(egovframework.haengjeongnuli.records.service.RecordFixVO f);
+    List<egovframework.haengjeongnuli.records.service.RecordFixVO> selectFixes(@Param("regId") long regId);
+    egovframework.haengjeongnuli.records.service.RecordFixVO selectFix(@Param("fixId") long fixId);
+    int countOpenFix(@Param("regId") long regId, @Param("field") String field);
+    /** 확인 대기 중인 수정 요청 (처리과 기준) */
+    List<egovframework.haengjeongnuli.records.service.RecordFixVO> selectOpenFixes(@Param("dept") String dept);
+    int closeFix(@Param("fixId") long fixId, @Param("status") String status, @Param("by") String by,
+                 @Param("byName") String byName, @Param("at") java.time.LocalDateTime at);
+    /** 확인된 수정을 등록정보에 반영한다 (칸 이름은 XML 에서 정해진 것만) */
+    int updateField(@Param("regId") long regId, @Param("field") String field, @Param("value") String value,
+                    @Param("pages") Integer pages);
 }

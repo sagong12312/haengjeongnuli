@@ -85,4 +85,11 @@ public class RecordVO {
     public void setRegisteredAt(LocalDateTime registeredAt) { this.registeredAt = registeredAt; }
     public List<RecordFileVO> getFiles() { return files; }
     public void setFiles(List<RecordFileVO> files) { this.files = files; }
+
+    /** 등록 취소 표시 (지우지 않고 남긴다) */
+    private String canceledYn = "N";
+    public String getCanceledYn() { return canceledYn; }
+    public void setCanceledYn(String canceledYn) { this.canceledYn = canceledYn; }
+    public boolean isCanceled() { return "Y".equals(canceledYn); }
+    public boolean isManual() { return "MANUAL".equals(source); }
 }

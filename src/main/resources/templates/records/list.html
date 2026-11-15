@@ -16,6 +16,20 @@
   </div>
   <p class="hint" th:text="'처리과(' + ${dept} + ')의 생산·접수 등록과, 내가 처리 담당으로 지정된 문서가 보입니다. 전자결재로 결재가 끝난 문서와 수신 문서를 접수한 것은 자동으로 올라옵니다. 등록정보는 임의로 고치거나 지울 수 없습니다 (공공기록물법 시행령 제20조 제2항).'">안내</p>
 
+  <section th:unless="${#lists.isEmpty(toConfirm)}" class="panel flush" style="border:2px solid var(--brand);">
+    <div class="panel-head"><h2>확인할 수정 요청 (기록물관리책임자)</h2><span class="muted" th:text="${#lists.size(toConfirm)} + '건'">0건</span></div>
+    <div class="table-wrap"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">등록번호</th><th scope="col">항목</th><th scope="col">바꿀 값</th><th scope="col" style="text-align:left">사유</th><th scope="col">요청</th></tr></thead>
+      <tbody><tr th:each="f : ${toConfirm}">
+        <td><a th:href="@{/records/{id}(id=${f.regId})}" th:text="${f.regNo}">번호</a></td>
+        <td th:text="${f.fieldLabel}">항목</td>
+        <td th:text="${f.fieldName == 'canceled'} ? '취소' : (${f.newValue} ?: '(비움)')">값</td>
+        <td class="left" th:text="${f.reason}">사유</td>
+        <td th:text="${f.requestedName}">요청자</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
   <form th:action="@{/records}" method="get" role="search" class="search-bar">
     <label for="ryear" class="sr-only">연도</label>
     <select id="ryear" name="year" class="select"><option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option></select>
@@ -36,7 +50,7 @@
       <tbody><tr th:each="r : ${rows}">
         <td style="color:var(--text); font-weight:700" th:text="${r.regNo}">번호</td>
         <td><span th:class="${r.regType == 'PRODUCE'} ? 'badge badge-blue' : 'badge badge-green'" th:text="${r.typeLabel}">생산</span></td>
-        <td class="left"><a th:href="@{/records/{id}(id=${r.regId})}" th:text="${r.title}">제목</a></td>
+        <td class="left"><span th:if="${r.canceled}" class="badge badge-gray" style="margin-right:6px;">등록 취소</span><a th:href="@{/records/{id}(id=${r.regId})}" th:text="${r.title}" th:style="${r.canceled} ? 'text-decoration:line-through' : null">제목</a></td>
         <td th:text="${r.regDate}">날짜</td>
         <td th:text="${r.counterpart} ?: '—'">기관</td>
         <td th:text="${r.medium}">형태</td>

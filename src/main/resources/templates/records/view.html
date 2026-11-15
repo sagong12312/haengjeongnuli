@@ -10,7 +10,8 @@
   <section class="panel">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
       <h2 th:text="${r.typeLabel} + ' 등록번호 ' + ${r.regNo}">등록번호</h2>
-      <span class="badge badge-gray" th:text="${r.sourceLabel}">출처</span>
+      <span><span th:if="${r.canceled}" class="badge badge-red">등록 취소</span>
+      <span class="badge badge-gray" th:text="${r.sourceLabel}">출처</span></span>
     </div>
     <dl class="kv">
       <div><dt>처리과</dt><dd th:text="${r.deptName}">부서</dd></div>
@@ -29,6 +30,60 @@
       <b>전자 파일</b>
       <ul style="margin:6px 0 0; padding-left:22px;"><li th:each="f : ${r.files}"><a th:href="@{/records/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a></li></ul>
     </div>
+  </section>
+
+  <!-- 확인 대기 중인 요청: 처리과 기록물관리책임자가 확인한다 -->
+  <section th:if="${canConfirmFix and #lists.size(fixes.?[status == 'REQUESTED']) > 0}" class="panel" style="border:2px solid var(--brand);">
+    <h2>확인할 수정 요청</h2>
+    <div th:each="f : ${fixes.?[status == 'REQUESTED']}" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding:10px 0;">
+      <div><b th:text="${f.fieldLabel}">항목</b>:
+        <span th:if="${f.fieldName != 'canceled'}" th:text="(${f.oldValue} ?: '(비움)') + ' → ' + (${f.newValue} ?: '(비움)')">값</span>
+        <div class="muted" th:text="'사유: ' + ${f.reason} + ' · ' + ${f.requestedName}">사유</div></div>
+      <div style="display:flex; gap:6px;">
+        <form th:action="@{/records/fixes/{id}(id=${f.fixId})}" method="post" style="margin:0;"><input type="hidden" name="approve" value="false">
+          <button type="submit" class="btn btn-plain btn-sm">반려</button></form>
+        <form th:action="@{/records/fixes/{id}(id=${f.fixId})}" method="post" style="margin:0;"><input type="hidden" name="approve" value="true">
+          <button type="submit" class="btn btn-primary btn-sm" th:text="${f.fieldName == 'canceled'} ? '확인 (등록 취소)' : '확인 (반영)'">확인</button></form>
+      </div>
+    </div>
+  </section>
+
+  <!-- 수정·취소 요청 -->
+  <form th:if="${canRequestFix}" class="panel" th:action="@{/records/{id}/fix(id=${r.regId})}" method="post" style="gap:14px;">
+    <h2>등록정보 수정 요청</h2>
+    <p class="hint" style="margin:0;">등록번호·처리과·구분·등록일자는 고칠 수 없습니다. 요청하면 처리과 기록물관리책임자가 확인한 뒤 반영되고, 수정일자·내용·사유가 아래 이력에 남습니다 (공공기록물법 시행규칙 제6조).</p>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="ffield">항목</label><select id="ffield" name="field" class="select">
+        <option th:each="e : ${fields}" th:unless="${e.key == 'canceled'}" th:value="${e.key}" th:text="${e.value}">항목</option></select></div>
+      <div class="field"><label for="fval">바꿀 값</label><input id="fval" name="newValue" class="input" maxlength="1000" list="fix-values" placeholder="비우려면 빈칸"></div>
+    </div>
+    <datalist id="fix-values"><option th:each="m : ${media}" th:value="${m}"></option><option th:each="k : ${retentions}" th:value="${k}"></option><option th:each="k : ${disclosures}" th:value="${k}"></option></datalist>
+    <div class="field"><label for="freason">수정 사유 <span class="req">*</span></label><input id="freason" name="reason" class="input" required maxlength="500"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline btn-lg">수정 요청</button></div>
+  </form>
+
+  <form th:if="${canRequestFix and r.manual}" class="panel" th:action="@{/records/{id}/fix(id=${r.regId})}" method="post" style="gap:14px;">
+    <h2>등록 취소 요청</h2>
+    <p class="hint" style="margin:0;">잘못 등록했거나 같은 문서를 두 번 등록한 경우에 씁니다. 등록대장에서 지우지 않고 '등록 취소'로 표시해 남기며, 등록번호는 다시 쓰지 않습니다. 기록물관리책임자가 확인해야 취소됩니다.</p>
+    <input type="hidden" name="field" value="canceled"><input type="hidden" name="newValue" value="Y">
+    <div class="field"><label for="creason">취소 사유 <span class="req">*</span></label><input id="creason" name="reason" class="input" required maxlength="500" placeholder="예: 같은 공문을 두 번 등록함 (OO-12와 중복)"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline btn-lg" onclick="return confirm('등록 취소를 요청할까요?');">등록 취소 요청</button></div>
+  </form>
+
+  <section class="panel flush" th:unless="${#lists.isEmpty(fixes)}">
+    <div class="panel-head"><h2>수정 이력</h2></div>
+    <div class="table-wrap"><table class="list" style="min-width:820px">
+      <thead><tr><th scope="col">요청일시</th><th scope="col">항목</th><th scope="col">이전 → 바꿀 값</th><th scope="col" style="text-align:left">사유</th><th scope="col">요청</th><th scope="col">확인</th></tr></thead>
+      <tbody><tr th:each="f : ${fixes}">
+        <td th:text="${#temporals.format(f.requestedAt, 'yyyy-MM-dd HH:mm')}">일시</td>
+        <td th:text="${f.fieldLabel}">항목</td>
+        <td th:text="${f.fieldName == 'canceled'} ? '—' : (${f.oldValue} ?: '(비움)') + ' → ' + (${f.newValue} ?: '(비움)')">값</td>
+        <td class="left" th:text="${f.reason}">사유</td>
+        <td th:text="${f.requestedName}">요청자</td>
+        <td><span th:class="'badge ' + (${f.status == 'APPROVED'} ? 'badge-green' : (${f.status == 'REJECTED'} ? 'badge-red' : 'badge-orange'))" th:text="${f.statusLabel}">상태</span>
+          <small th:if="${f.confirmedAt}" style="display:block" th:text="${f.confirmedName} + ' · ' + ${#temporals.format(f.confirmedAt, 'MM-dd HH:mm')}">확인자</small></td>
+      </tr></tbody>
+    </table></div>
   </section>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>

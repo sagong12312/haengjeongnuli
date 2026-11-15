@@ -37,7 +37,7 @@
     </insert>
 
     <select id="select" resultType="egovframework.haengjeongnuli.records.service.RecordVO">
-        SELECT <include refid="cols"/> FROM DOC_REGISTRY WHERE REG_ID = #{id}
+        SELECT <include refid="cols"/>, CANCELED_YN FROM DOC_REGISTRY WHERE REG_ID = #{id}
     </select>
 
     <select id="selectFiles" resultType="egovframework.haengjeongnuli.records.service.RecordFileVO">
@@ -52,7 +52,7 @@
     <!-- 처리과 기준으로 본다: 관리자가 아니면 우리 부서 대장 + 내가 처리 담당인 접수 문서 -->
     <select id="selectList" resultType="egovframework.haengjeongnuli.records.service.RecordVO">
         SELECT * FROM (
-            SELECT <include refid="cols"/> FROM DOC_REGISTRY
+            SELECT <include refid="cols"/>, CANCELED_YN FROM DOC_REGISTRY
              WHERE REG_YEAR = #{year}
                <if test="!all">AND (DEPT_NAME = #{dept} OR HANDLER_ID = #{loginId} OR REGISTERED_BY = #{loginId})</if>
                <if test="type != null">AND REG_TYPE = #{type}</if>
@@ -61,4 +61,60 @@
              ORDER BY REG_DATE DESC, REG_ID DESC
         ) WHERE ROWNUM &lt;= #{limit}
     </select>
+
+    <!-- 등록정보 수정 (공공기록물법 시행규칙 제6조) -->
+    <select id="nextFixId" resultType="long">SELECT SEQ_DOC_REGISTRY_FIX.NEXTVAL FROM DUAL</select>
+
+    <insert id="insertFix" parameterType="egovframework.haengjeongnuli.records.service.RecordFixVO">
+        INSERT INTO DOC_REGISTRY_FIX (FIX_ID, REG_ID, FIELD_NAME, OLD_VALUE, NEW_VALUE, REASON, STATUS,
+                                      REQUESTED_BY, REQUESTED_NAME, REQUESTED_AT)
+        VALUES (#{fixId}, #{regId}, #{fieldName}, #{oldValue}, #{newValue}, #{reason}, 'REQUESTED',
+                #{requestedBy}, #{requestedName}, #{requestedAt})
+    </insert>
+
+    <sql id="fixCols">
+        F.FIX_ID, F.REG_ID, F.FIELD_NAME, F.OLD_VALUE, F.NEW_VALUE, F.REASON, F.STATUS, F.REQUESTED_BY, F.REQUESTED_NAME,
+        F.REQUESTED_AT, F.CONFIRMED_BY, F.CONFIRMED_NAME, F.CONFIRMED_AT, R.REG_NO, R.TITLE
+    </sql>
+
+    <select id="selectFixes" resultType="egovframework.haengjeongnuli.records.service.RecordFixVO">
+        SELECT <include refid="fixCols"/> FROM DOC_REGISTRY_FIX F JOIN DOC_REGISTRY R ON R.REG_ID = F.REG_ID
+         WHERE F.REG_ID = #{regId} ORDER BY F.FIX_ID DESC
+    </select>
+
+    <select id="selectFix" resultType="egovframework.haengjeongnuli.records.service.RecordFixVO">
+        SELECT <include refid="fixCols"/> FROM DOC_REGISTRY_FIX F JOIN DOC_REGISTRY R ON R.REG_ID = F.REG_ID
+         WHERE F.FIX_ID = #{fixId}
+    </select>
+
+    <select id="countOpenFix" resultType="int">
+        SELECT COUNT(*) FROM DOC_REGISTRY_FIX WHERE REG_ID = #{regId} AND FIELD_NAME = #{field} AND STATUS = 'REQUESTED'
+    </select>
+
+    <select id="selectOpenFixes" resultType="egovframework.haengjeongnuli.records.service.RecordFixVO">
+        SELECT <include refid="fixCols"/> FROM DOC_REGISTRY_FIX F JOIN DOC_REGISTRY R ON R.REG_ID = F.REG_ID
+         WHERE F.STATUS = 'REQUESTED' AND R.DEPT_NAME = #{dept} ORDER BY F.FIX_ID
+    </select>
+
+    <update id="closeFix">
+        UPDATE DOC_REGISTRY_FIX SET STATUS = #{status}, CONFIRMED_BY = #{by}, CONFIRMED_NAME = #{byName}, CONFIRMED_AT = #{at}
+         WHERE FIX_ID = #{fixId} AND STATUS = 'REQUESTED'
+    </update>
+
+    <update id="updateField">
+        UPDATE DOC_REGISTRY SET
+        <choose>
+            <when test='field == "title"'>TITLE = #{value}</when>
+            <when test='field == "counterpart"'>COUNTERPART = #{value}</when>
+            <when test='field == "counterpartNo"'>COUNTERPART_NO = #{value}</when>
+            <when test='field == "medium"'>MEDIUM = #{value}</when>
+            <when test='field == "pages"'>PAGES = #{pages, jdbcType=NUMERIC}</when>
+            <when test='field == "retention"'>RETENTION = #{value}</when>
+            <when test='field == "disclosure"'>DISCLOSURE = #{value}</when>
+            <when test='field == "note"'>NOTE = #{value}</when>
+            <when test='field == "canceled"'>CANCELED_YN = 'Y'</when>
+            <otherwise>REG_ID = REG_ID</otherwise>
+        </choose>
+         WHERE REG_ID = #{regId}
+    </update>
 </mapper>

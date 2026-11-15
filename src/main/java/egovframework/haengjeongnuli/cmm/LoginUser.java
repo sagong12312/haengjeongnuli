@@ -42,6 +42,8 @@ public class LoginUser implements UserDetails {
     private String revenueYn = "N";
     /** 사회복지 담당 직원 (Y/N) */
     private String welfareYn = "N";
+    /** 처리과 기록물관리책임자 (Y/N) */
+    private String recordsManagerYn = "N";
     // 인사정보
     private String empNo;
     private String jobSeries;
@@ -59,6 +61,10 @@ public class LoginUser implements UserDetails {
     /** 복지 급여 신청(민감한 개인정보)을 다루는 사회복지 담당 직원 */
     public boolean isWelfareStaff() { return "Y".equals(welfareYn); }
     public String getWelfareYn() { return welfareYn; }
+    /** 처리과 기록물관리책임자 (등록정보 수정을 확인한다) */
+    public boolean isRecordsManager() { return "Y".equals(recordsManagerYn); }
+    public String getRecordsManagerYn() { return recordsManagerYn; }
+    public void setRecordsManagerYn(String recordsManagerYn) { this.recordsManagerYn = recordsManagerYn; }
     public void setWelfareYn(String welfareYn) { this.welfareYn = welfareYn; }
     public boolean isLocked() { return failedCount >= MAX_FAILED; }
 
