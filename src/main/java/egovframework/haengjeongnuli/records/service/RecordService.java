@@ -433,18 +433,7 @@ public class RecordService {
         return sb.toString();
     }
 
-    /** CSV 칸: 쉼표·따옴표·줄바꿈을 감싸고, 수식으로 읽히는 값(=,+,-,@ 시작)은 앞에 ' 를 붙인다 */
     static String csv(String v) {
-        if (v == null) {
-            return "";
-        }
-        String t = v;
-        if (!t.isEmpty() && "=+-@".indexOf(t.charAt(0)) >= 0) {
-            t = "'" + t;
-        }
-        if (t.contains(",") || t.contains("\"") || t.contains("\n") || t.contains("\r")) {
-            t = "\"" + t.replace("\"", "\"\"") + "\"";
-        }
-        return t;
+        return egovframework.haengjeongnuli.cmm.text.Csv.cell(v);
     }
 }

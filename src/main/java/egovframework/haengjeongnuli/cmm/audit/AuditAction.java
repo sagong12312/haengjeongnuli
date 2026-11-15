@@ -42,6 +42,8 @@ public enum AuditAction {
     CIVIL_FILE_ADD("민원 구비서류 추가"),
     CERT_ISSUE("증명 발급 기록"),
     CONTRACT_SAVE("계약 등록·변경"),
+    FIN_EXPORT("재정 자료 내려받기"),
+    CERT_EXPORT("증명 발급 일계표 내려받기"),
     CIVIL_ASSIGN("민원 배정"),
     CIVIL_EXTEND("민원 처리기간 연장"),
     CIVIL_PROGRESS("민원 진행상황 통지"),

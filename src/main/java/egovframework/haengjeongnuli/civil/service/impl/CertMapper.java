@@ -24,6 +24,6 @@ public interface CertMapper {
 
     @Select("SELECT * FROM (SELECT ISSUE_ID, ISSUE_NO, ISSUE_YEAR, CERT_TYPE, APPLICANT_NAME, APPLICANT_TYPE, PURPOSE, COPIES, FEE, "
             + "EXEMPT_REASON, ID_CHECKED_YN, DEPT_NAME, ISSUED_BY, ISSUED_NAME, ISSUED_AT FROM CERT_ISSUE "
-            + "WHERE ISSUED_AT >= #{from} AND ISSUED_AT < #{to} ORDER BY ISSUED_AT DESC, ISSUE_ID DESC) WHERE ROWNUM <= 1000")
+            + "WHERE ISSUED_AT >= #{from} AND ISSUED_AT < #{to} ORDER BY ISSUED_AT DESC, ISSUE_ID DESC) WHERE ROWNUM <= 20000")
     List<CertIssueVO> selectBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

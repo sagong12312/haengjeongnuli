@@ -97,6 +97,30 @@ public class FinanceController {
 
     // ===== 사업 구조 =====
 
+    /** 세출예산 집행 현황 CSV (보는 범위는 화면과 같다) */
+    @GetMapping("/finance/budgets.csv")
+    public org.springframework.http.ResponseEntity<byte[]> budgetsCsv(@AuthenticationPrincipal LoginUser me,
+                                                                     @RequestParam(required = false) Integer year,
+                                                                     @RequestParam(required = false) String dept) {
+        int y = year(year);
+        String filter = finance.canSeeAllExp(me) ? (dept == null || dept.isBlank() ? null : dept) : me.dept();
+        egovframework.haengjeongnuli.cmm.text.Csv csv = egovframework.haengjeongnuli.cmm.text.Csv.of(
+                "회계연도", "부서", "정책사업", "단위사업", "세부사업", "통계목", "과목명", "상태", "예산액", "집행액", "남은 금액", "집행률(%)");
+        long amt = 0, used = 0;
+        for (BudgetVO b : finance.budgets(BudgetVO.EXP, y, filter, null)) {
+            csv.row(b.getFiscalYear(), b.getDeptName(), b.getPolicyName(), b.getUnitName(), b.getDetailName(), b.getCode(),
+                    b.getCodeName(), b.getStatusLabel(), b.getAmount(), b.getUsed(), b.getAmount() - b.getUsed(),
+                    b.getAmount() == 0 ? 0 : Math.round(b.getUsed() * 1000.0 / b.getAmount()) / 10.0);
+            if (b.isApproved()) {
+                amt += b.getAmount();
+                used += b.getUsed();
+            }
+        }
+        csv.row("합계(승인)", "", "", "", "", "", "", "", amt, used, amt - used, amt == 0 ? 0 : Math.round(used * 1000.0 / amt) / 10.0);
+        auditService.record(AuditAction.FIN_EXPORT, "세출예산 " + y, filter == null ? "전체" : filter);
+        return csv.download(y + "_세출예산_집행현황" + (filter == null ? "" : "_" + filter) + ".csv");
+    }
+
     @GetMapping("/finance/programs")
     public String programs(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Integer year, Model model) {
         int y = year(year);

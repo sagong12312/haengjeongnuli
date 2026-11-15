@@ -27,7 +27,12 @@ public class CertService {
     }
 
     public List<CertIssueVO> ofDay(LocalDate day) {
-        return mapper.selectBetween(day.atStartOfDay(), day.plusDays(1).atStartOfDay());
+        return between(day, day.plusDays(1));
+    }
+
+    /** from 이상 to 미만 (최대 20000건) */
+    public List<CertIssueVO> between(LocalDate from, LocalDate to) {
+        return mapper.selectBetween(from.atStartOfDay(), to.atStartOfDay());
     }
 
     @Transactional

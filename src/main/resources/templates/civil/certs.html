@@ -32,6 +32,8 @@
   <form th:action="@{/civil/certs}" method="get" class="search-bar">
     <label for="cday" class="sr-only">날짜</label><input id="cday" name="day" type="date" class="input" th:value="${day}">
     <button type="submit" class="btn btn-outline">보기</button>
+    <a class="btn btn-plain" th:href="@{/civil/certs.csv(day=${day})}">일계표 (CSV)</a>
+    <a class="btn btn-plain" th:href="@{/civil/certs.csv(month=${#temporals.format(day, 'yyyy-MM')})}">월계표 (CSV)</a>
   </form>
   <section class="panel flush">
     <div class="panel-head"><h2 th:text="${day} + ' 발급'">발급</h2>

@@ -56,6 +56,24 @@ public class ContractController {
         return "finance/contracts";
     }
 
+    @GetMapping("/finance/contracts.csv")
+    public org.springframework.http.ResponseEntity<byte[]> csv(@AuthenticationPrincipal LoginUser me,
+                                                              @RequestParam(required = false) Integer year,
+                                                              @RequestParam(required = false) String dept) {
+        int now = Year.now().getValue();
+        int y = year == null || year < 2000 || year > now ? now : year;
+        egovframework.haengjeongnuli.cmm.text.Csv csv = egovframework.haengjeongnuli.cmm.text.Csv.of(
+                "계약번호", "계약명", "종류", "계약 방법", "수의계약 근거·사유", "계약 상대자", "사업자등록번호", "계약 금액", "계약보증금",
+                "계약일", "착수일", "완료 예정일", "부서", "상태", "비고");
+        for (ContractVO c : contracts.list(me, y, dept)) {
+            csv.row(c.getContractNo(), c.getTitle(), c.getContractKind(), c.getMethod(), c.getPrivateReason(), c.getParty(),
+                    c.getPartyBizNo(), c.getAmount(), c.getDeposit(), c.getContractDate(), c.getStartDate(), c.getEndDate(),
+                    c.getDeptName(), c.getStatusLabel(), c.getStatusNote());
+        }
+        audit.record(AuditAction.FIN_EXPORT, "계약대장 " + y, dept);
+        return csv.download(y + "_계약대장.csv");
+    }
+
     @PostMapping("/finance/contracts")
     public String create(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String title,
                          @RequestParam(required = false) String contractKind, @RequestParam(required = false) String method,

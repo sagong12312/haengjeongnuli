@@ -17,6 +17,7 @@
       <select id="cdp" name="dept" class="select"><option value="">전체 부서</option>
         <option th:each="d : ${@deptService.activeNames()}" th:value="${d}" th:selected="${d == scope}" th:text="${d}">부서</option></select></th:block>
     <button type="submit" class="btn btn-outline">보기</button>
+    <a class="btn btn-plain" th:href="@{/finance/contracts.csv(year=${year}, dept=${scope})}">CSV 내려받기</a>
   </form>
 
   <section class="panel flush">
