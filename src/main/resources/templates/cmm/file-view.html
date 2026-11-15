@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${fileName})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header(${active})}"></header>
+<main class="page narrow">
+  <div><span class="crumb"><a th:href="${backUrl}">돌아가기</a> › 문서 보기</span><h1 th:text="${fileName}">파일</h1></div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <a class="btn btn-outline" th:href="${downloadUrl}">내려받기</a>
+    <button type="button" class="btn btn-plain" data-print>인쇄</button>
+  </div>
+  <p class="hint" style="margin:0;">글자와 표만 옮겨 보여 줍니다. 글꼴·쪽 모양·그림은 내려받아 한글에서 확인하세요.</p>
+  <div th:if="${message}" class="alert" role="status" th:text="${message}"></div>
+  <section th:if="${html}" class="panel" th:utext="${html}">내용</section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

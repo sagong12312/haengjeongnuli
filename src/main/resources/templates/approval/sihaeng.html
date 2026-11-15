@@ -29,6 +29,7 @@
 <body>
 <div class="toolbar">
   <a class="btn btn-plain" th:href="@{/approval/{id}(id=${doc.docId})}">문서로 돌아가기</a>
+  <a class="btn btn-outline" th:if="${param.to != null}" th:href="@{/approval/{id}/hwp(id=${doc.docId}, to=${param.to})}">한글(HWP)로 내려받기</a>
   <button type="button" class="btn btn-primary" data-print>인쇄</button>
 </div>
 <article class="sheet" aria-label="시행문">

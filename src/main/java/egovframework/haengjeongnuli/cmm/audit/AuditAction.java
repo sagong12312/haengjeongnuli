@@ -40,6 +40,7 @@ public enum AuditAction {
     COMMENT_CREATE("댓글 등록"),
     COMMENT_DELETE("댓글 삭제"),
     FILE_DOWNLOAD("파일 내려받기"),
+    FILE_VIEW("한글 문서 화면 보기"),
 
     CIVIL_RECEIVE("민원 접수"),
     CIVIL_VIEW("민원 상세 열람(개인정보)"),
@@ -60,6 +61,7 @@ public enum AuditAction {
     APPROVAL_PROXY("대결자 지정"),
     APPROVAL_SIHAENG("시행문 출력"),
     APPROVAL_DISPATCH("시행문 발송 기록"),
+    APPROVAL_HWP("한글 문서 만들기"),
     APPROVAL_TEMPLATE("기안 서식"),
     APPROVAL_WITHDRAW("결재 회수"),
     APPROVAL_RECEIVE("문서 접수"),

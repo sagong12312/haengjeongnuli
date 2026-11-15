@@ -225,6 +225,17 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional
+    public AttachFileVO fileForView(long fileId, LoginUser viewer) {
+        AttachFileVO f = boardMapper.selectFile(fileId);
+        if (f == null) {
+            return null;
+        }
+        BoardPostVO post = boardMapper.selectPost(f.getPostId());
+        return post != null && post.canView(viewer) ? f : null;
+    }
+
+    @Override
+    @Transactional
     public AttachFileVO fileForDownload(long fileId, LoginUser viewer) {
         AttachFileVO f = boardMapper.selectFile(fileId);
         if (f != null) {

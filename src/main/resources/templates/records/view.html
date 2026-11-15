@@ -28,7 +28,7 @@
     <a th:if="${r.docId}" class="btn btn-outline" th:href="@{/approval/{id}(id=${r.docId})}">전자결재 문서 보기</a>
     <div th:unless="${#lists.isEmpty(r.files)}">
       <b>전자 파일</b>
-      <ul style="margin:6px 0 0; padding-left:22px;"><li th:each="f : ${r.files}"><a th:href="@{/records/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a></li></ul>
+      <ul style="margin:6px 0 0; padding-left:22px;"><li th:each="f : ${r.files}"><a th:href="@{/records/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a> <a th:if="${@hwpViewer.supports(f.originalName)}" th:href="@{/records/files/{id}/view(id=${f.fileId})}" class="view-link">보기</a></li></ul>
     </div>
   </section>
 

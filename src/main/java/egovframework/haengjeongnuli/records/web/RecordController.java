@@ -172,6 +172,16 @@ public class RecordController {
         return res.id() == null ? "redirect:/records" : "redirect:/records/" + res.id();
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.hwp.HwpViewSupport hwpView;
+
+    @GetMapping("/records/files/{fileId:\\d+}/view")
+    public String viewFile(@AuthenticationPrincipal LoginUser me, @PathVariable long fileId, Model model) {
+        RecordFileVO f = records.fileForDownload(fileId, me);
+        return hwpView.view(f == null ? null : f.getStoredName(), f == null ? "" : f.getOriginalName(), "기록물 파일 " + fileId,
+                "/records/files/" + fileId, f == null ? "/records" : "/records/" + f.getRegId(), "approval", model);
+    }
+
     @GetMapping("/records/files/{fileId:\\d+}")
     public ResponseEntity<Resource> download(@AuthenticationPrincipal LoginUser me, @PathVariable long fileId) {
         RecordFileVO f = records.fileForDownload(fileId, me);

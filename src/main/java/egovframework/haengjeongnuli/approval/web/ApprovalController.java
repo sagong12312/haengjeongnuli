@@ -248,6 +248,37 @@ public class ApprovalController {
         return "approval/sihaeng";
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.approval.service.ApprovalHwpService hwpService;
+
+    /** 결재 문서를 한글(HWP) 파일로 내려받기. to 를 주면 그 수신자의 시행문 */
+    @GetMapping("/{docId}/hwp")
+    public org.springframework.http.ResponseEntity<byte[]> hwp(@AuthenticationPrincipal LoginUser me, @PathVariable long docId,
+                                                              @RequestParam(required = false) Integer to) throws Exception {
+        ApprovalDocVO d = visible(docId, me);
+        String receiver = null;
+        if (to != null) {
+            java.util.List<String> rs = d.getReceiverList();
+            if (!ApprovalDocVO.DONE.equals(d.getStatus()) || to < 0 || to >= rs.size()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            }
+            receiver = rs.get(to);
+        }
+        byte[] bytes = hwpService.make(d, receiver);
+        auditService.record(AuditAction.APPROVAL_HWP, "결재 " + docId, receiver == null ? "문서" : "시행문 " + receiver);
+        String name = (d.getDocNo() == null ? "기안" : d.getDocNo()) + "_" + d.getTitle().replaceAll("[\\\\/:*?\"<>|]", "_")
+                + (receiver == null ? "" : "_" + receiver) + ".hwp";
+        if (name.length() > 120) {
+            name = name.substring(0, 116) + ".hwp";
+        }
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType("application/x-hwp"))
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment()
+                        .filename(name, java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(bytes);
+    }
+
     @PostMapping("/{docId}/dispatch")
     public String recordDispatch(@AuthenticationPrincipal LoginUser me, @PathVariable long docId,
                                  @RequestParam(required = false) String receiver, @RequestParam(required = false) String method,
@@ -420,6 +451,16 @@ public class ApprovalController {
     }
 
     /** 붙임 내려받기. 항상 '내려받기'로 보낸다. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.hwp.HwpViewSupport hwpView;
+
+    @GetMapping("/files/{fileId}/view")
+    public String viewFile(@AuthenticationPrincipal LoginUser me, @PathVariable long fileId, Model model) {
+        ApprovalFileVO f = approvalService.fileForDownload(fileId, me);
+        return hwpView.view(f == null ? null : f.getStoredName(), f == null ? "" : f.getOriginalName(), "결재 붙임 " + fileId,
+                "/approval/files/" + fileId, f == null ? "/approval" : "/approval/" + f.getDocId(), "approval", model);
+    }
+
     @GetMapping("/files/{fileId}")
     public ResponseEntity<Resource> download(@AuthenticationPrincipal LoginUser me, @PathVariable long fileId) {
         ApprovalFileVO f = approvalService.fileForDownload(fileId, me);

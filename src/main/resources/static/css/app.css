@@ -175,3 +175,11 @@ table.list td a { color: var(--text); text-decoration: none; }
 .session-timer.soon b { color:#FFD54F; }
 .session-extend { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff; border-radius:6px; padding:2px 8px; cursor:pointer; font-size:13px; }
 .session-warning { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#fff; color:var(--text); border:2px solid var(--brand); border-radius:12px; padding:14px 18px; box-shadow:0 8px 24px rgba(0,0,0,.18); z-index:1000; font-size:18px; display:flex; gap:12px; align-items:center; }
+
+/* 한글 문서 보기 */
+.view-link { margin-left:8px; font-size:15px; }
+.hwp-view { font-size:17px; line-height:1.7; }
+.hwp-view p { margin:0 0 4px; white-space:pre-wrap; }
+.hwp-view table { border-collapse:collapse; margin:8px 0; }
+.hwp-view td { border:1px solid #666; padding:4px 8px; vertical-align:top; }
+.hwp-view td p { margin:0; }

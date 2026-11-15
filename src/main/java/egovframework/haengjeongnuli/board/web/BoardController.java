@@ -293,6 +293,16 @@ public class BoardController {
     }
 
     /** 첨부파일 내려받기. 브라우저가 열어 실행하지 않도록 항상 '내려받기'로 보낸다. */
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.hwp.HwpViewSupport hwpView;
+
+    @GetMapping("/files/{fileId}/view")
+    public String viewFile(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long fileId, org.springframework.ui.Model model) {
+        AttachFileVO f = boardService.fileForView(fileId, loginUser);
+        return hwpView.view(f == null ? null : f.getStoredName(), f == null ? "" : f.getOriginalName(), "파일 " + fileId,
+                "/board/files/" + fileId, f == null ? "/board" : "/board/" + f.getPostId(), "board", model);
+    }
+
     @GetMapping("/files/{fileId}")
     public ResponseEntity<Resource> download(@AuthenticationPrincipal LoginUser loginUser, @PathVariable long fileId) {
         AttachFileVO f = boardService.fileForDownload(fileId, loginUser);

@@ -69,6 +69,7 @@
       <li th:each="rcv, st : ${doc.receiverList}">
         <b th:text="${rcv}">수신자</b>
         <a th:href="@{/approval/{id}/sihaeng(id=${doc.docId}, to=${st.index})}" target="_blank" rel="noopener">시행문 보기·인쇄</a>
+        · <a th:href="@{/approval/{id}/hwp(id=${doc.docId}, to=${st.index})}">한글(HWP)로 내려받기</a>
         <span th:each="dp : ${dispatches}" th:if="${dp.receiver == rcv}" class="badge badge-green" style="margin-left:6px;"
               th:text="${dp.method} + ' ' + ${#temporals.format(dp.dispatchedAt, 'MM-dd HH:mm')}">발송</span>
       </li>
@@ -142,12 +143,13 @@
   </section>
 
   <section class="panel" aria-labelledby="body-title">
-    <h2 id="body-title">본문</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;"><h2 id="body-title">본문</h2>
+      <a class="btn btn-outline btn-sm" th:href="@{/approval/{id}/hwp(id=${doc.docId})}">한글(HWP)로 내려받기</a></div>
     <div th:utext="${@bodyRenderer.render(doc.body)}">본문</div>
     <div th:unless="${#lists.isEmpty(doc.files)}" style="border-top:1px solid var(--line); padding-top:14px;">
       <b>붙임</b>
       <ol style="margin:6px 0 0; padding-left:22px;">
-        <li th:each="f : ${doc.files}"><a th:href="@{/approval/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a>
+        <li th:each="f : ${doc.files}"><a th:href="@{/approval/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a> <a th:if="${@hwpViewer.supports(f.originalName)}" th:href="@{/approval/files/{id}/view(id=${f.fileId})}" class="view-link">보기</a>
           <span class="muted" style="font-size:15px;" th:text="'(' + ${f.fileSize < 1048576 ? (f.fileSize / 1024 + 1) + 'KB' : #numbers.formatDecimal(f.fileSize / 1048576.0, 1, 1) + 'MB'} + ')'">크기</span></li>
       </ol>
     </div>

@@ -57,7 +57,7 @@
     <h2 id="files-title">구비서류·첨부</h2>
     <p th:if="${#lists.isEmpty(files)}" class="hint" style="margin:0;">올린 구비서류가 없습니다.</p>
     <ul th:unless="${#lists.isEmpty(files)}" style="margin:0; padding-left:22px;">
-      <li th:each="f : ${files}"><a th:href="@{/civil/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a>
+      <li th:each="f : ${files}"><a th:href="@{/civil/files/{id}(id=${f.fileId})}" th:text="${f.originalName}">파일</a> <a th:if="${@hwpViewer.supports(f.originalName)}" th:href="@{/civil/files/{id}/view(id=${f.fileId})}" class="view-link">보기</a>
         <small class="muted" th:text="' · ' + ${#temporals.format(f.createdAt, 'MM-dd HH:mm')}">시각</small></li>
     </ul>
     <form th:if="${canProcess}" th:action="@{/civil/{id}/files(id=${c.complaintId})}" method="post" enctype="multipart/form-data"

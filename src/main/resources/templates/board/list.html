@@ -68,7 +68,7 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
                     <span th:text="${f.originalName}">파일명</span>
                     <span class="muted" style="font-size:15px;" th:text="'(' + ${f.sizeText} + ' · 받은 횟수 ' + ${f.downloadCount} + ')'">(1.2MB)</span>
-                  </a>
+                  </a> <a th:if="${@hwpViewer.supports(f.originalName)}" th:href="@{/board/files/{id}/view(id=${f.fileId})}" class="view-link">보기</a>
                 </li>
               </ul>
             </td>

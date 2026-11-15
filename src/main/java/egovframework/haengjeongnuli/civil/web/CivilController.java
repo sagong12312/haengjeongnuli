@@ -154,6 +154,19 @@ public class CivilController {
         return "redirect:/civil/" + id;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.hwp.HwpViewSupport hwpView;
+
+    @GetMapping("/files/{fileId:\\d+}/view")
+    public String viewFile(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long fileId,
+                           Model model) {
+        egovframework.haengjeongnuli.civil.service.CivilFileVO f = civilFiles.get(fileId);
+        CivilComplaintVO c = f == null ? null : process.get(f.getComplaintId());
+        boolean ok = c != null && process.canView(c, me);
+        return hwpView.view(ok ? f.getStoredName() : null, ok ? f.getOriginalName() : "", ok ? "민원 " + c.getReceiptNo() + " 구비서류 " + fileId : "",
+                "/civil/files/" + fileId, ok ? "/civil/" + c.getComplaintId() : "/civil", "civil", model);
+    }
+
     /** 구비서류 내려받기 (민원 상세를 볼 수 있는 직원만, 개인정보이므로 기록) */
     @GetMapping("/files/{fileId:\\d+}")
     public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> download(

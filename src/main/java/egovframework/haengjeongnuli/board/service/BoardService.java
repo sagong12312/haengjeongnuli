@@ -21,6 +21,9 @@ public interface BoardService {
     /** 내려받을 파일 정보. 없거나 볼 수 없는 글의 파일이면 null. 내려받은 횟수를 하나 올린다. */
     AttachFileVO fileForDownload(long fileId, LoginUser viewer);
 
+    /** 볼 수 있는 글의 첨부만 돌려준다 (받은 횟수는 늘리지 않는다) */
+    AttachFileVO fileForView(long fileId, LoginUser viewer);
+
     /** 상세 화면용: 글·첨부파일·댓글. 없으면 null. countView 면 조회수를 하나 올린다. 볼 권한은 호출하는 쪽에서 canView 로 확인 */
     BoardPostVO view(long postId, boolean countView);
 
