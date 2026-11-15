@@ -110,8 +110,12 @@ class ApprovalFlowTest {
         // 수신 부서: 문서함에 들어오고 접수할 수 있다
         assertThat(body(recv.mvc(), "/approval?box=recv")).contains(title).contains("접수 대기");
         assertThat(body(recv.mvc(), "/notifications")).contains("접수해 주세요");
-        recv.mvc().perform(post("/approval/" + id + "/receive")).andExpect(flash().attribute("message", "접수했습니다."));
+        recv.mvc().perform(post("/approval/" + id + "/receive"))
+                .andExpect(flash().attribute("message", containsString("접수했습니다. 접수번호 " + recvDept + "-1")));
         assertThat(approvalService.get(id).getReceivedAt()).isNotNull();
+        assertThat(approvalService.get(id).getReceiptNo()).isEqualTo(recvDept + "-1");
+        // 같은 처리과의 생산·접수 등록번호는 한 번호대를 이어 쓴다
+        assertThat(d.getDocNo()).isEqualTo(dept + "-1");
 
         // 관계없는 직원은 문서도 붙임도 볼 수 없다
         outsider.mvc().perform(get("/approval/" + id)).andExpect(status().isNotFound());

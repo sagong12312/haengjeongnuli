@@ -106,7 +106,13 @@ class DatabaseFlowTest {
 
         CivilComplaintVO saved = civilService.receive(form, "테스터");
         assertThat(saved.getReceiptNo()).matches("\\d{4}-\\d{6}");
-        assertThat(saved.getDeadline()).isEqualTo(LocalDate.now());
+        // 즉시 처리 민원은 접수 시각부터 3근무시간 (주말·공휴일·근무시간 밖 접수는 다음 근무시간부터)
+        assertThat(saved.getDeadlineAt()).isEqualTo(
+                new egovframework.haengjeongnuli.civil.service.DeadlineCalculator(
+                        egovframework.haengjeongnuli.cmm.holiday.KoreanHolidays.of(saved.getReceivedAt().getYear(),
+                                java.util.Map.of(LocalDate.of(2026, 6, 3), "선거")).keySet())
+                        .deadlineAt(saved.getReceivedAt(), 0));
+        assertThat(saved.getDeadline()).isEqualTo(saved.getDeadlineAt().toLocalDate());
         assertThat(saved.getStatus()).isEqualTo(CivilStatus.IN_PROGRESS);
         assertThat(saved.getMobile()).isNull();
         assertThat(saved.getHomePhone()).isEqualTo("02-123-4567");

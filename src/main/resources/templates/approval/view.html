@@ -79,6 +79,7 @@
       <div th:if="${doc.sender}"><dt>발신 명의</dt><dd th:text="${doc.sender}">발신</dd></div>
       <div th:if="${doc.external and doc.status == 'DONE'}"><dt>접수</dt>
         <dd th:text="${doc.receivedAt} ? ${#temporals.format(doc.receivedAt, 'yyyy-MM-dd HH:mm')} + ' (' + ${doc.receivedBy} + ')' : '접수 대기'">접수 대기</dd></div>
+      <div th:if="${doc.receiptNo}"><dt>접수번호</dt><dd th:text="${doc.receiptNo}">접수번호</dd></div>
     </dl>
   </section>
 

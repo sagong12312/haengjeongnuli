@@ -264,21 +264,37 @@ public class ApprovalServiceImpl implements ApprovalService {
         return Result.OK;
     }
 
-    /** 기안부서-연도별 일련번호. 동시에 끝난 문서와 번호가 겹치면 다시 고른다. */
+    /**
+     * 생산등록번호: 처리과명-연도별 등록일련번호.
+     * 결재가 끝난 뒤 부여하고(공공기록물법 시행규칙 제4조 제1호), 문서에는 처리과 기관코드 대신
+     * 처리과명을 표기한다(같은 규칙 제5조 제3항).
+     */
     private String assignNumber(ApprovalDocVO d, int year) {
-        String dept = blank(d.getDrafterDept()) ? "행정누리" : d.getDrafterDept().trim();
-        for (int attempt = 0; ; attempt++) {
-            int seq = mapper.nextDocSeq(year, d.getDrafterDept());
-            String no = dept + "-" + seq;
+        String dept = deptKey(d.getDrafterDept());
+        int seq = nextRegSeq(dept, year);
+        String no = dept + "-" + seq;
+        mapper.updateDocNumber(d.getDocId(), year, seq, no);
+        return no;
+    }
+
+    /** 처리과·연도별 등록일련번호. 생산·접수 등록이 같은 번호대를 이어 쓴다. 행 잠금으로 겹치지 않게 한다. */
+    private int nextRegSeq(String dept, int year) {
+        Integer last = mapper.lockRegCounter(dept, year);
+        if (last == null) {
             try {
-                mapper.updateDocNumber(d.getDocId(), year, seq, no);
-                return no;
+                mapper.insertRegCounter(dept, year, mapper.nextDocSeq(year, dept) - 1);
             } catch (DuplicateKeyException e) {
-                if (attempt >= 4) {
-                    throw e;
-                }
+                // 다른 요청이 먼저 만들었다
             }
+            last = mapper.lockRegCounter(dept, year);
         }
+        int next = last + 1;
+        mapper.updateRegCounter(dept, year, next);
+        return next;
+    }
+
+    private static String deptKey(String dept) {
+        return blank(dept) ? "행정누리" : dept.trim();
     }
 
     @Override
@@ -334,7 +350,17 @@ public class ApprovalServiceImpl implements ApprovalService {
         if (!d.isReceiverDept(me)) {
             return Result.FORBIDDEN;
         }
-        return mapper.markReceived(docId, me.getLoginId(), LocalDateTime.now()) == 1 ? Result.OK : Result.BAD_STATE;
+        if (d.getReceivedAt() != null) {
+            return Result.BAD_STATE;
+        }
+        // 접수와 동시에 접수등록번호를 부여한다 (공공기록물법 시행규칙 제4조 제5호)
+        LocalDateTime now = LocalDateTime.now();
+        String dept = deptKey(me.getDeptName());
+        String receiptNo = dept + "-" + nextRegSeq(dept, now.getYear());
+        if (mapper.markReceived(docId, me.getLoginId(), now, receiptNo) != 1) {
+            throw new IllegalStateException("이미 접수된 문서입니다");
+        }
+        return Result.OK;
     }
 
     @Override

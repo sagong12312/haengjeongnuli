@@ -44,6 +44,8 @@ public class ApprovalDocVO {
     private LocalDateTime completedAt;
     private String receivedBy;
     private LocalDateTime receivedAt;
+    /** 접수등록번호 (접수한 처리과명-연도별 등록일련번호) */
+    private String receiptNo;
 
     private List<ApprovalLineVO> lines = new ArrayList<>();
     private List<ApprovalFileVO> files = new ArrayList<>();
@@ -181,6 +183,8 @@ public class ApprovalDocVO {
     public void setReceivedBy(String receivedBy) { this.receivedBy = receivedBy; }
     public LocalDateTime getReceivedAt() { return receivedAt; }
     public void setReceivedAt(LocalDateTime receivedAt) { this.receivedAt = receivedAt; }
+    public String getReceiptNo() { return receiptNo; }
+    public void setReceiptNo(String receiptNo) { this.receiptNo = receiptNo; }
     public List<ApprovalLineVO> getLines() { return lines; }
     public void setLines(List<ApprovalLineVO> lines) { this.lines = lines; }
     public List<ApprovalFileVO> getFiles() { return files; }

@@ -64,19 +64,21 @@ public class CivilServiceImpl implements CivilService {
         vo.setAssignee(blankToNull(form.getStaff()));
         vo.setStatus(vo.getAssignee() == null ? CivilStatus.RECEIVED : CivilStatus.IN_PROGRESS);
         vo.setReceivedAt(now);
-        vo.setDeadline(deadlineFor(form, now.toLocalDate()));
+        LocalDateTime deadlineAt = deadlineFor(form, now);
+        vo.setDeadlineAt(deadlineAt);
+        vo.setDeadline(deadlineAt.toLocalDate());
         vo.setRegisterId(registerId);
 
         civilMapper.insertComplaint(vo);
         return vo;
     }
 
-    /** 처리기한. 법정민원은 사무별 기간, 나머지는 종류별 기간으로 계산 */
-    LocalDate deadlineFor(CivilForm form, LocalDate received) {
+    /** 처리기한 시각. 법정민원은 사무별 기간, 나머지는 종류별 기간으로 계산 (민원처리법 제19조) */
+    LocalDateTime deadlineFor(CivilForm form, LocalDateTime received) {
         int days = form.getKind() == CivilKind.LEGAL
                 ? form.getAffair().periodDays()
                 : form.getKind().periodDays(form.isLawInterpretation());
-        return deadlineCalculator.deadline(received, days);
+        return deadlineCalculator.deadlineAt(received, days);
     }
 
     @Override

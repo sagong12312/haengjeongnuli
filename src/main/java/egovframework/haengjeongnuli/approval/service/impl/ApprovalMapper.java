@@ -30,7 +30,13 @@ public interface ApprovalMapper {
                         @Param("docNo") String docNo);
     int nextDocSeq(@Param("year") int year, @Param("dept") String dept);
 
-    int markReceived(@Param("docId") long docId, @Param("by") String by, @Param("at") LocalDateTime at);
+    /** 처리과·연도의 마지막 등록일련번호 (행 잠금). 없으면 null */
+    Integer lockRegCounter(@Param("dept") String dept, @Param("year") int year);
+    void insertRegCounter(@Param("dept") String dept, @Param("year") int year, @Param("lastSeq") int lastSeq);
+    void updateRegCounter(@Param("dept") String dept, @Param("year") int year, @Param("lastSeq") int lastSeq);
+
+    int markReceived(@Param("docId") long docId, @Param("by") String by, @Param("at") LocalDateTime at,
+                     @Param("receiptNo") String receiptNo);
     int markDeleted(@Param("docId") long docId, @Param("drafterId") String drafterId);
 
     List<ApprovalDocVO> selectList(ApprovalSearchVO search);

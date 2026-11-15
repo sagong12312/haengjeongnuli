@@ -31,6 +31,9 @@ public enum AuditAction {
     APPROVAL_RECEIVE("문서 접수"),
     APPROVAL_DELETE("임시저장 문서 삭제"),
 
+    HOLIDAY_ADD("공휴일 추가"),
+    HOLIDAY_DELETE("공휴일 삭제"),
+
     ATTEND_IN("출근"),
     ATTEND_OUT("퇴근");
 

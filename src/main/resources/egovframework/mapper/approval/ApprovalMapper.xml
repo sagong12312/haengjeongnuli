@@ -11,7 +11,7 @@
         D.DOC_ID, D.DOC_NO, D.DOC_YEAR, D.DOC_SEQ, D.KIND, D.RETENTION, D.DISCLOSURE, D.RESTRICT_REASONS,
         D.RESTRICT_DETAIL, D.RECEIVER_TYPE, D.RECEIVER, D.VIA, D.REFERENCE_TO, D.SENDER, D.EFFECTIVE_DATE,
         D.TITLE, D.STATUS, D.DRAFTER_ID, D.DRAFTER_NAME, D.DRAFTER_POSITION, D.DRAFTER_DEPT,
-        D.CREATED_AT, D.UPDATED_AT, D.SUBMITTED_AT, D.COMPLETED_AT, D.RECEIVED_BY, D.RECEIVED_AT
+        D.CREATED_AT, D.UPDATED_AT, D.SUBMITTED_AT, D.COMPLETED_AT, D.RECEIVED_BY, D.RECEIVED_AT, D.RECEIPT_NO
     </sql>
 
     <insert id="insertDoc" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
@@ -53,17 +53,28 @@
          WHERE DOC_ID = #{docId} AND STATUS = #{fromStatus} AND DELETED_YN = 'N'
     </update>
 
+    <!-- 등록번호 카운터가 없던 때 붙인 번호 다음부터 이어 가기 위한 값 -->
     <select id="nextDocSeq" resultType="int">
         SELECT NVL(MAX(DOC_SEQ), 0) + 1 FROM APPROVAL_DOC
-         WHERE DOC_YEAR = #{year} AND NVL(DRAFTER_DEPT, ' ') = NVL(#{dept}, ' ')
+         WHERE DOC_YEAR = #{year} AND NVL(DRAFTER_DEPT, '행정누리') = #{dept}
     </select>
+
+    <select id="lockRegCounter" resultType="java.lang.Integer">
+        SELECT LAST_SEQ FROM DOC_REG_COUNTER WHERE DEPT_NAME = #{dept} AND REG_YEAR = #{year} FOR UPDATE
+    </select>
+    <insert id="insertRegCounter">
+        INSERT INTO DOC_REG_COUNTER (DEPT_NAME, REG_YEAR, LAST_SEQ) VALUES (#{dept}, #{year}, #{lastSeq})
+    </insert>
+    <update id="updateRegCounter">
+        UPDATE DOC_REG_COUNTER SET LAST_SEQ = #{lastSeq} WHERE DEPT_NAME = #{dept} AND REG_YEAR = #{year}
+    </update>
 
     <update id="updateDocNumber">
         UPDATE APPROVAL_DOC SET DOC_YEAR = #{year}, DOC_SEQ = #{seq}, DOC_NO = #{docNo} WHERE DOC_ID = #{docId}
     </update>
 
     <update id="markReceived">
-        UPDATE APPROVAL_DOC SET RECEIVED_BY = #{by}, RECEIVED_AT = #{at}
+        UPDATE APPROVAL_DOC SET RECEIVED_BY = #{by}, RECEIVED_AT = #{at}, RECEIPT_NO = #{receiptNo}
          WHERE DOC_ID = #{docId} AND STATUS = 'DONE' AND RECEIVED_AT IS NULL
     </update>
 

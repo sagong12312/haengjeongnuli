@@ -224,7 +224,7 @@ public class ApprovalController {
         visible(docId, me);
         if (approvalService.receive(docId, me) == Result.OK) {
             auditService.record(AuditAction.APPROVAL_RECEIVE, "결재 " + docId, me.dept());
-            ra.addFlashAttribute("message", "접수했습니다.");
+            ra.addFlashAttribute("message", "접수했습니다. 접수번호 " + approvalService.get(docId).getReceiptNo());
         } else {
             ra.addFlashAttribute("message", "접수할 수 없는 문서입니다.");
         }

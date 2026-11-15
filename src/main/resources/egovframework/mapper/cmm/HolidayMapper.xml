@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 선거일·임시공휴일 (관공서의 공휴일에 관한 규정 제2조 제10호의2, 제11호) -->
+<mapper namespace="egovframework.haengjeongnuli.cmm.holiday.HolidayMapper">
+    <select id="selectExtra" resultType="map">
+        SELECT HOLIDAY_DATE AS "day", HOLIDAY_NAME AS "name" FROM HOLIDAY_EXTRA ORDER BY HOLIDAY_DATE
+    </select>
+    <insert id="insertExtra">
+        INSERT INTO HOLIDAY_EXTRA (HOLIDAY_DATE, HOLIDAY_NAME, CREATED_BY, CREATED_AT)
+        VALUES (#{day, jdbcType=DATE}, #{name}, #{by}, CURRENT_TIMESTAMP)
+    </insert>
+    <delete id="deleteExtra">DELETE FROM HOLIDAY_EXTRA WHERE HOLIDAY_DATE = #{day, jdbcType=DATE}</delete>
+    <select id="countExtra" resultType="int">SELECT COUNT(*) FROM HOLIDAY_EXTRA WHERE HOLIDAY_DATE = #{day, jdbcType=DATE}</select>
+</mapper>

@@ -107,20 +107,18 @@ public class CivilController {
     public Map<String, String> deadline(@RequestParam CivilKind kind,
                                         @RequestParam(defaultValue = "true") boolean law,
                                         @RequestParam(required = false) LegalAffair affair) {
-        if (kind == CivilKind.LEGAL) {
-            if (affair == null) {
-                return Map.of("period", "사무를 선택하세요", "deadline", "[민원 사무 선택 시 표시]");
-            }
-            return Map.of("period", affair.getPeriodText(), "deadline", "오늘 접수 시각부터 근무시간 내 3시간 이내");
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        if (kind == CivilKind.LEGAL && affair == null) {
+            return Map.of("period", "사무를 선택하세요", "deadline", "[민원 사무 선택 시 표시]");
         }
-        int days = kind.periodDays(law);
-        String period = days == 0 ? "즉시" : (kind == CivilKind.GRIEVANCE ? kind.getPeriodText() : days + "일");
-        if (days == 0) {
-            return Map.of("period", period, "deadline", "오늘 즉시 처리");
-        }
-        LocalDate d = deadlineCalculator.deadline(LocalDate.now(), days);
-        String text = d.format(DateTimeFormatter.ofPattern("yyyy. M. d.")) + " ("
-                + d.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.KOREAN) + ")";
+        int days = kind == CivilKind.LEGAL ? affair.periodDays() : kind.periodDays(law);
+        String period = kind == CivilKind.LEGAL ? affair.getPeriodText()
+                : days == 0 ? "즉시 (3근무시간 이내)"
+                : (kind == CivilKind.GRIEVANCE ? kind.getPeriodText() : days + "일");
+        java.time.LocalDateTime at = deadlineCalculator.deadlineAt(now, days);
+        String text = at.format(DateTimeFormatter.ofPattern("yyyy. M. d."))
+                + " (" + at.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.KOREAN) + ")"
+                + (days <= 5 ? " " + at.format(DateTimeFormatter.ofPattern("HH:mm")) + "까지" : "");
         return Map.of("period", period, "deadline", text);
     }
 }

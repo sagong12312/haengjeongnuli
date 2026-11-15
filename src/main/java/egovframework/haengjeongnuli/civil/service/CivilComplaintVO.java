@@ -25,6 +25,8 @@ public class CivilComplaintVO {
     private CivilStatus status;
     private LocalDateTime receivedAt;
     private LocalDate deadline;
+    /** 처리기한 시각 (시간 단위로 계산하는 5일 이하 민원) */
+    private java.time.LocalDateTime deadlineAt;
     private LocalDateTime completedAt;
     private String registerId;
 
@@ -69,6 +71,12 @@ public class CivilComplaintVO {
     public void setReceivedAt(LocalDateTime receivedAt) { this.receivedAt = receivedAt; }
     public LocalDate getDeadline() { return deadline; }
     public void setDeadline(LocalDate deadline) { this.deadline = deadline; }
+    public java.time.LocalDateTime getDeadlineAt() { return deadlineAt; }
+    public void setDeadlineAt(java.time.LocalDateTime deadlineAt) { this.deadlineAt = deadlineAt; }
+    /** 처리기한을 시각까지 보여 줄지 (18시가 아닌 시각으로 끝나는 경우) */
+    public boolean isDeadlineHasTime() {
+        return deadlineAt != null && !deadlineAt.toLocalTime().equals(java.time.LocalTime.of(18, 0));
+    }
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
     public String getRegisterId() { return registerId; }

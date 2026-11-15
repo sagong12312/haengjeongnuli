@@ -74,7 +74,7 @@
             <td class="left"><a href="#" th:text="${c.title}">[민원 제목]</a></td>
             <td th:text="${c.applicantName}">[민원인]</td>
             <td th:text="${#temporals.format(c.receivedAt, 'yyyy-MM-dd')}">[날짜]</td>
-            <td th:text="${c.deadline} ? ${#temporals.format(c.deadline, 'yyyy-MM-dd')} : '—'"
+            <td th:text="${c.deadline} ? ${#temporals.format(c.deadline, 'yyyy-MM-dd')} + (${c.deadlineHasTime} ? ' ' + ${#temporals.format(c.deadlineAt, 'HH:mm')} : '') : '—'"
                 th:style="${c.imminent} ? 'color:var(--orange-strong); font-weight:700' : null">[날짜]</td>
             <td th:text="${c.assignee} ?: '—'">[담당자]</td>
             <td>

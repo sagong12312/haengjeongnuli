@@ -11,11 +11,11 @@
         INSERT INTO CIVIL_COMPLAINT (
             COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE,
             APPLICANT_NAME, MOBILE, HOME_PHONE, EMAIL, ADDRESS, NOTIFY_METHOD,
-            TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, REGISTER_ID
+            TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, REGISTER_ID
         ) VALUES (
             #{complaintId}, #{receiptNo}, #{kind}, #{lawInterpretYn}, #{legalAffair}, #{route},
             #{applicantName}, #{mobile}, #{homePhone}, #{email}, #{address}, #{notifyMethod},
-            #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{registerId}
+            #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{deadlineAt, jdbcType=TIMESTAMP}, #{registerId}
         )
     </insert>
 
@@ -35,7 +35,7 @@
             resultType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
         SELECT * FROM (
             SELECT COMPLAINT_ID, RECEIPT_NO, KIND, LEGAL_AFFAIR, APPLICANT_NAME, TITLE,
-                   DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, COMPLETED_AT
+                   DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, COMPLETED_AT
               FROM CIVIL_COMPLAINT
             <include refid="searchWhere"/>
              ORDER BY CASE WHEN STATUS = 'DONE' THEN 1 ELSE 0 END,

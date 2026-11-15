@@ -33,6 +33,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
+    // 음력 명절(설날·부처님 오신 날·추석) 계산용 한국 음력 달력
+    implementation 'com.ibm.icu:icu4j:76.1'
 
     // 로컬 실행·테스트용 (Oracle 호환 모드)
     runtimeOnly 'com.h2database:h2'
