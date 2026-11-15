@@ -3,10 +3,53 @@
 <!-- 접속·작업 기록. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
 <mapper namespace="egovframework.haengjeongnuli.cmm.audit.AuditMapper">
 
+    <select id="nextLogId" resultType="long">SELECT SEQ_AUDIT_LOG.NEXTVAL FROM DUAL</select>
+
     <insert id="insertLog" parameterType="egovframework.haengjeongnuli.cmm.audit.AuditLogVO">
-        INSERT INTO AUDIT_LOG (LOG_ID, OCCURRED_AT, ACTOR_ID, ACTION, TARGET, DETAIL, CLIENT_IP)
-        VALUES (SEQ_AUDIT_LOG.NEXTVAL, #{occurredAt}, #{actorId}, #{action}, #{target}, #{detail}, #{clientIp})
+        INSERT INTO AUDIT_LOG (LOG_ID, OCCURRED_AT, ACTOR_ID, ACTION, TARGET, DETAIL, CLIENT_IP, PREV_HASH, ROW_HASH)
+        VALUES (#{logId}, #{occurredAt}, #{actorId}, #{action}, #{target}, #{detail}, #{clientIp}, #{prevHash}, #{rowHash})
     </insert>
+
+    <!-- 해시 연결: 마지막 해시를 잠그고 읽는다 (동시에 기록해도 순서가 꼬이지 않게) -->
+    <select id="lockChain" resultType="map">
+        SELECT LAST_LOG_ID AS "lastLogId", LAST_HASH AS "lastHash" FROM AUDIT_CHAIN WHERE CHAIN_ID = 1 FOR UPDATE
+    </select>
+    <update id="updateChain">
+        UPDATE AUDIT_CHAIN SET LAST_LOG_ID = #{logId}, LAST_HASH = #{hash} WHERE CHAIN_ID = 1
+    </update>
+    <select id="selectChain" resultType="map">
+        SELECT LAST_LOG_ID AS "lastLogId", LAST_HASH AS "lastHash" FROM AUDIT_CHAIN WHERE CHAIN_ID = 1
+    </select>
+
+    <!-- 검증용: 해시가 있는 기록을 번호 순서로 나눠 읽는다 -->
+    <select id="selectChained" resultType="egovframework.haengjeongnuli.cmm.audit.AuditLogVO">
+        SELECT * FROM (
+            SELECT LOG_ID, OCCURRED_AT, ACTOR_ID, ACTION, TARGET, DETAIL, CLIENT_IP, PREV_HASH, ROW_HASH
+              FROM AUDIT_LOG WHERE ROW_HASH IS NOT NULL AND LOG_ID &gt; #{afterId} ORDER BY LOG_ID
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+    <select id="countUnchained" resultType="int">SELECT COUNT(*) FROM AUDIT_LOG WHERE ROW_HASH IS NULL</select>
+
+    <!-- 점검용: 기간 안의 개인정보 열람·내려받기·로그인 실패 -->
+    <select id="selectForReview" resultType="egovframework.haengjeongnuli.cmm.audit.AuditLogVO">
+        SELECT * FROM (
+            SELECT LOG_ID, OCCURRED_AT, ACTOR_ID, ACTION, TARGET, DETAIL, CLIENT_IP
+              FROM AUDIT_LOG
+             WHERE OCCURRED_AT &gt;= #{from} AND OCCURRED_AT &lt; #{to}
+               AND ACTION IN ('FILE_DOWNLOAD', 'CIVIL_VIEW', 'WELFARE_VIEW', 'LOGIN_FAIL', 'RECORD_TRANSFER_LIST')
+             ORDER BY OCCURRED_AT
+        ) WHERE ROWNUM &lt;= 20000
+    </select>
+
+    <select id="nextReviewId" resultType="long">SELECT SEQ_AUDIT_REVIEW.NEXTVAL FROM DUAL</select>
+    <insert id="insertReview">
+        INSERT INTO AUDIT_REVIEW (REVIEW_ID, PERIOD_FROM, PERIOD_TO, RESULT, CHAIN_OK_YN, NOTE, REVIEWED_BY, REVIEWED_NAME, REVIEWED_AT)
+        VALUES (#{reviewId}, #{periodFrom}, #{periodTo}, #{result}, #{chainOkYn}, #{note}, #{reviewedBy}, #{reviewedName}, #{reviewedAt})
+    </insert>
+    <select id="selectReviews" resultType="egovframework.haengjeongnuli.cmm.audit.AuditReviewVO">
+        SELECT * FROM (SELECT REVIEW_ID, PERIOD_FROM, PERIOD_TO, RESULT, CHAIN_OK_YN, NOTE, REVIEWED_BY, REVIEWED_NAME, REVIEWED_AT
+                         FROM AUDIT_REVIEW ORDER BY REVIEWED_AT DESC) WHERE ROWNUM &lt;= 24
+    </select>
 
     <sql id="where">
         <where>

@@ -53,7 +53,13 @@ class OracleReadinessTest {
         String schema = Files.readString(ORACLE.resolve("schema.sql"));
         String grants = Files.readString(ORACLE.resolve("accounts_and_grants.sql"));
         for (String t : all(Pattern.compile("CREATE TABLE (\\w+) \\("), schema)) {
-            if (t.equals("DOC_REGISTRY_FIX")) {
+            if (t.equals("AUDIT_LOG") || t.equals("AUDIT_REVIEW")) {
+                // 접속기록·점검 결과는 읽기·추가만 (개인정보의 안전성 확보조치 기준 제8조: 위·변조 방지)
+                assertThat(grants).as(t).contains("GRANT SELECT, INSERT ON " + t + " TO HJN_APP;")
+                        .doesNotContain("UPDATE, DELETE ON " + t + " ").doesNotContain("DELETE ON " + t + " ");
+            } else if (t.equals("AUDIT_CHAIN")) {
+                assertThat(grants).as(t).contains("GRANT SELECT, UPDATE ON AUDIT_CHAIN TO HJN_APP;");
+            } else if (t.equals("DOC_REGISTRY_FIX")) {
                 // 수정 이력은 지울 수 없다 (상태만 바꾼다)
                 assertThat(grants).as(t).contains("GRANT SELECT, INSERT, UPDATE ON " + t + " TO HJN_APP;")
                         .doesNotContain("DELETE ON " + t + " ");

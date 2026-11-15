@@ -27,4 +27,12 @@ public class AuditLogVO {
     public void setDetail(String detail) { this.detail = detail; }
     public String getClientIp() { return clientIp; }
     public void setClientIp(String clientIp) { this.clientIp = clientIp; }
+
+    /** 앞 기록의 해시, 이 기록의 해시 (위·변조 확인용) */
+    private String prevHash;
+    private String rowHash;
+    public String getPrevHash() { return prevHash; }
+    public void setPrevHash(String prevHash) { this.prevHash = prevHash; }
+    public String getRowHash() { return rowHash; }
+    public void setRowHash(String rowHash) { this.rowHash = rowHash; }
 }
