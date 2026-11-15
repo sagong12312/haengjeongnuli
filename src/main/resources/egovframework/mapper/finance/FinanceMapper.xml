@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 재정: 예산 과목, 사업, 예산 편성, 집행·수납. Oracle / Tibero / H2(Oracle 모드) 공통 문법만 쓴다. -->
+<mapper namespace="egovframework.haengjeongnuli.finance.service.impl.FinanceMapper">
+
+    <select id="countCodes" resultType="int">SELECT COUNT(*) FROM FIN_CODE WHERE CODE_TYPE = #{codeType}</select>
+
+    <insert id="insertCode" parameterType="egovframework.haengjeongnuli.finance.service.FinCodeVO">
+        INSERT INTO FIN_CODE (CODE_TYPE, CODE, CODE_NAME, PARENT_CODE, CODE_LEVEL, SORT_NO)
+        VALUES (#{codeType}, #{code}, #{codeName}, #{parentCode}, #{codeLevel}, #{sortNo})
+    </insert>
+
+    <select id="selectCodes" resultType="egovframework.haengjeongnuli.finance.service.FinCodeVO">
+        SELECT CODE_TYPE, CODE, CODE_NAME, PARENT_CODE, CODE_LEVEL, SORT_NO
+          FROM FIN_CODE WHERE CODE_TYPE = #{codeType} ORDER BY SORT_NO
+    </select>
+
+    <!-- 사업 -->
+    <select id="nextProgramId" resultType="long">SELECT SEQ_FIN_PROGRAM.NEXTVAL FROM DUAL</select>
+
+    <insert id="insertProgram" parameterType="egovframework.haengjeongnuli.finance.service.ProgramVO">
+        INSERT INTO FIN_PROGRAM (PROG_ID, FISCAL_YEAR, PROG_LEVEL, PARENT_ID, PROG_TYPE, FUNC_CODE, PROG_NAME,
+                                 DEPT_NAME, CREATED_BY, CREATED_AT, DELETED_YN)
+        VALUES (#{progId}, #{fiscalYear}, #{progLevel}, #{parentId, jdbcType=NUMERIC}, #{progType}, #{funcCode},
+                #{progName}, #{deptName}, #{createdBy}, #{createdAt}, 'N')
+    </insert>
+
+    <sql id="progCols">
+        P.PROG_ID, P.FISCAL_YEAR, P.PROG_LEVEL, P.PARENT_ID, P.PROG_TYPE, P.FUNC_CODE, P.PROG_NAME, P.DEPT_NAME,
+        P.CREATED_BY, P.CREATED_AT,
+        (SELECT C.CODE_NAME FROM FIN_CODE C WHERE C.CODE_TYPE = 'FUNC' AND C.CODE = P.FUNC_CODE) AS FUNC_NAME
+    </sql>
+
+    <select id="selectPrograms" resultType="egovframework.haengjeongnuli.finance.service.ProgramVO">
+        SELECT <include refid="progCols"/> FROM FIN_PROGRAM P
+         WHERE P.FISCAL_YEAR = #{year} AND P.DELETED_YN = 'N'
+         ORDER BY P.PROG_ID
+    </select>
+
+    <select id="selectProgram" resultType="egovframework.haengjeongnuli.finance.service.ProgramVO">
+        SELECT <include refid="progCols"/> FROM FIN_PROGRAM P WHERE P.PROG_ID = #{progId} AND P.DELETED_YN = 'N'
+    </select>
+
+    <select id="countChildren" resultType="int">
+        SELECT COUNT(*) FROM FIN_PROGRAM WHERE PARENT_ID = #{progId} AND DELETED_YN = 'N'
+    </select>
+
+    <select id="countBudgetsOfDetail" resultType="int">
+        SELECT COUNT(*) FROM FIN_BUDGET WHERE DETAIL_ID = #{progId} AND DELETED_YN = 'N'
+    </select>
+
+    <update id="deleteProgram">UPDATE FIN_PROGRAM SET DELETED_YN = 'Y' WHERE PROG_ID = #{progId}</update>
+
+    <!-- 예산 -->
+    <select id="nextBudgetId" resultType="long">SELECT SEQ_FIN_BUDGET.NEXTVAL FROM DUAL</select>
+
+    <insert id="insertBudget" parameterType="egovframework.haengjeongnuli.finance.service.BudgetVO">
+        INSERT INTO FIN_BUDGET (BUDGET_ID, KIND, FISCAL_YEAR, DETAIL_ID, CODE, AMOUNT, BASIS, STATUS, DEPT_NAME,
+                                REQUESTER_ID, REQUESTER_NAME, REQUESTED_AT, CREATED_AT, DELETED_YN)
+        VALUES (#{budgetId}, #{kind}, #{fiscalYear}, #{detailId, jdbcType=NUMERIC}, #{code}, #{amount}, #{basis},
+                #{status}, #{deptName}, #{requesterId}, #{requesterName}, #{requestedAt, jdbcType=TIMESTAMP},
+                #{createdAt}, 'N')
+    </insert>
+
+    <!-- 작성 중·반려된 예산만 고친다 -->
+    <update id="updateBudgetContent" parameterType="egovframework.haengjeongnuli.finance.service.BudgetVO">
+        UPDATE FIN_BUDGET
+           SET DETAIL_ID = #{detailId, jdbcType=NUMERIC}, CODE = #{code}, AMOUNT = #{amount}, BASIS = #{basis},
+               STATUS = #{status}, REQUESTER_ID = #{requesterId}, REQUESTER_NAME = #{requesterName},
+               REQUESTED_AT = #{requestedAt, jdbcType=TIMESTAMP}, UPDATED_AT = #{updatedAt}
+         WHERE BUDGET_ID = #{budgetId} AND STATUS IN ('DRAFT', 'REJECTED') AND DELETED_YN = 'N'
+    </update>
+
+    <sql id="budgetCols">
+        B.BUDGET_ID, B.KIND, B.FISCAL_YEAR, B.DETAIL_ID, B.CODE, B.AMOUNT, B.BASIS, B.STATUS, B.DEPT_NAME,
+        B.REQUESTER_ID, B.REQUESTER_NAME, B.REQUESTED_AT, B.REVIEWER_ID, B.REVIEWER_NAME, B.REVIEWED_AT,
+        B.REVIEW_NOTE, B.CREATED_AT, B.UPDATED_AT,
+        C.CODE_NAME, D.PROG_NAME AS DETAIL_NAME, U.PROG_NAME AS UNIT_NAME, PL.PROG_NAME AS POLICY_NAME,
+        PL.PROG_TYPE AS POLICY_TYPE, PL.FUNC_CODE,
+        (SELECT NVL(SUM(T.AMOUNT), 0) FROM FIN_TXN T WHERE T.BUDGET_ID = B.BUDGET_ID AND T.CANCELLED_YN = 'N') AS USED
+    </sql>
+    <sql id="budgetFrom">
+        FROM FIN_BUDGET B
+        LEFT JOIN FIN_CODE C ON C.CODE_TYPE = CASE WHEN B.KIND = 'EXP' THEN 'ITEM' ELSE 'REV' END AND C.CODE = B.CODE
+        LEFT JOIN FIN_PROGRAM D ON D.PROG_ID = B.DETAIL_ID
+        LEFT JOIN FIN_PROGRAM U ON U.PROG_ID = D.PARENT_ID
+        LEFT JOIN FIN_PROGRAM PL ON PL.PROG_ID = U.PARENT_ID
+    </sql>
+
+    <select id="selectBudget" resultType="egovframework.haengjeongnuli.finance.service.BudgetVO">
+        SELECT <include refid="budgetCols"/> <include refid="budgetFrom"/>
+         WHERE B.BUDGET_ID = #{budgetId} AND B.DELETED_YN = 'N'
+    </select>
+
+    <select id="countSame" resultType="int">
+        SELECT COUNT(*) FROM FIN_BUDGET
+         WHERE KIND = #{kind} AND FISCAL_YEAR = #{year} AND CODE = #{code} AND DELETED_YN = 'N'
+           <if test="detailId != null">AND DETAIL_ID = #{detailId}</if>
+           <if test="detailId == null">AND DETAIL_ID IS NULL</if>
+           <if test="exceptId != null">AND BUDGET_ID &lt;&gt; #{exceptId}</if>
+    </select>
+
+    <select id="selectBudgets" resultType="egovframework.haengjeongnuli.finance.service.BudgetVO">
+        SELECT <include refid="budgetCols"/> <include refid="budgetFrom"/>
+         WHERE B.KIND = #{kind} AND B.FISCAL_YEAR = #{year} AND B.DELETED_YN = 'N'
+           <if test="dept != null">AND B.DEPT_NAME = #{dept}</if>
+           <if test="status != null">AND B.STATUS = #{status}</if>
+         ORDER BY PL.FUNC_CODE, PL.PROG_ID, U.PROG_ID, D.PROG_ID, B.CODE
+    </select>
+
+    <update id="updateStatus">
+        UPDATE FIN_BUDGET
+           SET STATUS = #{toStatus}
+               <if test="toStatus == 'REQUESTED'">, REQUESTED_AT = #{at}, REVIEW_NOTE = NULL</if>
+               <if test="toStatus == 'APPROVED' or toStatus == 'REJECTED'">
+                   , REVIEWER_ID = #{reviewerId}, REVIEWER_NAME = #{reviewerName}, REVIEWED_AT = #{at}, REVIEW_NOTE = #{note}
+               </if>
+         WHERE BUDGET_ID = #{budgetId} AND STATUS = #{fromStatus} AND DELETED_YN = 'N'
+    </update>
+
+    <update id="markBudgetDeleted">
+        UPDATE FIN_BUDGET SET DELETED_YN = 'Y'
+         WHERE BUDGET_ID = #{budgetId} AND STATUS IN ('DRAFT', 'REJECTED') AND DELETED_YN = 'N'
+    </update>
+
+    <select id="lockBudget" resultType="egovframework.haengjeongnuli.finance.service.BudgetVO">
+        SELECT BUDGET_ID, KIND, FISCAL_YEAR, CODE, AMOUNT, STATUS, DEPT_NAME
+          FROM FIN_BUDGET WHERE BUDGET_ID = #{budgetId} AND DELETED_YN = 'N' FOR UPDATE
+    </select>
+
+    <!-- 집행·수납 -->
+    <select id="nextTxnId" resultType="long">SELECT SEQ_FIN_TXN.NEXTVAL FROM DUAL</select>
+
+    <insert id="insertTxn" parameterType="egovframework.haengjeongnuli.finance.service.TxnVO">
+        INSERT INTO FIN_TXN (TXN_ID, KIND, FISCAL_YEAR, BUDGET_ID, CODE, TXN_DATE, AMOUNT, PARTY, DESCRIPTION,
+                             DEPT_NAME, CREATED_BY, CREATED_NAME, CREATED_AT, CANCELLED_YN)
+        VALUES (#{txnId}, #{kind}, #{fiscalYear}, #{budgetId, jdbcType=NUMERIC}, #{code}, #{txnDate, jdbcType=DATE},
+                #{amount}, #{party}, #{description}, #{deptName}, #{createdBy}, #{createdName}, #{createdAt}, 'N')
+    </insert>
+
+    <sql id="txnCols">
+        T.TXN_ID, T.KIND, T.FISCAL_YEAR, T.BUDGET_ID, T.CODE, T.TXN_DATE, T.AMOUNT, T.PARTY, T.DESCRIPTION,
+        T.DEPT_NAME, T.CREATED_BY, T.CREATED_NAME, T.CREATED_AT, T.CANCELLED_YN, T.CANCELLED_BY, T.CANCELLED_AT,
+        (SELECT C.CODE_NAME FROM FIN_CODE C
+          WHERE C.CODE_TYPE = CASE WHEN T.KIND = 'EXP' THEN 'ITEM' ELSE 'REV' END AND C.CODE = T.CODE) AS CODE_NAME
+    </sql>
+
+    <select id="selectTxn" resultType="egovframework.haengjeongnuli.finance.service.TxnVO">
+        SELECT <include refid="txnCols"/> FROM FIN_TXN T WHERE T.TXN_ID = #{txnId}
+    </select>
+
+    <select id="selectTxnsOfBudget" resultType="egovframework.haengjeongnuli.finance.service.TxnVO">
+        SELECT <include refid="txnCols"/> FROM FIN_TXN T WHERE T.BUDGET_ID = #{budgetId}
+         ORDER BY T.TXN_DATE DESC, T.TXN_ID DESC
+    </select>
+
+    <select id="selectRecentTxns" resultType="egovframework.haengjeongnuli.finance.service.TxnVO">
+        SELECT * FROM (
+            SELECT <include refid="txnCols"/> FROM FIN_TXN T
+             WHERE T.KIND = #{kind} AND T.FISCAL_YEAR = #{year}
+             ORDER BY T.TXN_DATE DESC, T.TXN_ID DESC
+        ) WHERE ROWNUM &lt;= #{limit}
+    </select>
+
+    <select id="sumUsed" resultType="long">
+        SELECT NVL(SUM(AMOUNT), 0) FROM FIN_TXN WHERE BUDGET_ID = #{budgetId} AND CANCELLED_YN = 'N'
+    </select>
+
+    <select id="sumReceiptsByCode" resultType="egovframework.haengjeongnuli.finance.service.TxnVO">
+        SELECT T.CODE, SUM(T.AMOUNT) AS AMOUNT FROM FIN_TXN T
+         WHERE T.KIND = 'REV' AND T.FISCAL_YEAR = #{year} AND T.CANCELLED_YN = 'N'
+         GROUP BY T.CODE
+    </select>
+
+    <update id="cancelTxn">
+        UPDATE FIN_TXN SET CANCELLED_YN = 'Y', CANCELLED_BY = #{by}, CANCELLED_AT = #{at}
+         WHERE TXN_ID = #{txnId} AND CANCELLED_YN = 'N'
+    </update>
+</mapper>

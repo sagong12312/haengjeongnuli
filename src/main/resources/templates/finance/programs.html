@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('사업 구조')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('finance')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div class="page-head">
+    <div>
+      <span class="crumb"><a th:href="@{/finance(year=${year})}">재정·세무</a> › 사업 구조</span>
+      <h1 th:text="${year} + '년 사업 구조'">사업 구조</h1>
+    </div>
+    <form th:action="@{/finance/programs}" method="get" style="display:flex; gap:10px; align-items:center;">
+      <label for="pyear" style="font-weight:700;">회계연도</label>
+      <select id="pyear" name="year" class="select" style="height:52px; font-size:18px;" onchange="this.form.submit()">
+        <option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option>
+      </select>
+    </form>
+  </div>
+  <p class="hint">세출예산은 분야·부문(기능별 분류) 아래에 정책사업 › 단위사업 › 세부사업을 두고, 세부사업마다 편성목·통계목별로 편성합니다
+    (지방자치단체 예산편성 운영기준 별표 9·10·11). <span th:unless="${canManage}" th:text="'사업은 ' + ${budgetDept} + ' 직원과 시스템 관리자가 만듭니다.'"></span></p>
+
+  <section class="panel flush" aria-labelledby="tree-title">
+    <div class="panel-head"><h2 id="tree-title">사업 목록</h2></div>
+    <p th:if="${#lists.isEmpty(tree)}" class="hint" style="padding:18px 22px;">아직 사업이 없습니다.</p>
+    <ul class="ptree" th:unless="${#lists.isEmpty(tree)}">
+      <li th:each="p : ${tree}">
+        <div class="prow lv1">
+          <span class="badge badge-blue" th:text="${p.progType}">정책사업</span>
+          <b th:text="${p.progName}">정책사업</b>
+          <span class="muted" th:text="${p.funcCode} + ' ' + (${p.funcName} ?: '')">부문</span>
+          <form th:if="${canManage and #lists.isEmpty(p.children)}" th:action="@{/finance/programs/{id}/delete(id=${p.progId})}" method="post" class="del" onsubmit="return confirm('지울까요?');">
+            <input type="hidden" name="year" th:value="${year}"><button type="submit" class="btn btn-plain sm">지우기</button></form>
+        </div>
+        <ul>
+          <li th:each="u : ${p.children}">
+            <div class="prow lv2"><span class="muted">단위</span> <b th:text="${u.progName}">단위사업</b>
+              <form th:if="${canManage and #lists.isEmpty(u.children)}" th:action="@{/finance/programs/{id}/delete(id=${u.progId})}" method="post" class="del" onsubmit="return confirm('지울까요?');">
+                <input type="hidden" name="year" th:value="${year}"><button type="submit" class="btn btn-plain sm">지우기</button></form>
+            </div>
+            <ul>
+              <li th:each="d : ${u.children}">
+                <div class="prow lv3"><span class="muted">세부</span> <span th:text="${d.progName}">세부사업</span>
+                  <span class="badge badge-gray" th:text="${d.deptName}">부서</span>
+                  <form th:if="${canManage}" th:action="@{/finance/programs/{id}/delete(id=${d.progId})}" method="post" class="del" onsubmit="return confirm('지울까요? 예산이 있으면 지울 수 없습니다.');">
+                    <input type="hidden" name="year" th:value="${year}"><button type="submit" class="btn btn-plain sm">지우기</button></form>
+                </div>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <th:block th:if="${canManage}">
+    <div class="pforms">
+      <form class="panel" th:action="@{/finance/programs}" method="post" style="gap:14px;">
+        <h2>정책사업 추가</h2>
+        <input type="hidden" name="year" th:value="${year}"><input type="hidden" name="level" value="POLICY">
+        <div class="field"><label for="ptype">구분</label>
+          <select id="ptype" name="type" class="select"><option th:each="t : ${types}" th:value="${t}" th:text="${t}">정책사업</option></select></div>
+        <div class="field"><label for="pfunc">기능별 분류(분야·부문)</label>
+          <select id="pfunc" name="funcCode" class="select" required>
+            <option value="">선택</option>
+            <th:block th:each="f : ${funcs}">
+              <option th:if="${f.codeLevel == '분야' and f.code != '900'}" disabled th:text="'── ' + ${f.code} + ' ' + ${f.codeName}">분야</option>
+              <option th:if="${f.codeLevel == '부문' or f.code == '900'}" th:value="${f.code}" th:text="${f.code} + ' ' + ${f.codeName}">부문</option>
+            </th:block>
+          </select>
+          <p class="hint" style="margin:0;">행정운영경비·재무활동은 900 기타로 둡니다.</p></div>
+        <div class="field"><label for="pname">정책사업 이름</label><input id="pname" name="name" class="input" required maxlength="200"></div>
+        <button type="submit" class="btn btn-primary">추가</button>
+      </form>
+
+      <form class="panel" th:action="@{/finance/programs}" method="post" style="gap:14px;">
+        <h2>단위사업 추가</h2>
+        <input type="hidden" name="year" th:value="${year}"><input type="hidden" name="level" value="UNIT">
+        <div class="field"><label for="uparent">정책사업</label>
+          <select id="uparent" name="parentId" class="select" required><option value="">선택</option>
+            <option th:each="p : ${tree}" th:value="${p.progId}" th:text="${p.progName}">정책사업</option></select></div>
+        <div class="field"><label for="uname">단위사업 이름</label><input id="uname" name="name" class="input" required maxlength="200"></div>
+        <button type="submit" class="btn btn-primary">추가</button>
+      </form>
+
+      <form class="panel" th:action="@{/finance/programs}" method="post" style="gap:14px;">
+        <h2>세부사업 추가</h2>
+        <input type="hidden" name="year" th:value="${year}"><input type="hidden" name="level" value="DETAIL">
+        <div class="field"><label for="dparent">단위사업</label>
+          <select id="dparent" name="parentId" class="select" required><option value="">선택</option>
+            <optgroup th:each="p : ${tree}" th:label="${p.progName}">
+              <option th:each="u : ${p.children}" th:value="${u.progId}" th:text="${u.progName}">단위사업</option>
+            </optgroup></select></div>
+        <div class="field"><label for="dname">세부사업 이름</label><input id="dname" name="name" class="input" required maxlength="200"></div>
+        <div class="field"><label for="ddept">소관 부서</label><input id="ddept" name="dept" class="input" required maxlength="100" placeholder="예: 민원봉사과">
+          <p class="hint" style="margin:0;">이 부서 직원이 예산을 작성하고 집행합니다. 직원 계정의 부서 이름과 똑같이 적으세요.</p></div>
+        <button type="submit" class="btn btn-primary">추가</button>
+      </form>
+    </div>
+  </th:block>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<style>
+  .ptree, .ptree ul { list-style:none; margin:0; padding:0; }
+  .ptree { padding:8px 0; }
+  .ptree ul { padding-left:28px; }
+  .prow { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 22px; border-bottom:1px solid var(--line); }
+  .prow.lv1 { background:var(--soft); }
+  .prow .del { margin:0 0 0 auto; }
+  .btn.sm { height:36px; font-size:15px; padding:0 10px; }
+  .pforms { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+</style>
+</body>
+</html>

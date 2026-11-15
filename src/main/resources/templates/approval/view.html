@@ -46,7 +46,7 @@
   <!-- 결재하기 -->
   <section class="panel" th:if="${doc.isMyTurn(loginUser)}" aria-labelledby="act-title" style="border:2px solid var(--brand);">
     <h2 id="act-title" th:text="${doc.pendingLine.role} + '할 차례입니다'">결재할 차례입니다</h2>
-    <form method="post" style="display:flex; flex-direction:column; gap:12px; margin:0;">
+    <form th:action="@{/approval/{id}/approve(id=${doc.docId})}" method="post" style="display:flex; flex-direction:column; gap:12px; margin:0;">
       <div class="field">
         <label for="opinion">의견 <span class="muted" style="font-size:16px;">(반려할 때는 꼭 적습니다)</span></label>
         <textarea id="opinion" name="opinion" class="textarea" rows="3" maxlength="1000"></textarea>

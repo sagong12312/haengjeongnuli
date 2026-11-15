@@ -72,6 +72,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public void setRevenueStaff(long userId, boolean value) {
+        userMapper.updateRevenue(userId, value ? "Y" : "N");
+    }
+
+    @Override
+    @Transactional
     public void setEnabled(long userId, boolean enabled) {
         userMapper.updateEnabled(userId, enabled ? "Y" : "N");
     }

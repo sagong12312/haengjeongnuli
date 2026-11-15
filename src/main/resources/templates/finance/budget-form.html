@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${kind == 'REV'} ? '세입예산 작성' : '세출예산 작성')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('finance')}"></header>
+
+<main class="page narrow" th:with="rev=${kind == 'REV'}">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div>
+    <span class="crumb"><a th:href="@{/finance(area=${rev} ? 'rev' : 'fin',year=${year})}">재정·세무</a> › <span th:text="${budget} ? '예산 고치기' : '예산 작성'">예산 작성</span></span>
+    <h1 th:text="${year} + '년 ' + (${rev} ? '세입예산' : '세출예산') + (${budget} ? ' 고치기' : ' 작성')">예산 작성</h1>
+  </div>
+  <div th:if="${budget != null and budget.status == 'REJECTED'}" class="alert" role="alert" style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg);"
+       th:text="'반려 사유: ' + ${budget.reviewNote}">반려 사유</div>
+
+  <p th:if="${!rev and #lists.isEmpty(details)}" class="hint" th:text="${year} + '년에 우리 부서 소관 세부사업이 없습니다. ' + ${budgetDept} + '에 세부사업 등록을 요청하세요.'">안내</p>
+
+  <form class="panel" th:action="${budget} ? @{/finance/budget/{id}/edit(id=${budget.budgetId})} : @{/finance/budget}" method="post" style="gap:18px;"
+        th:with="selDetail=${budget} ? ${budget.detailId} : (${prev} ? ${prev.detailId} : ''), selCode=${budget} ? ${budget.code} : (${prev} ? ${prev.code} : '')">
+    <input type="hidden" name="kind" th:value="${kind}"><input type="hidden" name="year" th:value="${year}">
+    <div class="field" th:unless="${rev}">
+      <label for="bdetail">세부사업 <span class="req">*</span></label>
+      <select id="bdetail" name="detailId" class="select" required>
+        <option value="">선택</option>
+        <option th:each="d : ${details}" th:value="${d.progId}" th:text="${d.progName}" th:selected="${#strings.toString(d.progId) == #strings.toString(selDetail)}">세부사업</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="bcode" th:text="${rev} ? '세입 과목 (장·관·항 › 목)' : '편성목 › 통계목'">통계목</label>
+      <select id="bcode" name="code" class="select" required>
+        <option value="">선택</option>
+        <optgroup th:each="g : ${codeGroups}" th:label="${g.key}">
+          <option th:each="c : ${g.value}" th:value="${c.code}" th:text="${c.code} + ' ' + ${c.codeName}" th:selected="${c.code == selCode}">통계목</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field">
+      <label for="bamount">금액(원) <span class="req">*</span></label>
+      <input id="bamount" name="amount" class="input" inputmode="numeric" required placeholder="예: 12,000,000"
+             th:value="${budget} ? ${#numbers.formatInteger(budget.amount, 1, 'COMMA')} : (${prev} ? ${prev.amount} : '')">
+      <p class="hint" id="bamount-text" aria-live="polite" style="margin:0;"></p>
+    </div>
+    <div class="field">
+      <label for="bbasis">산출근거</label>
+      <textarea id="bbasis" name="basis" class="textarea" rows="5" maxlength="2000" placeholder="예: 사무용품 구입 50,000원 × 12월 = 600,000원"
+                th:text="${budget} ? ${budget.basis} : (${prev} ? ${prev.basis} : '')"></textarea>
+    </div>
+    <p class="hint" th:text="${rev} ? '승인 요청하면 ' + ${budgetDept} + ' 세입 담당 직원이 승인합니다.' : '승인 요청하면 ' + ${budgetDept} + '에서 승인합니다. 승인된 예산만 집행할 수 있습니다.'">안내</p>
+    <div class="form-actions">
+      <a class="btn btn-plain btn-lg" th:href="${budget} ? @{/finance/budget/{id}(id=${budget.budgetId})} : @{/finance(area=${rev} ? 'rev' : 'fin',year=${year})}">취소</a>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <button type="submit" name="action" value="save" class="btn btn-outline btn-lg">저장</button>
+        <button type="submit" name="action" value="request" class="btn btn-primary btn-lg">승인 요청</button>
+      </div>
+    </div>
+  </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script>
+  // 금액 입력 중에 세 자리마다 쉼표를 넣고 한글 금액을 보여 준다
+  (function () {
+    var D = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'], S = ['', '십', '백', '천'], B = ['', '만', '억', '조'];
+    function hangul(n) {
+      var s = String(n), out = '';
+      for (var i = 0; i < s.length; i++) {
+        var d = +s[i], pos = s.length - 1 - i;
+        if (d) { out += D[d] + S[pos % 4]; }
+        if (pos % 4 === 0 && pos > 0 && /[1-9]/.test(s.substring(Math.max(0, i - 3), i + 1))) { out += B[pos / 4]; }
+      }
+      return out || '영';
+    }
+    var input = document.getElementById('bamount'), text = document.getElementById('bamount-text');
+    function show() {
+      var raw = input.value.replace(/[^0-9]/g, '');
+      if (!raw) { text.textContent = ''; return; }
+      input.value = Number(raw).toLocaleString('ko-KR');
+      text.textContent = '금' + input.value + '원(금' + hangul(raw.replace(/^0+/, '') || '0') + '원)';
+    }
+    input.addEventListener('input', show);
+    show();
+  })();
+</script>
+</body>
+</html>

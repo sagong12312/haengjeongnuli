@@ -36,6 +36,8 @@ public interface UserMapper {
 
     int updateEnabled(@Param("userId") long userId, @Param("enabledYn") String enabledYn);
 
+    int updateRevenue(@Param("userId") long userId, @Param("revenueYn") String revenueYn);
+
     int updateDept(@Param("userId") long userId, @Param("deptName") String deptName);
 
     int insertDeptHistory(@Param("userId") long userId, @Param("fromDept") String fromDept,

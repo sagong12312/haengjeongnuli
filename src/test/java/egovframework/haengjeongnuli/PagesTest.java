@@ -33,7 +33,7 @@ class PagesTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"/", "/approval", "/approval?box=back", "/approval/draft", "/civil", "/civil?kind=QUERY", "/civil?status=DONE&q=x",
-            "/civil/new", "/finance", "/finance?area=tax", "/hr", "/board", "/board?tab=archive",
+            "/civil/new", "/finance", "/finance/programs", "/hr", "/board", "/board?tab=archive",
             "/board/write", "/board/upload"})
     void 모든_화면이_열린다(String url) throws Exception {
         mvc.perform(get(url)).andExpect(status().isOk()).andExpect(content().string(containsString("행정누리")));

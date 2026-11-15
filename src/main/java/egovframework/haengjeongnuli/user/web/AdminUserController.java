@@ -87,6 +87,16 @@ public class AdminUserController {
         return "redirect:/admin/users";
     }
 
+    /** 세입 담당 지정·해제 (세입 화면은 지정된 직원만 연다) */
+    @PostMapping("/{userId}/revenue")
+    public String revenue(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {
+        userService.setRevenueStaff(userId, value);
+        auditService.record(AuditAction.USER_REVENUE, "사용자 " + userId, value ? "지정" : "해제");
+        ra.addFlashAttribute("message", value ? "세입 담당으로 지정했습니다. 다시 로그인하면 세입 화면이 열립니다."
+                : "세입 담당을 해제했습니다. 다시 로그인하면 세입 화면이 닫힙니다.");
+        return "redirect:/admin/users";
+    }
+
     @PostMapping("/{userId}/password")
     public String resetPassword(@PathVariable long userId, @RequestParam String newPassword, RedirectAttributes ra) {
         String problem = PasswordPolicy.check(newPassword, null);

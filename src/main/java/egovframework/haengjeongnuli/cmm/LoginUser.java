@@ -38,6 +38,8 @@ public class LoginUser implements UserDetails {
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
     private LocalDateTime passwordChangedAt;
+    /** 세입 담당 직원 (Y/N) */
+    private String revenueYn = "N";
 
     // 화면에서 쓰는 이름들
     public String name() { return userName; }
@@ -45,6 +47,8 @@ public class LoginUser implements UserDetails {
     public String dept() { return deptName == null ? "" : deptName; }
     public boolean isCounterStaff() { return role == Role.COUNTER; }
     public boolean isAdmin() { return role == Role.ADMIN; }
+    /** 세입 화면을 쓸 수 있는 세입 담당 직원 */
+    public boolean isRevenueStaff() { return "Y".equals(revenueYn); }
     public boolean isLocked() { return failedCount >= MAX_FAILED; }
 
     /**
@@ -84,6 +88,8 @@ public class LoginUser implements UserDetails {
     public void setDeptName(String deptName) { this.deptName = deptName; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+    public String getRevenueYn() { return revenueYn; }
+    public void setRevenueYn(String revenueYn) { this.revenueYn = revenueYn; }
     public String getEnabledYn() { return enabledYn; }
     public void setEnabledYn(String enabledYn) { this.enabledYn = enabledYn; }
     public int getFailedCount() { return failedCount; }

@@ -5,108 +5,177 @@
 <header th:replace="~{fragments/layout :: header('finance')}"></header>
 
 <main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
   <div class="page-head">
     <div>
-      <span class="crumb"><a th:href="@{/}">홈</a> › 재정·세무 › <span th:text="${area == 'tax'} ? '세무' : '재정'">재정</span></span>
+      <span class="crumb"><a th:href="@{/}">홈</a> › 재정·세무 › <span th:text="${area == 'rev'} ? '세입' : '세출'">세출</span></span>
       <h1>재정·세무</h1>
     </div>
-    <label style="display:inline-flex; align-items:center; gap:10px; font-weight:700;">회계연도
-      <select class="select" style="height:52px; font-size:18px;"><option>[회계연도]</option></select>
-    </label>
+    <form th:action="@{/finance}" method="get" style="display:flex; align-items:center; gap:10px;">
+      <input type="hidden" name="area" th:value="${area}">
+      <label for="fyear" style="font-weight:700;">회계연도</label>
+      <select id="fyear" name="year" class="select" style="height:52px; font-size:18px;" onchange="this.form.submit()">
+        <option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option>
+      </select>
+      <noscript><button type="submit" class="btn btn-outline">보기</button></noscript>
+    </form>
   </div>
 
   <nav class="tabs" aria-label="업무 영역">
-    <a th:href="@{/finance(area='fin')}" th:attr="aria-current=${area == 'fin'} ? 'page' : null" style="font-size:21px; padding:0 26px;">재정</a>
-    <a th:href="@{/finance(area='tax')}" th:attr="aria-current=${area == 'tax'} ? 'page' : null" style="font-size:21px; padding:0 26px;">세무</a>
+    <a th:href="@{/finance(area='fin',year=${year})}" th:attr="aria-current=${area == 'fin'} ? 'page' : null" style="font-size:21px; padding:0 26px;">세출 (예산·집행)</a>
+    <a th:href="@{/finance(area='rev',year=${year})}" th:attr="aria-current=${area == 'rev'} ? 'page' : null" style="font-size:21px; padding:0 26px;">세입</a>
   </nav>
 
-  <!-- ===== 재정 ===== -->
+  <!-- ===== 세출 ===== -->
   <th:block th:if="${area == 'fin'}">
     <section class="panel" aria-labelledby="bud-title">
       <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
-        <h2 id="bud-title">우리 부서 예산 집행 현황</h2><span class="hint" style="font-size:17px;">기준일 [날짜]</span>
+        <h2 id="bud-title" th:text="${seeAll} ? (${deptFilter} ? ${deptFilter} + ' 예산 집행 현황' : '전체 부서 예산 집행 현황') : '우리 부서 예산 집행 현황'">우리 부서 예산 집행 현황</h2>
+        <span class="hint" style="font-size:17px;" th:text="${year} + '년 · 승인된 예산 기준'">기준</span>
       </div>
       <div class="stat-grid">
-        <div class="stat"><small>예산현액</small><strong>[금액]원</strong></div>
-        <div class="stat"><small>지출액</small><strong>[금액]원</strong></div>
-        <div class="stat blue"><small style="color:#1D3A5F">집행 잔액</small><strong>[금액]원</strong></div>
-        <div class="stat"><small>집행률</small><strong>[집행률]%</strong>
-          <div role="img" aria-label="집행률 막대 (값 미정)" style="height:10px; border-radius:999px; background:var(--line); overflow:hidden;"><div style="width:0%; height:100%; background:var(--brand);"></div></div>
+        <div class="stat"><small>예산액(승인)</small><strong th:text="${#numbers.formatInteger(approvedTotal, 1, 'COMMA')} + '원'">0원</strong></div>
+        <div class="stat"><small>집행액</small><strong th:text="${#numbers.formatInteger(usedTotal, 1, 'COMMA')} + '원'">0원</strong></div>
+        <div class="stat blue"><small style="color:#1D3A5F">집행 잔액</small><strong th:text="${#numbers.formatInteger(approvedTotal - usedTotal, 1, 'COMMA')} + '원'">0원</strong></div>
+        <div class="stat"><small>집행률</small><strong th:text="${rate} + '%'">0%</strong>
+          <div role="img" th:attr="aria-label='집행률 ' + ${rate} + '%'" style="height:10px; border-radius:999px; background:var(--line); overflow:hidden;">
+            <div th:style="'width:' + ${rate > 100 ? 100 : rate} + '%; height:100%; background:var(--brand);'"></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section aria-labelledby="fin-menu" style="display:flex; flex-direction:column; gap:14px;">
-      <h2 id="fin-menu" style="font-size:24px;">재정 업무</h2>
-      <div class="card-grid">
-        <a class="menu-card" href="#"><b>예산 편성</b><span>세출예산 요구, 사업별 예산서</span></a>
-        <a class="menu-card" href="#"><b>지출결의</b><span>지출 원인행위, 지출결의서 작성</span></a>
-        <a class="menu-card" href="#"><b>계약</b><span>물품·용역·공사 계약 요청</span></a>
-        <a class="menu-card" href="#"><b>결산</b><span>세입·세출 결산, 성과보고</span></a>
-      </div>
-    </section>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+      <a class="btn btn-primary" th:href="@{/finance/budget/new(kind='EXP',year=${year})}">예산 작성</a>
+      <a class="btn btn-outline" th:href="@{/finance/programs(year=${year})}" th:text="${canManage} ? '사업 구조 관리' : '사업 구조 보기'">사업 구조</a>
+      <a th:if="${isBudgetStaff}" class="btn btn-outline" th:href="@{/finance/review(kind='EXP',year=${year})}"
+         th:text="'승인 대기 ' + ${pending} + '건'">승인 대기</a>
+      <form th:if="${seeAll}" th:action="@{/finance}" method="get" style="display:flex; gap:8px; margin-left:auto;">
+        <input type="hidden" name="area" value="fin"><input type="hidden" name="year" th:value="${year}">
+        <label for="fdept" class="sr-only">부서</label>
+        <select id="fdept" name="dept" class="select" style="height:48px; font-size:17px;" onchange="this.form.submit()">
+          <option value="">전체 부서</option>
+          <option th:each="d : ${depts}" th:value="${d}" th:text="${d}" th:selected="${d == deptFilter}">부서</option>
+        </select>
+      </form>
+    </div>
+    <p th:if="${!seeAll and myDetails == 0}" class="hint" th:text="${year} + '년에 우리 부서(' + ${loginUser.dept()} + ') 소관 세부사업이 아직 없습니다. ' + ${budgetDept} + '에서 사업 구조에 세부사업을 만들면 예산을 작성할 수 있습니다.'">안내</p>
 
-    <section class="panel flush" aria-labelledby="exp-title">
-      <div class="panel-head"><h2 id="exp-title">최근 지출결의</h2><a href="#" style="font-size:17px;">전체 보기</a></div>
-      <div class="table-wrap">
-        <table class="list" style="min-width:820px">
-          <thead><tr><th scope="col" style="width:140px">결의번호</th><th scope="col" style="text-align:left">건명</th><th scope="col" style="width:160px; text-align:left">세부사업</th><th scope="col" style="width:150px; text-align:right">금액</th><th scope="col" style="width:120px">상태</th></tr></thead>
+    <section class="panel flush" aria-labelledby="list-title">
+      <div class="panel-head"><h2 id="list-title">세출 예산</h2><span class="muted" style="font-size:17px;" th:text="${#lists.size(budgets)} + '건'">0건</span></div>
+      <p th:if="${#lists.isEmpty(budgets)}" class="hint" style="padding:18px 22px;">작성한 예산이 없습니다.</p>
+      <div class="table-wrap" th:unless="${#lists.isEmpty(budgets)}">
+        <table class="list" style="min-width:1100px">
+          <thead><tr>
+            <th scope="col" style="text-align:left">정책·단위·세부사업</th><th scope="col" style="text-align:left">통계목</th>
+            <th scope="col">부서</th><th scope="col" style="text-align:right">예산액</th><th scope="col">상태</th>
+            <th scope="col" style="text-align:right">집행액</th><th scope="col" style="text-align:right">잔액</th><th scope="col">집행률</th>
+          </tr></thead>
           <tbody>
-            <tr><td>[결의번호]</td><td class="left">[지출 건명]</td><td class="left muted">[세부사업]</td><td class="right">[금액]원</td><td><span class="badge badge-orange">결재 중</span></td></tr>
-            <tr><td>[결의번호]</td><td class="left">[지출 건명]</td><td class="left muted">[세부사업]</td><td class="right">[금액]원</td><td><span class="badge badge-green">지급 완료</span></td></tr>
-            <tr><td>[결의번호]</td><td class="left">[지출 건명]</td><td class="left muted">[세부사업]</td><td class="right">[금액]원</td><td><span class="badge badge-red">반려</span></td></tr>
+            <tr th:each="b : ${budgets}">
+              <td class="left"><a th:href="@{/finance/budget/{id}(id=${b.budgetId})}" th:text="${b.detailName}">세부사업</a>
+                <div class="muted" style="font-size:15px;" th:text="${b.policyName} + ' › ' + ${b.unitName}">정책 › 단위</div></td>
+              <td class="left" th:text="${b.code} + ' ' + ${b.codeName}">통계목</td>
+              <td th:text="${b.deptName}">부서</td>
+              <td class="right" th:text="${#numbers.formatInteger(b.amount, 1, 'COMMA')}">0</td>
+              <td><span th:class="'badge ' + ${b.statusBadge}" th:text="${b.statusLabel}">상태</span></td>
+              <td class="right" th:text="${#numbers.formatInteger(b.used, 1, 'COMMA')}">0</td>
+              <td class="right" th:text="${b.approved} ? ${#numbers.formatInteger(b.balance, 1, 'COMMA')} : '—'">0</td>
+              <td th:text="${b.approved} ? ${b.rate} + '%' : '—'">0%</td>
+            </tr>
           </tbody>
         </table>
       </div>
     </section>
   </th:block>
 
-  <!-- ===== 세무 ===== -->
-  <th:block th:if="${area == 'tax'}">
-    <section class="panel" aria-labelledby="tax-sum">
-      <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
-        <h2 id="tax-sum">부과·징수 현황</h2><span class="hint" style="font-size:17px;">기준일 [날짜]</span>
-      </div>
-      <div class="stat-grid">
-        <div class="stat"><small>부과액</small><strong>[금액]원</strong></div>
-        <div class="stat"><small>수납액</small><strong style="color:var(--green-fg)">[금액]원</strong></div>
-        <div class="stat"><small>징수율</small><strong>[징수율]%</strong></div>
-        <div class="stat red"><small style="color:#7A1E1E">체납액</small><strong>[금액]원</strong></div>
-      </div>
+  <!-- ===== 세입 ===== -->
+  <th:block th:if="${area == 'rev'}">
+    <section th:if="${denied}" class="panel" role="alert">
+      <h2>세입 담당 직원만 볼 수 있습니다</h2>
+      <p class="muted" style="margin:0;">세입 화면은 시스템 관리자가 <b>세입 담당</b>으로 지정한 직원만 열 수 있습니다. 필요하면 관리자에게 요청하세요.</p>
     </section>
 
-    <section aria-labelledby="tax-menu" style="display:flex; flex-direction:column; gap:14px;">
-      <h2 id="tax-menu" style="font-size:24px;">세무 업무</h2>
-      <div class="card-grid">
-        <a class="menu-card" href="#"><b>지방세 부과</b><span>세목별 부과, 감면, 경정</span></a>
-        <a class="menu-card" href="#"><b>세외수입 부과</b><span>사용료·수수료·과태료 등</span></a>
-        <a class="menu-card" href="#"><b>징수·수납</b><span>수납 확인, 환급</span></a>
-        <a class="menu-card" href="#"><b>체납 관리</b><span>독촉, 체납처분, 분할납부</span></a>
-        <a class="menu-card" href="#"><b>고지서 발송</b><span>우편·전자고지 발송 관리</span></a>
-      </div>
-    </section>
+    <th:block th:unless="${denied}">
+      <section class="panel" aria-labelledby="rev-sum">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
+          <h2 id="rev-sum">세입 현황</h2><span class="hint" style="font-size:17px;" th:text="${year} + '년 · 승인된 세입예산 기준'">기준</span>
+        </div>
+        <div class="stat-grid">
+          <div class="stat"><small>세입예산액(승인)</small><strong th:text="${#numbers.formatInteger(approvedTotal, 1, 'COMMA')} + '원'">0원</strong></div>
+          <div class="stat"><small>수납액</small><strong style="color:var(--green-fg)" th:text="${#numbers.formatInteger(usedTotal, 1, 'COMMA')} + '원'">0원</strong></div>
+          <div class="stat"><small>수납률</small><strong th:text="${rate} + '%'">0%</strong></div>
+          <div class="stat blue"><small style="color:#1D3A5F">예산 대비 남은 세입</small><strong th:text="${#numbers.formatInteger(approvedTotal - usedTotal, 1, 'COMMA')} + '원'">0원</strong></div>
+        </div>
+      </section>
 
-    <section class="panel flush" aria-labelledby="levy-title">
-      <div class="panel-head">
-        <h2 id="levy-title">부과 내역</h2>
-        <form role="search" style="display:flex; gap:8px; flex:0 1 420px;" th:action="@{/finance}" method="get">
-          <input type="hidden" name="area" value="tax">
-          <label for="tq" class="sr-only">납세자 검색</label>
-          <input id="tq" name="q" class="input" type="search" placeholder="납세자명, 과세번호 검색" style="flex:1; min-width:0; height:48px; font-size:18px;">
-          <button type="submit" class="btn btn-outline" style="height:48px; font-size:18px;">검색</button>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <a class="btn btn-primary" th:href="@{/finance/budget/new(kind='REV',year=${year})}">세입예산 작성</a>
+        <a th:if="${isBudgetStaff}" class="btn btn-outline" th:href="@{/finance/review(kind='REV',year=${year})}" th:text="'승인 대기 ' + ${pending} + '건'">승인 대기</a>
+      </div>
+
+      <section class="panel flush" aria-labelledby="revb-title">
+        <div class="panel-head"><h2 id="revb-title">세입예산</h2><span class="muted" style="font-size:17px;" th:text="${#lists.size(budgets)} + '건'">0건</span></div>
+        <p th:if="${#lists.isEmpty(budgets)}" class="hint" style="padding:18px 22px;">작성한 세입예산이 없습니다.</p>
+        <div class="table-wrap" th:unless="${#lists.isEmpty(budgets)}">
+          <table class="list" style="min-width:860px">
+            <thead><tr><th scope="col" style="text-align:left">세입 과목(목)</th><th scope="col" style="text-align:right">예산액</th><th scope="col">상태</th>
+              <th scope="col" style="text-align:right">수납액</th><th scope="col">수납률</th><th scope="col">작성</th></tr></thead>
+            <tbody>
+              <tr th:each="b : ${budgets}" th:with="got=${receipts[b.code] ?: 0}">
+                <td class="left"><a th:href="@{/finance/budget/{id}(id=${b.budgetId})}" th:text="${b.code} + ' ' + ${b.codeName}">과목</a></td>
+                <td class="right" th:text="${#numbers.formatInteger(b.amount, 1, 'COMMA')}">0</td>
+                <td><span th:class="'badge ' + ${b.statusBadge}" th:text="${b.statusLabel}">상태</span></td>
+                <td class="right" th:text="${#numbers.formatInteger(got, 1, 'COMMA')}">0</td>
+                <td th:text="${b.amount == 0} ? '—' : ${#numbers.formatDecimal(got * 100.0 / b.amount, 1, 1)} + '%'">0%</td>
+                <td th:text="${b.requesterName}">작성자</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="receipts" aria-labelledby="rcpt-title" style="gap:16px;">
+        <h2 id="rcpt-title">수납 기록</h2>
+        <form th:action="@{/finance/receipts}" method="post" class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); align-items:end;">
+          <input type="hidden" name="year" th:value="${year}">
+          <div class="field"><label for="rcode">세입 목 <span class="req">*</span></label>
+            <select id="rcode" name="code" class="select" required>
+              <option value="">선택</option>
+              <option th:each="c : ${revItems}" th:value="${c.code}" th:text="${c.code} + ' ' + ${c.codeName}">목</option>
+            </select></div>
+          <div class="field"><label for="rdate">수납일 <span class="req">*</span></label><input id="rdate" name="date" type="date" class="input" required th:value="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}"></div>
+          <div class="field"><label for="ramount">금액(원) <span class="req">*</span></label><input id="ramount" name="amount" class="input" inputmode="numeric" required placeholder="예: 1,250,000"></div>
+          <div class="field"><label for="rparty">납부자</label><input id="rparty" name="party" class="input" maxlength="200"></div>
+          <div class="field"><label for="rdesc">내용 <span class="req">*</span></label><input id="rdesc" name="description" class="input" maxlength="500" required placeholder="예: 11월 정기분"></div>
+          <div class="field"><button type="submit" class="btn btn-primary">수납 기록</button></div>
         </form>
-      </div>
-      <div class="table-wrap">
-        <table class="list" style="min-width:900px">
-          <thead><tr><th scope="col" style="width:150px">과세번호</th><th scope="col" style="width:140px">구분</th><th scope="col" style="text-align:left">세목·항목</th><th scope="col" style="width:120px">납세자</th><th scope="col" style="width:140px; text-align:right">부과액</th><th scope="col" style="width:120px">납기</th><th scope="col" style="width:100px">상태</th></tr></thead>
-          <tbody>
-            <tr><td>[과세번호]</td><td style="color:var(--text)">지방세</td><td class="left">[세목]</td><td>[납세자]</td><td class="right">[금액]원</td><td>[날짜]</td><td><span class="badge badge-green">납부</span></td></tr>
-            <tr><td>[과세번호]</td><td style="color:var(--text)">세외수입</td><td class="left">[항목]</td><td>[납세자]</td><td class="right">[금액]원</td><td>[날짜]</td><td><span class="badge badge-gray">미납</span></td></tr>
-            <tr><td>[과세번호]</td><td style="color:var(--text)">지방세</td><td class="left">[세목]</td><td>[납세자]</td><td class="right">[금액]원</td><td style="color:var(--red-fg); font-weight:700">[날짜]</td><td><span class="badge badge-red">체납</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+        <p th:if="${#lists.isEmpty(recent)}" class="hint">수납 기록이 없습니다.</p>
+        <div class="table-wrap" th:unless="${#lists.isEmpty(recent)}">
+          <table class="list" style="min-width:860px">
+            <thead><tr><th scope="col">수납일</th><th scope="col" style="text-align:left">세입 목</th><th scope="col" style="text-align:right">금액</th>
+              <th scope="col">납부자</th><th scope="col" style="text-align:left">내용</th><th scope="col">기록</th><th scope="col"></th></tr></thead>
+            <tbody>
+              <tr th:each="t : ${recent}" th:style="${t.cancelled} ? 'opacity:.55; text-decoration:line-through;' : null">
+                <td th:text="${#temporals.format(t.txnDate, 'MM-dd')}">날짜</td>
+                <td class="left" th:text="${t.code} + ' ' + ${t.codeName}">목</td>
+                <td class="right" th:text="${#numbers.formatInteger(t.amount, 1, 'COMMA')}">0</td>
+                <td th:text="${t.party} ?: '—'">납부자</td>
+                <td class="left" th:text="${t.description}">내용</td>
+                <td th:text="${t.createdName}">기록</td>
+                <td>
+                  <span th:if="${t.cancelled}" class="badge badge-gray">취소</span>
+                  <form th:unless="${t.cancelled}" th:action="@{/finance/txn/{id}/cancel(id=${t.txnId})}" method="post" style="margin:0;" onsubmit="return confirm('이 수납 기록을 취소할까요?');">
+                    <button type="submit" class="btn btn-plain" style="height:36px; font-size:15px; padding:0 10px;">취소</button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">최근 20건을 보여줍니다. 잘못 기록한 건은 지우지 않고 취소 표시를 남깁니다.</p>
+      </section>
+    </th:block>
   </th:block>
 </main>
 

@@ -20,6 +20,9 @@ public interface UserService extends UserDetailsService {
 
     void setEnabled(long userId, boolean enabled);
 
+    /** 세입 담당 표시를 켜고 끈다 */
+    void setRevenueStaff(long userId, boolean value);
+
     /** 관리자가 비밀번호를 새로 정해 준다 */
     void resetPassword(long userId, String newPassword);
 

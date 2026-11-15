@@ -37,6 +37,9 @@ app:
   password:
     # 비밀번호를 이 일수마다 바꾸게 한다
     max-age-days: 90
+  finance:
+    # 예산 승인을 맡는 부서 이름 (직원 계정의 부서와 같아야 한다)
+    budget-dept: 예산편성과
   civil:
     # 처리기한이 며칠 이내로 남으면 '기한 임박'으로 볼지
     imminent-days: 2

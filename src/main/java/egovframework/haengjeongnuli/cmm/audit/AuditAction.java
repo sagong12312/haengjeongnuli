@@ -13,6 +13,7 @@ public enum AuditAction {
     USER_DISABLE("계정 사용 중지"),
     USER_PASSWORD_RESET("비밀번호 재설정"),
     USER_DEPT_MOVE("부서 이동"),
+    USER_REVENUE("세입 담당 지정·해제"),
 
     POST_CREATE("게시글 등록"),
     POST_UPDATE("게시글 수정"),
@@ -30,6 +31,15 @@ public enum AuditAction {
     APPROVAL_WITHDRAW("결재 회수"),
     APPROVAL_RECEIVE("문서 접수"),
     APPROVAL_DELETE("임시저장 문서 삭제"),
+
+    FIN_PROGRAM("사업 등록·삭제"),
+    FIN_BUDGET_SAVE("예산 작성"),
+    FIN_BUDGET_REQUEST("예산 승인 요청"),
+    FIN_BUDGET_APPROVE("예산 승인"),
+    FIN_BUDGET_REJECT("예산 반려"),
+    FIN_EXECUTE("예산 집행"),
+    FIN_RECEIPT("세입 수납"),
+    FIN_TXN_CANCEL("집행·수납 취소"),
 
     HOLIDAY_ADD("공휴일 추가"),
     HOLIDAY_DELETE("공휴일 삭제"),
