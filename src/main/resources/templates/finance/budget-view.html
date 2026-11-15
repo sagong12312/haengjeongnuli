@@ -51,6 +51,47 @@
     </form>
   </section>
 
+  <!-- 추가경정·이월 -->
+  <section class="panel" id="changes" th:if="${canRequestChange or !#lists.isEmpty(changes)}" aria-labelledby="chg-title" style="gap:14px;">
+    <h2 id="chg-title">추가경정예산·이월</h2>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(changes)}"><table class="list">
+      <thead><tr><th scope="col">구분</th><th scope="col">금액</th><th scope="col" style="text-align:left">사유</th><th scope="col">요청</th><th scope="col">처리</th></tr></thead>
+      <tbody><tr th:each="c : ${changes}">
+        <td th:text="${c.typeLabel}">구분</td>
+        <td th:text="${#numbers.formatInteger(c.delta, 1, 'COMMA')} + '원'">금액</td>
+        <td class="left" th:text="${c.reason}">사유</td>
+        <td th:text="${c.requesterName}">요청</td>
+        <td>
+          <span th:class="'badge ' + (${c.status == 'APPROVED'} ? 'badge-green' : (${c.status == 'REJECTED'} ? 'badge-red' : 'badge-orange'))" th:text="${c.statusLabel}">상태</span>
+          <a th:if="${c.newBudgetId}" th:href="@{/finance/budget/{id}(id=${c.newBudgetId})}">다음 해 예산</a>
+          <div th:if="${c.status == 'REQUESTED' and isBudgetStaff and c.requesterId != loginUser.loginId}" style="display:flex; gap:6px; justify-content:center; margin-top:6px;">
+            <form th:action="@{/finance/changes/{id}(id=${c.changeId})}" method="post" style="margin:0; display:flex; gap:6px;">
+              <input type="hidden" name="approve" value="false"><label class="sr-only" th:for="'cn' + ${c.changeId}">반려 사유</label>
+              <input th:id="'cn' + ${c.changeId}" name="note" class="input" placeholder="반려 사유" style="height:40px; width:140px; font-size:16px;">
+              <button type="submit" class="btn btn-plain btn-sm">반려</button></form>
+            <form th:action="@{/finance/changes/{id}(id=${c.changeId})}" method="post" style="margin:0;">
+              <input type="hidden" name="approve" value="true"><button type="submit" class="btn btn-primary btn-sm">승인</button></form>
+          </div>
+        </td>
+      </tr></tbody>
+    </table></div>
+    <form th:if="${canRequestChange}" th:action="@{/finance/budget/{id}/change(id=${b.budgetId})}" method="post" style="display:flex; flex-direction:column; gap:12px; margin:0;">
+      <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="field"><label for="ctype">구분</label><select id="ctype" name="type" class="select">
+          <option value="SUPP">추가경정 (증액·감액)</option><option value="CARRY">다음 해로 이월</option></select></div>
+        <div class="field"><label for="camt">금액 (감액은 -)</label><input id="camt" name="amount" class="input" inputmode="numeric" placeholder="예: 5,000,000 또는 -1,000,000" required></div>
+        <div class="field"><label for="cround">추경 회차</label><input id="cround" name="round" type="number" min="1" max="99" class="input" value="1"></div>
+        <div class="field"><label for="ckind">이월 종류</label><select id="ckind" name="carryKind" class="select">
+          <option th:each="k : ${carryKinds}" th:value="${k}" th:text="${k}">명시이월</option></select></div>
+      </div>
+      <div class="field"><label for="creason">사유 <span class="req">*</span></label><input id="creason" name="reason" class="input" required maxlength="1000"
+        placeholder="추경: 의회 의결 내용 / 명시이월: 의결 받은 사업 / 사고이월: 지출원인행위 후 지출하지 못한 사유"></div>
+      <p class="hint" style="margin:0;">이월은 쓰고 남은 금액 안에서만 할 수 있고(지방재정법 제50조), 승인되면 올해 예산액에서 빠지고 다음 해 같은 과목의 승인된 예산이 생깁니다.
+        지방의회 의결 등 실제 절차를 마친 뒤 그 결과를 요청하세요.</p>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">승인 요청</button></div>
+    </form>
+  </section>
+
   <section class="panel" id="txns" th:unless="${rev}" aria-labelledby="txn-title" style="gap:16px;">
     <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;">
       <h2 id="txn-title">집행</h2>

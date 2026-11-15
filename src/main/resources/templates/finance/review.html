@@ -32,6 +32,18 @@
       </table>
     </div>
   </section>
+  <section class="panel flush" th:unless="${#lists.isEmpty(changeRequests)}">
+    <div class="panel-head"><h2>추가경정·이월 승인 대기</h2><span class="muted" th:text="${#lists.size(changeRequests)} + '건'">0건</span></div>
+    <div class="table-wrap"><table class="list">
+      <thead><tr><th scope="col">연도</th><th scope="col">부서</th><th scope="col">과목</th><th scope="col">구분</th><th scope="col">금액</th><th scope="col" style="text-align:left">사유</th></tr></thead>
+      <tbody><tr th:each="c : ${changeRequests}">
+        <td th:text="${c.fiscalYear}">연도</td><td th:text="${c.deptName}">부서</td>
+        <td><a th:href="@{/finance/budget/{id}(id=${c.budgetId})} + '#changes'" th:text="${c.code}">과목</a></td>
+        <td th:text="${c.typeLabel}">구분</td><td th:text="${#numbers.formatInteger(c.delta, 1, 'COMMA')} + '원'">금액</td>
+        <td class="left" th:text="${c.reason}">사유</td>
+      </tr></tbody>
+    </table></div>
+  </section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

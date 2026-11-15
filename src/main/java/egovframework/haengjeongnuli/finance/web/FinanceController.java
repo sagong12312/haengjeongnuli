@@ -36,8 +36,11 @@ public class FinanceController {
 
     private final FinanceService finance;
     private final AuditService auditService;
+    private final egovframework.haengjeongnuli.finance.service.BudgetChangeService changes;
 
-    public FinanceController(FinanceService finance, AuditService auditService) {
+    public FinanceController(FinanceService finance, AuditService auditService,
+                             egovframework.haengjeongnuli.finance.service.BudgetChangeService changes) {
+        this.changes = changes;
         this.finance = finance;
         this.auditService = auditService;
     }
@@ -176,6 +179,9 @@ public class FinanceController {
         model.addAttribute("available", b.isApproved() ? finance.available(id, null) : 0L);
         model.addAttribute("isBudgetStaff", finance.isBudgetStaff(me));
         model.addAttribute("today", LocalDate.now());
+        model.addAttribute("changes", changes.ofBudget(id));
+        model.addAttribute("canRequestChange", changes.canRequest(b, me));
+        model.addAttribute("carryKinds", egovframework.haengjeongnuli.finance.service.BudgetChangeVO.CARRY_KINDS);
         return "finance/budget-view";
     }
 
@@ -254,6 +260,39 @@ public class FinanceController {
         return "redirect:/finance?area=" + (BudgetVO.REV.equals(b.getKind()) ? "rev" : "fin") + "&year=" + b.getFiscalYear();
     }
 
+    /** 추가경정(증감)·이월 요청 (지방재정법 제45조·제50조) */
+    @PostMapping("/finance/budget/{id}/change")
+    public String requestChange(@AuthenticationPrincipal LoginUser me, @PathVariable long id,
+                                @RequestParam(required = false) String type, @RequestParam(required = false) String amount,
+                                @RequestParam(required = false) Integer round, @RequestParam(required = false) String carryKind,
+                                @RequestParam(required = false) String reason, RedirectAttributes ra) {
+        visible(id, me);
+        Long delta = null;
+        if (amount != null) {
+            String t = amount.replace(",", "").replace("원", "").trim();
+            if (t.matches("-?\\d{1,13}")) {
+                delta = Long.valueOf(t);
+            }
+        }
+        Result r = changes.request(id, type, delta, round, carryKind, reason, me);
+        if (r.ok()) {
+            auditService.record(AuditAction.FIN_BUDGET_CHANGE, "예산 " + id, type + " " + amount + " " + reason);
+        }
+        ra.addFlashAttribute("message", r.message());
+        return "redirect:/finance/budget/" + id;
+    }
+
+    @PostMapping("/finance/changes/{cid}")
+    public String reviewChange(@AuthenticationPrincipal LoginUser me, @PathVariable long cid, @RequestParam boolean approve,
+                               @RequestParam(required = false) String note, RedirectAttributes ra) {
+        Result r = changes.review(cid, approve, note, me);
+        if (r.ok()) {
+            auditService.record(AuditAction.FIN_BUDGET_CHANGE, "추경·이월 " + cid, approve ? "승인" : "반려: " + note);
+        }
+        ra.addFlashAttribute("message", r.message());
+        return r.id() == null ? "redirect:/finance/review" : "redirect:/finance/budget/" + r.id();
+    }
+
     @GetMapping("/finance/review")
     public String reviewList(@AuthenticationPrincipal LoginUser me, @RequestParam(defaultValue = "EXP") String kind,
                              @RequestParam(required = false) Integer year, Model model) {
@@ -265,6 +304,7 @@ public class FinanceController {
         common(model, me, y);
         model.addAttribute("kind", k);
         model.addAttribute("budgets", finance.budgets(k, y, null, BudgetVO.REQUESTED));
+        model.addAttribute("changeRequests", BudgetVO.EXP.equals(k) && finance.isBudgetStaff(me) ? changes.requested() : List.of());
         return "finance/review";
     }
 
