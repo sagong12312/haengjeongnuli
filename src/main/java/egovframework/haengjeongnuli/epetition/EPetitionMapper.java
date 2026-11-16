@@ -37,6 +37,11 @@ public interface EPetitionMapper {
     @Select("SELECT COMPLAINT_ID FROM CIVIL_COMPLAINT WHERE COMPLAINT_ID = #{id} AND STATUS = 'DONE' AND PUBLIC_YN = 'Y' AND PUBLISHED_YN = 'Y'")
     Long publicId(@Param("id") long id);
 
+    /** 직원이 조회 비밀번호를 새로 정한다 (전자민원으로 접수한 민원만), 잠금도 푼다 */
+    @Update("UPDATE CIVIL_COMPLAINT SET LOOKUP_PW_HASH = #{hash}, LOOKUP_FAILS = 0, LOOKUP_LOCKED_UNTIL = NULL "
+            + "WHERE COMPLAINT_ID = #{id} AND LOOKUP_PW_HASH IS NOT NULL")
+    int resetLookup(@Param("id") long id, @Param("hash") String hash);
+
     @Update("UPDATE CIVIL_COMPLAINT SET PUBLISHED_YN = #{yn} WHERE COMPLAINT_ID = #{id} AND STATUS = 'DONE' AND PUBLIC_YN = 'Y'")
     int setPublished(@Param("id") long id, @Param("yn") String yn);
 

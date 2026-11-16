@@ -288,6 +288,35 @@ public class EPetitionService {
         return null;
     }
 
+    /**
+     * 조회 비밀번호를 잊은 민원인에게 새 임시 비밀번호를 정해 준다. 직원은 전화·방문으로 본인을 확인한 뒤 알려 준다.
+     * 새 비밀번호는 화면에 한 번만 보이고 저장은 BCrypt 로만 한다. 처리 담당·창구 직원·관리자만.
+     * 돌려주는 값: 새 비밀번호 (할 수 없으면 null)
+     */
+    @Transactional
+    public String resetLookupPassword(long id, LoginUser me) {
+        CivilComplaintVO c = process.get(id);
+        if (c == null || !(process.canProcess(c, me) || me.getRole() == LoginUser.Role.COUNTER || me.isAdmin())) {
+            return null;
+        }
+        String pw = randomPassword();
+        return mapper.resetLookup(id, encoder.encode(pw)) == 1 ? pw : null;
+    }
+
+    /** 영문 소문자 6자 + 숫자 4자 (헷갈리는 l·o·0·1 은 뺌) */
+    static String randomPassword() {
+        java.security.SecureRandom r = new java.security.SecureRandom();
+        String letters = "abcdefghijkmnpqrstuvwxyz", digits = "23456789";
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            b.append(letters.charAt(r.nextInt(letters.length())));
+        }
+        for (int i = 0; i < 4; i++) {
+            b.append(digits.charAt(r.nextInt(digits.length())));
+        }
+        return b.toString();
+    }
+
     public Map<String, Object> flags(long id) {
         return mapper.flags(id);
     }

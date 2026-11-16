@@ -56,6 +56,7 @@ public enum AuditAction {
     EPETITION_RECEIVE("전자민원 접수(연동)"),
     EPETITION_LOOKUP("전자민원 처리상황 조회(연동)"),
     EPETITION_PUBLISH("공개 상담 게시·내림"),
+    EPETITION_PW_RESET("전자민원 조회 비밀번호 재설정"),
     HYGIENE_SANCTION("위생 행정처분 기록"),
     PROPERTY_SAVE("공유재산 대장 기록"),
     VEHICLE_SAVE("관용차량 기록"),

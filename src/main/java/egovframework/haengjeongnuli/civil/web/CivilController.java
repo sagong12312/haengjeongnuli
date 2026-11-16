@@ -195,6 +195,27 @@ public class CivilController {
     @org.springframework.beans.factory.annotation.Autowired
     private egovframework.haengjeongnuli.epetition.EPetitionService ePetition;
 
+    /** 전자민원 조회 비밀번호 재설정 (민원인 본인 확인 뒤). 새 비밀번호는 이번 화면에서 한 번만 보인다 */
+    @PostMapping("/{id:\\d+}/lookup-password")
+    public String resetLookupPassword(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                                      @org.springframework.web.bind.annotation.RequestParam(defaultValue = "false") boolean identityChecked,
+                                      RedirectAttributes ra) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
+        if (!identityChecked) {
+            ra.addFlashAttribute("message", "민원인 본인인지 먼저 확인하고, 확인했다고 표시하세요.");
+            return "redirect:/civil/" + id;
+        }
+        String pw = ePetition.resetLookupPassword(id, me);
+        if (pw == null) {
+            ra.addFlashAttribute("message", "전자민원으로 접수한 민원의 담당·창구 직원만 조회 비밀번호를 새로 정할 수 있습니다.");
+        } else {
+            auditService.record(AuditAction.EPETITION_PW_RESET, "민원 " + c.getReceiptNo(), "본인 확인 후 재설정");
+            ra.addFlashAttribute("newLookupPassword", pw);
+            ra.addFlashAttribute("message", "조회 비밀번호를 새로 정했습니다. 아래 비밀번호를 민원인에게 알려 주세요 (이 화면에서 한 번만 보입니다).");
+        }
+        return "redirect:/civil/" + id;
+    }
+
     /** 전자민원 공개 상담 게시·내림 (민원인이 공개에 동의했고 처리가 끝난 민원) */
     @PostMapping("/{id:\\d+}/publish")
     public String publish(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,

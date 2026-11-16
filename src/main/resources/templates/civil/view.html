@@ -178,6 +178,19 @@
       </table>
     </div>
   </section>
+  <section class="panel" th:if="${ep != null and ep['online'] == 'Y'}" style="gap:10px;">
+    <h2>전자민원 조회 비밀번호</h2>
+    <p class="hint" style="margin:0;">인터넷(행정누리 전자민원)으로 접수한 민원입니다. 민원인이 조회 비밀번호를 잊었다고 하면,
+      전화·방문으로 <b>본인인지 확인한 뒤</b> 새 임시 비밀번호를 정해 알려 주세요. 잠금도 함께 풀립니다.</p>
+    <div th:if="${newLookupPassword}" class="alert alert-success" role="status" style="font-size:20px;">
+      새 조회 비밀번호: <b style="font-family:monospace; letter-spacing:2px;" th:text="${newLookupPassword}">abcdef2345</b>
+      <span style="display:block; font-size:16px;">이 화면을 벗어나면 다시 볼 수 없습니다. 민원인에게 알려 준 뒤 메모로 남기지 마세요.</span></div>
+    <form th:action="@{/civil/{id}/lookup-password(id=${c.complaintId})}" method="post" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0;"
+          data-confirm="본인 확인을 마쳤나요? 새 조회 비밀번호를 만듭니다.">
+      <label class="check"><input type="checkbox" name="identityChecked" value="true" required>민원인 본인임을 확인했습니다 (이름·연락처·접수 내용 대조)</label>
+      <button type="submit" class="btn btn-outline btn-sm">조회 비밀번호 새로 만들기</button>
+    </form>
+  </section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

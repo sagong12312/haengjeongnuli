@@ -169,4 +169,28 @@ class EPetitionApiTest {
         korean.doFilter(req, r2, new org.springframework.mock.web.MockFilterChain());
         assertThat(r2.getStatus()).isEqualTo(404);
     }
+
+    @Test
+    void 비밀번호를_잊으면_직원이_본인_확인_뒤_새로_정해_준다() throws Exception {
+        String body = "{\"kind\":\"OTHER\",\"name\":\"김잊음\",\"mobile\":\"010-2222-3333\",\"title\":\"재설정 시험\","
+                + "\"content\":\"내용\",\"password\":\"forget123\",\"privacyConsent\":true}";
+        String receiptNo = call(signed("POST", "/api/epetition/v1/complaints", body, nonce(), "192.0.2.77"), 200).get("data").get("receiptNo").asText();
+        long id = Long.parseLong(receiptNo.substring(5));
+        MockMvc counter = TestUsers.mvcAs(ctx, TestUsers.counter());
+        // 본인 확인 표시 없이는 안 된다
+        counter.perform(post("/civil/" + id + "/lookup-password"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("message",
+                        org.hamcrest.Matchers.containsString("본인인지 먼저 확인")));
+        MvcResult r = counter.perform(post("/civil/" + id + "/lookup-password").param("identityChecked", "true")).andReturn();
+        String pw = (String) r.getFlashMap().get("newLookupPassword");
+        assertThat(pw).matches("[a-z]{6}\\d{4}");
+        String look = "{\"receiptNo\":\"" + receiptNo + "\",\"password\":\"%s\"}";
+        call(signed("POST", "/api/epetition/v1/complaints/lookup", look.formatted("forget123"), nonce(), "192.0.2.77"), 401);
+        assertThat(call(signed("POST", "/api/epetition/v1/complaints/lookup", look.formatted(pw), nonce(), "192.0.2.77"), 200)
+                .get("data").get("title").asText()).isEqualTo("재설정 시험");
+        // 창구에서 직접 받은 민원은 조회 비밀번호가 없어 재설정할 수 없다 (화면에도 안 나옴)
+        String page = counter.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/civil/" + id))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(page).contains("전자민원 조회 비밀번호").doesNotContain(pw);
+    }
 }

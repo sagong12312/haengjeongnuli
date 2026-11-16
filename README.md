@@ -14,6 +14,18 @@
 
 브라우저에서 http://localhost:8080 을 엽니다. Windows에서는 `gradlew.bat bootRun`. `bootRun`은 프로필을 정하지 않으면 local(H2 파일 DB)로 실행합니다.
 
+### 전자민원과 함께 켜기 (Windows)
+
+행정누리 폴더 옆에 `haengjeongnuli-e-Petition`을 받아 두었다면, 행정누리 폴더의 PowerShell에서 한 줄로 둘 다 켭니다.
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\start-all.ps1
+```
+
+- 창이 두 개 새로 뜹니다. 행정누리는 이 PC에서만(`http://localhost:8080`), 전자민원은 같은 공유기의 휴대폰·노트북에서도(`http://이PC주소:3000`) 열립니다. 열 주소를 화면에 알려 줍니다.
+- 두 프로그램이 같이 쓰는 비밀값은 `data\epetition-secret.txt`에 처음 한 번 무작위로 만들어집니다(저장소에 올라가지 않음).
+- 전자민원 폴더가 다른 곳이면 `-EPetitionDir 'C:\경로\haengjeongnuli-e-Petition'`을 붙입니다.
+
 로컬 DB를 처음 상태로 지우려면 서버를 끄고 프로젝트 폴더의 `data` 폴더(와 올린 파일 `uploads` 폴더)를 지운 뒤 다시 실행합니다.
 
 ## 로그인
