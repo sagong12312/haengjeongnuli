@@ -52,7 +52,7 @@ a:hover { color: var(--brand-dark); }
 .user-chip { display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; border-radius: 999px; background: rgba(255,255,255,0.12); }
 .user-chip .avatar { width: 36px; height: 36px; border-radius: 999px; background: #fff; color: var(--brand); font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .user-chip b { display: block; font-size: 18px; }
-.user-chip small { display: block; font-size: 15px; color: #C9D8EC; }
+.user-chip small { display: block; font-size: 15px; color: #E3ECF7; }
 .icon-btn { width: 44px; height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
 /* 본문 */
