@@ -6,7 +6,6 @@
 # - 행정누리는 이 PC에서만 (http://localhost:8080)
 # - 전자민원은 같은 공유기에 붙은 휴대폰·노트북에서도 (http://이PC주소:3000)
 # - 두 프로그램이 함께 쓰는 비밀값은 data\epetition-secret.txt 에 처음 한 번 만들어 둡니다 (저장소에 올라가지 않음)
-# - 전자민원 화면 위에 "시험 중, 실제 개인정보 넣지 마세요" 띠가 나옵니다.
 # - 창이 두 개 새로 뜹니다. 끄려면 각 창에서 Ctrl + C 를 누르거나 창을 닫습니다.
 
 param(
@@ -82,7 +81,6 @@ $epCmd = "`$host.UI.RawUI.WindowTitle = '행정누리 전자민원 (끄려면 Ct
     "`$env:EP_SECRET = '$secret'; " +
     "`$env:PORT = '$EPetitionPort'; " +
     "`$env:COOKIE_SECURE = 'false'; " +
-    "`$env:EP_DEMO_NOTICE = 'true'; " +
     "`$env:ORG_NAME = '$safeOrg'; " +
     $install + "npm start"
 Start-Process powershell -WorkingDirectory $EPetitionDir -ArgumentList @('-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $epCmd)
