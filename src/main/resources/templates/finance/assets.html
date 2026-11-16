@@ -41,6 +41,7 @@
         <td>
           <span th:text="(${a.location} ?: '—') + ' / ' + (${a.userName} ?: '—')">위치</span>
           <form th:if="${mine}" th:action="@{/finance/assets/{id}/place(id=${a.assetId})}" method="post" style="display:flex; gap:4px; margin:6px 0 0; justify-content:center;">
+            <input type="hidden" name="page" th:value="${pg.page}"><input type="hidden" name="fStatus" th:value="${status}"><input type="hidden" name="fq" th:value="${q}"><input type="hidden" name="fDept" th:value="${scope}">
             <label class="sr-only" th:for="'al' + ${a.assetId}">위치</label>
             <input th:id="'al' + ${a.assetId}" name="location" class="input" th:value="${a.location}" placeholder="위치" maxlength="200" style="height:36px; font-size:14px; width:110px;">
             <label class="sr-only" th:for="'au' + ${a.assetId}">사용자</label>
@@ -50,15 +51,18 @@
         </td>
         <td><span th:text="${a.lastCheckedAt} ? ${a.lastCheckedAt} + ' ' + ${a.lastCheckedBy} : '안 함'">날짜</span>
           <form th:if="${mine}" th:action="@{/finance/assets/{id}/check(id=${a.assetId})}" method="post" style="margin:6px 0 0;">
+            <input type="hidden" name="page" th:value="${pg.page}"><input type="hidden" name="fStatus" th:value="${status}"><input type="hidden" name="fq" th:value="${q}"><input type="hidden" name="fDept" th:value="${scope}">
             <button type="submit" class="btn btn-plain btn-sm">실물 확인</button></form></td>
         <td>
           <span th:class="'badge ' + (${a.status == 'USE'} ? 'badge-green' : (${a.status == 'IDLE'} ? 'badge-orange' : 'badge-gray'))" th:text="${a.statusLabel}">상태</span>
           <small th:if="${a.disposeReason}" style="display:block" th:text="${a.disposedAt} + ' ' + ${a.disposeReason}">처분</small>
           <form th:if="${mine}" th:action="@{/finance/assets/{id}/status(id=${a.assetId})}" method="post" style="margin:6px 0 0;">
+            <input type="hidden" name="page" th:value="${pg.page}"><input type="hidden" name="fStatus" th:value="${status}"><input type="hidden" name="fq" th:value="${q}"><input type="hidden" name="fDept" th:value="${scope}">
             <input type="hidden" name="status" th:value="${a.status == 'USE'} ? 'IDLE' : 'USE'">
             <button type="submit" class="btn btn-plain btn-sm" th:text="${a.status == 'USE'} ? '불용으로' : '다시 사용'">불용으로</button></form>
           <form th:if="${mine and a.status == 'IDLE'}" th:action="@{/finance/assets/{id}/dispose(id=${a.assetId})}" method="post"
                 style="display:flex; gap:4px; margin:6px 0 0; justify-content:center;" data-confirm="처분을 기록하면 되돌릴 수 없습니다. 기록할까요?">
+            <input type="hidden" name="page" th:value="${pg.page}"><input type="hidden" name="fStatus" th:value="${status}"><input type="hidden" name="fq" th:value="${q}"><input type="hidden" name="fDept" th:value="${scope}">
             <label class="sr-only" th:for="'ad' + ${a.assetId}">처분 사유</label>
             <input th:id="'ad' + ${a.assetId}" name="reason" class="input" required placeholder="매각·폐기 등" maxlength="500" style="height:36px; font-size:14px; width:110px;">
             <button type="submit" class="btn btn-plain btn-sm" style="height:36px;">처분</button>

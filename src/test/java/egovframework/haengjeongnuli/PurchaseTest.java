@@ -254,6 +254,16 @@ class PurchaseTest {
         // 검색 조건이 쪽 이동에도 남는다
         String even = body(buyer.mvc(), "/finance/assets?q=짝수&page=2");
         assertThat(even).contains("22건 · 44,000원").contains("2/2쪽").contains("q=%EC%A7%9D%EC%88%98");
+        // 2쪽에서 실물 확인·위치 고치기를 해도 그 쪽·검색 조건으로 돌아온다
+        AssetVO target = purchases.assetList(buyer.u(), null, null, "쪽나눔 물품 02").get(0);
+        buyer.mvc().perform(post("/finance/assets/" + target.getAssetId() + "/check").param("page", "2").param("fq", "짝수"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/finance/assets?q=%EC%A7%9D%EC%88%98&page=2"));
+        buyer.mvc().perform(post("/finance/assets/" + target.getAssetId() + "/place").param("location", "창고").param("page", "3")
+                        .param("fStatus", "USE"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/finance/assets?status=USE&page=3"));
+        buyer.mvc().perform(post("/finance/assets/" + target.getAssetId() + "/check"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/finance/assets"));
+        assertThat(body(buyer.mvc(), "/finance/assets?page=2")).contains("name=\"page\" value=\"2\"");
         // CSV는 나누지 않고 전부
         assertThat(body(buyer.mvc(), "/finance/assets.csv").split("쪽나눔 물품", -1)).hasSize(46);
     }

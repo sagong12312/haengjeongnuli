@@ -295,6 +295,8 @@ public class PurchaseController {
     public String assetAction(@AuthenticationPrincipal LoginUser me, @PathVariable long id, @PathVariable String action,
                               @RequestParam(required = false) String location, @RequestParam(required = false) String userName,
                               @RequestParam(required = false) String status, @RequestParam(required = false) String reason,
+                              @RequestParam(required = false) Integer page, @RequestParam(required = false) String fStatus,
+                              @RequestParam(required = false) String fq, @RequestParam(required = false) String fDept,
                               RedirectAttributes ra) {
         AssetVO a = purchases.asset(id);
         if (!purchases.canViewAsset(a, me)) {
@@ -310,7 +312,25 @@ public class PurchaseController {
             audit.record(AuditAction.ASSET_SAVE, "물품 " + a.getAssetNo(), action + " " + nz(location) + nz(userName) + nz(status) + nz(reason));
         }
         ra.addFlashAttribute("message", r.message());
-        return "redirect:/finance/assets";
+        return "redirect:" + assetsUrl(page, fStatus, fq, fDept);
+    }
+
+    /** 물품대장의 보던 쪽·조건으로 돌아가는 주소 (값은 인코딩해 붙인다) */
+    static String assetsUrl(Integer page, String status, String q, String dept) {
+        org.springframework.web.util.UriComponentsBuilder b = org.springframework.web.util.UriComponentsBuilder.fromPath("/finance/assets");
+        if (dept != null && !dept.isBlank()) {
+            b.queryParam("dept", dept.trim());
+        }
+        if (status != null && !status.isBlank()) {
+            b.queryParam("status", status.trim());
+        }
+        if (q != null && !q.isBlank()) {
+            b.queryParam("q", q.trim());
+        }
+        if (page != null && page > 1) {
+            b.queryParam("page", page);
+        }
+        return b.encode().build().toUriString();
     }
 
     private PurchaseVO visible(long id, LoginUser me) {
