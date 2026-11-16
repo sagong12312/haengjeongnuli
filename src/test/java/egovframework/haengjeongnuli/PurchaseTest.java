@@ -87,6 +87,15 @@ class PurchaseTest {
         long budget = finance.create(BudgetVO.EXP, year, detail, "405-01", 10_000_000L, "비품", true, buyer.u()).id();
         finance.review(budget, true, null, planner.u());
 
+        // 전체 점검: 다른 부서 직원은 우리 부서의 예산 요청(심사 대기)을 볼 수 없다
+        long pending = finance.create(BudgetVO.EXP, year, detail, "201-01", 1_000_000L, "심사대기예산" + dept, true, buyer.u()).id();
+        String link = "/finance/budget/" + pending + "\"";
+        assertThat(body(other.mvc(), "/finance/review")).doesNotContain(link);
+        assertThat(body(buyer.mvc(), "/finance/review")).contains(link);
+        assertThat(body(planner.mvc(), "/finance/review")).contains(link);
+        other.mvc().perform(get("/finance/budget/" + pending)).andExpect(status().is4xxClientError());
+        finance.review(pending, false, "반려", planner.u());
+
         // 구매 건
         MvcResult made = buyer.mvc().perform(post("/finance/purchases").param("title", "민원실 의자 구매").param("purType", "물품")
                 .param("estimatedAmount", "3,000,000").param("budgetId", "" + budget)).andReturn();

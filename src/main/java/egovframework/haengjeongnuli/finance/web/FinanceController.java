@@ -327,7 +327,9 @@ public class FinanceController {
         int y = year(year);
         common(model, me, y);
         model.addAttribute("kind", k);
-        model.addAttribute("budgets", finance.budgets(k, y, null, BudgetVO.REQUESTED));
+        // 예산편성과·관리자(세입은 세입 담당)는 모든 부서, 그 밖에는 우리 부서 요청만
+        boolean all = BudgetVO.REV.equals(k) || finance.canSeeAllExp(me);
+        model.addAttribute("budgets", finance.budgets(k, y, all ? null : me.dept(), BudgetVO.REQUESTED));
         model.addAttribute("changeRequests", BudgetVO.EXP.equals(k) && finance.isBudgetStaff(me) ? changes.requested() : List.of());
         return "finance/review";
     }

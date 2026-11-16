@@ -82,8 +82,10 @@ public class RecordController {
 
     /** 이관 목록 CSV */
     @GetMapping("/records/report.csv")
-    public ResponseEntity<byte[]> reportCsv(@AuthenticationPrincipal LoginUser me, @RequestParam int year,
+    public ResponseEntity<byte[]> reportCsv(@AuthenticationPrincipal LoginUser me, @RequestParam(value = "year", required = false) Integer yearParam,
                                             @RequestParam(required = false) String dept) {
+        int now = Year.now().getValue();
+        int year = yearParam == null || yearParam < 2000 || yearParam > now ? now - 1 : yearParam;
         RecordService.Report rep = records.report(me, dept, year);
         audit.record(AuditAction.RECORD_TRANSFER_LIST, (rep.dept() == null ? "전체" : rep.dept()) + " " + year, rep.rows().size() + "건");
         String name = year + "_" + (rep.dept() == null ? "전체" : rep.dept()) + "_이관목록.csv";
