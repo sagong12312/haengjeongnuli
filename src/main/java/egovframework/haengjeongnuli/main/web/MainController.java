@@ -37,6 +37,9 @@ public class MainController {
         this.auditService = auditService;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.secapp.SecurityAppService securityApps;
+
     @GetMapping("/")
     public String main(@org.springframework.security.core.annotation.AuthenticationPrincipal
                        LoginUser loginUser, Model model) {
@@ -45,6 +48,7 @@ public class MainController {
         model.addAttribute("approvalWait", approvalService.count(ApprovalSearchVO.of("wait", loginUser)));
         model.addAttribute("notices", boardService.list(
                 egovframework.haengjeongnuli.board.service.BoardSearchVO.of("notice", null, 1, loginUser).size(3)));
+        model.addAttribute("securityPending", securityApps.pending(loginUser.getLoginId()));
         return "main/index";
     }
 
@@ -63,17 +67,24 @@ public class MainController {
         if (in) {
             if (attendanceService.checkIn(me, ip)) {
                 auditService.record(AuditAction.ATTEND_IN, me.getLoginId(), null);
+                ra.addFlashAttribute("message", attendMessage("출근"));
             } else {
-                ra.addFlashAttribute("message", "이미 출근 처리되어 있습니다.");
+                ra.addFlashAttribute("message", "이미 업무 중이어서 출근 처리하지 않았습니다.");
             }
         } else {
             if (attendanceService.checkOut(me, ip)) {
                 auditService.record(AuditAction.ATTEND_OUT, me.getLoginId(), null);
+                ra.addFlashAttribute("message", attendMessage("퇴근"));
             } else {
-                ra.addFlashAttribute("message", "출근 기록이 없어 퇴근 처리하지 않았습니다.");
+                ra.addFlashAttribute("message", "업무 중이 아니어서 퇴근 처리하지 않았습니다.");
             }
         }
         return "redirect:" + safeBack(referer);
+    }
+
+    /** 출근·퇴근 알림 문구 (같은 꼴): "09:02 출근 처리했습니다." */
+    static String attendMessage(String what) {
+        return java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")) + " " + what + " 처리했습니다.";
     }
 
     /** 같은 사이트 안의 경로로만 돌아간다 (외부 주소로의 리다이렉트 방지) */

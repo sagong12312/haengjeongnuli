@@ -49,6 +49,8 @@ public enum AuditAction {
     CONTRACT_SAVE("계약 등록·변경"),
     PURCHASE_SAVE("구매·견적·검수 기록"),
     ASSET_SAVE("물품대장 기록"),
+    SECURITY_APP_SAVE("보안 프로그램 안내 관리"),
+    SECURITY_APP_ACK("보안 프로그램 설치 확인"),
     FIN_EXPORT("재정 자료 내려받기"),
     CERT_EXPORT("증명 발급 일계표 내려받기"),
     CIVIL_ASSIGN("민원 배정"),

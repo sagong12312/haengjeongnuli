@@ -42,17 +42,19 @@ class AttendanceTest {
         MockMvc mvc = TestUsers.mvcAs(ctx, u);
         mvc.perform(get("/")).andExpect(content().string(containsString("현재 업무 중이 아닙니다")));
         mvc.perform(post("/attendance").param("action", "in").header("Referer", "http://localhost/hr"))
-                .andExpect(redirectedUrl("/hr"));
+                .andExpect(redirectedUrl("/hr"))
+                .andExpect(flash().attribute("message", org.hamcrest.Matchers.matchesPattern("\\d{2}:\\d{2} 출근 처리했습니다\\.")));
 
         // 세션이 다른 새 MockMvc(다시 로그인한 것과 같음)에서도 출근 상태가 유지된다
         TestUsers.mvcAs(ctx, u).perform(get("/")).andExpect(content().string(containsString("현재 업무 중입니다")));
 
         // 출근을 두 번 눌러도 퇴근으로 바뀌지 않는다
         mvc.perform(post("/attendance").param("action", "in"))
-                .andExpect(flash().attribute("message", "이미 출근 처리되어 있습니다."));
+                .andExpect(flash().attribute("message", "이미 업무 중이어서 출근 처리하지 않았습니다."));
         assertThat(attendanceService.isWorking(u.getLoginId())).isTrue();
 
-        mvc.perform(post("/attendance").param("action", "out"));
+        mvc.perform(post("/attendance").param("action", "out"))
+                .andExpect(flash().attribute("message", org.hamcrest.Matchers.matchesPattern("\\d{2}:\\d{2} 퇴근 처리했습니다\\.")));
         assertThat(attendanceService.isWorking(u.getLoginId())).isFalse();
         AttendanceVO today = attendanceService.today(u.getLoginId());
         assertThat(today.getInAt()).isNotNull();
@@ -76,7 +78,7 @@ class AttendanceTest {
     void 출근_없이_퇴근은_처리하지_않는다() throws Exception {
         LoginUser u = someone();
         TestUsers.mvcAs(ctx, u).perform(post("/attendance").param("action", "out"))
-                .andExpect(flash().attribute("message", "출근 기록이 없어 퇴근 처리하지 않았습니다."));
+                .andExpect(flash().attribute("message", "업무 중이 아니어서 퇴근 처리하지 않았습니다."));
         assertThat(attendanceService.today(u.getLoginId())).isNull();
     }
 

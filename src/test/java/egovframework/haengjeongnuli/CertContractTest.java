@@ -113,7 +113,7 @@ class CertContractTest {
     @Test
     void 메인_업무_메뉴와_상단_메뉴에_새_업무가_보인다() throws Exception {
         String main = body(TestUsers.mvcAs(ctx, TestUsers.counter()), "/");
-        assertThat(main).contains("id=\"work\"").contains("/civil/certs").contains("/finance/contracts").contains("#work");
+        assertThat(main).contains("id=\"work\"").contains("/civil/certs").contains("/finance/purchases").contains("#work");
         assertThat(body(TestUsers.mvcAs(ctx, TestUsers.general()), "/")).doesNotContain("/civil/certs");
         assertThat(body(TestUsers.mvcAs(ctx, TestUsers.general()), "/search?q=계약")).contains("계약대장");
     }
