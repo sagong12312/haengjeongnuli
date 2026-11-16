@@ -14,7 +14,8 @@ import egovframework.haengjeongnuli.cmm.org.OrgService;
 /**
  * 결재 문서·시행문을 한글(HWP) 파일로 만든다. 행정기관명, 수신, (경유), 제목, 본문(항목·표), 붙임, 발신명의,
  * 결재선 서명과 전결·대결 표시, 시행 번호·일자, 주소·연락처·공개 구분을 화면과 같은 순서로 넣는다.
- * 표는 칸을 공백으로 나눈 줄로 옮긴다 (한글에서 표로 바꾸어 쓸 수 있다).
+ * 본문의 '|' 줄은 한글 표로 넣는다 (|---| 줄 앞의 첫 줄은 제목 줄).
+ * 관인 이미지는 넣지 않는다: 고칠 수 있는 파일에 관인을 넣어 나누면 위조에 쓰일 수 있으므로, 관인이 찍힌 시행문은 인쇄 화면으로만 낸다.
  */
 @Service
 public class ApprovalHwpService {
@@ -41,9 +42,7 @@ public class ApprovalHwpService {
         }
         l.add(Line.bold("제목  " + d.getTitle()));
         l.add(Line.of("────────────────────────────────────────"));
-        for (String line : (d.getBody() == null ? "" : d.getBody()).replace("\r\n", "\n").split("\n", -1)) {
-            l.add(Line.of(tableRow(line)));
-        }
+        body(d.getBody(), l);
         if (!d.getFiles().isEmpty()) {
             l.add(Line.blank());
             for (int i = 0; i < d.getFiles().size(); i++) {
@@ -56,6 +55,8 @@ public class ApprovalHwpService {
         if (d.isExternal()) {
             l.add(Line.blank());
             l.add(Line.center(d.getSender() != null ? d.getSender() : org.get("senderTitle", "(발신명의)"), Style.TITLE));
+            // 관인 이미지는 고칠 수 있는 파일에 넣지 않는다 (위조 방지). 관인이 찍힌 시행문은 인쇄 화면에서 출력한다
+            l.add(Line.center("(관인은 시행문 인쇄 화면에서 찍습니다)", Style.NORMAL));
         }
         l.add(Line.blank());
         l.add(Line.of("────────────────────────────────────────"));
@@ -86,20 +87,31 @@ public class ApprovalHwpService {
         return maker.make(l);
     }
 
-    /** '| 구분 | 금액 |' 줄은 칸을 공백으로 나누고, '|---|' 줄은 가로줄로 */
-    static String tableRow(String line) {
-        String t = line.strip();
-        if (!t.startsWith("|")) {
-            return line;
+    /** 본문을 문단으로, 이어진 '|' 줄은 표 하나로 */
+    static void body(String text, List<Line> out) {
+        String[] lines = (text == null ? "" : text).replace("\r\n", "\n").split("\n", -1);
+        for (int i = 0; i < lines.length; i++) {
+            if (!lines[i].strip().startsWith("|")) {
+                out.add(Line.of(lines[i]));
+                continue;
+            }
+            List<List<String>> rows = new ArrayList<>();
+            while (i < lines.length && lines[i].strip().startsWith("|")) {
+                String t = lines[i].strip();
+                if (!t.matches("\\|?\\s*:?-{3,}:?\\s*(\\|\\s*:?-{3,}:?\\s*)*\\|?")) {
+                    String inner = t.substring(1, t.endsWith("|") && t.length() > 1 ? t.length() - 1 : t.length());
+                    List<String> cells = new ArrayList<>();
+                    for (String c : inner.split("\\|", -1)) {
+                        cells.add(c.strip());
+                    }
+                    rows.add(cells);
+                }
+                i++;
+            }
+            i--;
+            if (!rows.isEmpty()) {
+                out.add(Line.table(rows));
+            }
         }
-        if (t.matches("\\|?\\s*:?-{3,}.*")) {
-            return "  " + "─".repeat(30);
-        }
-        String inner = t.substring(1, t.endsWith("|") ? t.length() - 1 : t.length());
-        StringBuilder b = new StringBuilder("  ");
-        for (String c : inner.split("\\|", -1)) {
-            b.append(c.strip()).append("    ");
-        }
-        return b.toString().stripTrailing();
     }
 }

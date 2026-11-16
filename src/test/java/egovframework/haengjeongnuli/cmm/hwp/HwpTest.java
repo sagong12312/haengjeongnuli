@@ -40,6 +40,30 @@ class HwpTest {
     }
 
     @Test
+    void 표를_한글_표로_만들고_다시_읽어도_구조가_같다(@TempDir Path dir) throws Exception {
+        byte[] bytes = maker.make(List.of(HwpMaker.Line.of("1. 예산"),
+                HwpMaker.Line.table(List.of(List.of("구분", "금액", "비고"), List.of("인건비", "1,000", ""), List.of("운영비", "2,000", "추경"))),
+                HwpMaker.Line.right("끝.")));
+        Path f = dir.resolve("t.hwp");
+        Files.write(f, bytes);
+        HWPFile hwp = HWPReader.fromFile(f.toFile());
+        var paras = hwp.getBodyText().getSectionList().get(0).getParagraphs();
+        var table = (kr.dogfoot.hwplib.object.bodytext.control.ControlTable) paras[2].getControlList().get(0);
+        assertThat(table.getTable().getRowCount()).isEqualTo(3);
+        assertThat(table.getTable().getColumnCount()).isEqualTo(3);
+        assertThat(table.getRowList().get(2).getCellList().get(2).getParagraphList().getNormalString()).contains("추경");
+        assertThat(table.getRowList().get(0).getCellList().get(0).getListHeader().getProperty().isTitleCell()).isTrue();
+        assertThat(viewer.render(f, "t.hwp").html())
+                .contains("<table><tr><td><p>구분</p></td><td><p>금액</p></td><td><p>비고</p></td></tr>")
+                .contains("<td><p>운영비</p></td><td><p>2,000</p></td><td><p>추경</p></td>").contains("끝.");
+        // 한 번 더 저장해도 깨지지 않는다
+        java.io.ByteArrayOutputStream again = new java.io.ByteArrayOutputStream();
+        kr.dogfoot.hwplib.writer.HWPWriter.toStream(hwp, again);
+        Files.write(f, again.toByteArray());
+        assertThat(viewer.render(f, "t.hwp").html()).contains("<td><p>운영비</p></td>");
+    }
+
+    @Test
     void HWPX_본문과_표를_읽고_글자는_이스케이프한다(@TempDir Path dir) throws Exception {
         String section = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                 + "<hs:sec xmlns:hs=\"http://www.hancom.co.kr/hwpml/2011/section\" xmlns:hp=\"http://www.hancom.co.kr/hwpml/2011/paragraph\">"

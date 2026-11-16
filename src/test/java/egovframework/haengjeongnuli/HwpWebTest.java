@@ -109,7 +109,7 @@ class HwpWebTest {
         Path p = dir.resolve("doc.hwp");
         Files.write(p, doc);
         String text = viewer.render(p, "doc.hwp").html();
-        assertThat(text).contains("제목  " + title).contains("가. 기간: 12. 1.").contains("인건비    1,000")
+        assertThat(text).contains("제목  " + title).contains("가. 기간: 12. 1.").contains("<td><p>인건비</p></td><td><p>1,000</p></td>")
                 .contains("전결 과장").contains("수신  OO시 총무과, OO군 기획과");
 
         byte[] sihaeng = drafter.perform(get("/approval/" + id + "/hwp").param("to", "1")).andReturn().getResponse().getContentAsByteArray();
