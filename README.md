@@ -16,7 +16,7 @@
 
 ### 전자민원과 함께 켜기 (Windows)
 
-행정누리 폴더 옆에 `haengjeongnuli-e-Petition`을 받아 두었다면, 행정누리 폴더의 PowerShell에서 한 줄로 둘 다 켭니다.
+탐색기에서 `scripts\start-all.bat`를 더블클릭하거나, 행정누리 폴더의 PowerShell에서 한 줄로 둘 다 켭니다.
 
 ```bash
 powershell -ExecutionPolicy Bypass -File .\scripts\start-all.ps1
@@ -24,7 +24,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-all.ps1
 
 - 창이 두 개 새로 뜹니다. 행정누리는 이 PC에서만(`http://localhost:8080`), 전자민원은 같은 공유기의 휴대폰·노트북에서도(`http://이PC주소:3000`) 열립니다. 열 주소를 화면에 알려 줍니다.
 - 두 프로그램이 같이 쓰는 비밀값은 `data\epetition-secret.txt`에 처음 한 번 무작위로 만들어집니다(저장소에 올라가지 않음).
-- 전자민원 폴더가 다른 곳이면 `-EPetitionDir 'C:\경로\haengjeongnuli-e-Petition'`을 붙입니다.
+- 전자민원 폴더는 행정누리 폴더 옆·안, 내려받기·바탕화면에서 `haengjeongnuli-e-Petition`으로 시작하는 폴더(zip으로 받아 이름 뒤에 `-main` 등이 붙은 것 포함)를 찾아 씁니다. 찾은 두 폴더를 화면 첫 줄에 보여 줍니다.
+- 그래도 못 찾으면 `-EPetitionDir C:\경로\haengjeongnuli-e-Petition`을 붙입니다.
+- 지울 때 `data` 폴더를 통째로 지우면 비밀값도 새로 만들어지는데, 두 프로그램을 이 스크립트로 같이 켜면 문제없습니다.
 
 로컬 DB를 처음 상태로 지우려면 서버를 끄고 프로젝트 폴더의 `data` 폴더(와 올린 파일 `uploads` 폴더)를 지운 뒤 다시 실행합니다.
 

@@ -2,6 +2,7 @@
 #
 # 쓰는 법 (PowerShell 에서 행정누리 폴더로 가서):
 #   powershell -ExecutionPolicy Bypass -File .\scripts\start-all.ps1
+#   (또는 탐색기에서 scripts\start-all.bat 를 더블클릭)
 #
 # - 행정누리는 이 PC에서만 (http://localhost:8080)
 # - 전자민원은 같은 공유기에 붙은 휴대폰·노트북에서도 (http://이PC주소:3000)
@@ -22,16 +23,33 @@ function Fail([string]$message) {
     Write-Host ''
     Write-Host $message -ForegroundColor Red
     Write-Host ''
+    Write-Host '위 빨간 글을 그대로 알려 주시면 고쳐 드립니다.'
     exit 1
 }
 
 $nuriDir = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if ($EPetitionDir -eq '') {
-    $EPetitionDir = Join-Path (Split-Path $nuriDir -Parent) 'haengjeongnuli-e-Petition'
+    # 행정누리 폴더 옆, 행정누리 폴더 안, 내려받기(Downloads) 폴더에서 찾는다.
+    # zip 으로 받으면 폴더 이름 뒤에 -main, -claude-... 가 붙고, 압축을 풀면 한 단계 더 들어가 있기도 해서 둘 다 본다.
+    $places = @((Split-Path $nuriDir -Parent), $nuriDir, (Join-Path $env:USERPROFILE 'Downloads'), (Join-Path $env:USERPROFILE 'Desktop'))
+    $found = @()
+    foreach ($place in $places) {
+        if (-not (Test-Path $place)) { continue }
+        foreach ($d in @(Get-ChildItem -Path $place -Directory -Filter 'haengjeongnuli-e-Petition*' -ErrorAction SilentlyContinue)) {
+            if (Test-Path (Join-Path $d.FullName 'package.json')) { $found += $d.FullName }
+            foreach ($inner in @(Get-ChildItem -Path $d.FullName -Directory -Filter 'haengjeongnuli-e-Petition*' -ErrorAction SilentlyContinue)) {
+                if (Test-Path (Join-Path $inner.FullName 'package.json')) { $found += $inner.FullName }
+            }
+        }
+    }
+    if ($found.Count -gt 0) { $EPetitionDir = $found[0] }
+    else { $EPetitionDir = Join-Path (Split-Path $nuriDir -Parent) 'haengjeongnuli-e-Petition' }
 }
 if (-not (Test-Path (Join-Path $EPetitionDir 'package.json'))) {
-    Fail "전자민원 폴더를 찾을 수 없습니다: $EPetitionDir`n다른 곳에 받았다면 -EPetitionDir 'C:\경로\haengjeongnuli-e-Petition' 을 붙여 실행하세요."
+    Fail "전자민원 폴더를 찾을 수 없습니다: $EPetitionDir`n전자민원을 받은 폴더(package.json 이 들어 있는 폴더)를 직접 알려 주세요. 예:`n  .\scripts\start-all.bat -EPetitionDir C:\haengjeongnuli-e-Petition"
 }
+Write-Host "행정누리 폴더 : $nuriDir"
+Write-Host "전자민원 폴더 : $EPetitionDir"
 $EPetitionDir = (Resolve-Path $EPetitionDir).Path
 
 if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
