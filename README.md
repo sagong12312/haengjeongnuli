@@ -12,7 +12,7 @@
 ./gradlew bootRun
 ```
 
-브라우저에서 http://localhost:8080 을 엽니다. Windows에서는 `gradlew.bat bootRun`. 서버 창의 한글이 `泥?愿由ъ옄`처럼 깨져 보이면 먼저 `chcp 65001`을 실행하세요(`scripts/start-all.ps1`로 켜면 자동으로 맞춥니다). `bootRun`은 프로필을 정하지 않으면 local(H2 파일 DB)로 실행합니다.
+브라우저에서 http://localhost:8080 을 엽니다. Windows에서는 `gradlew.bat bootRun`. 서버 창의 한글이 `泥?愿由ъ옄`처럼 깨져 보이면 PowerShell에서는 먼저 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`, 명령 프롬프트(cmd)에서는 `chcp 65001`을 실행하세요(`scripts/start-all.ps1`로 켜면 자동으로 맞춥니다). `bootRun`은 프로필을 정하지 않으면 local(H2 파일 DB)로 실행합니다.
 
 ### 전자민원과 함께 켜기 (Windows)
 
