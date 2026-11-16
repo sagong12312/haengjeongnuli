@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('민방위')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › 민방위</span><h1>민방위 대원 명부</h1></div>
+  <p class="hint" th:text="'개인정보가 있는 화면이라 담당 부서만 열고, 볼 때마다 기록이 남습니다. 주민등록번호는 받지 않습니다. 편성 대상은 20세가 되는 해부터 ' + ${maxAge} + '세가 되는 해까지이며, 편성을 해제하면 ' + ${keepDays} + '일 뒤 명부에서 파기됩니다.'">안내</p>
+
+  <section class="panel" th:unless="${#lists.isEmpty(overAge)}" style="border:2px solid #E8A33D;">
+    <h2 th:text="'올해 편성 나이를 넘은 대원 ' + ${#lists.size(overAge)} + '명 (해제 대상)'">해제 대상</h2>
+    <ul style="margin:0; padding-left:22px;"><li th:each="m : ${overAge}"><a th:href="@{/civil-defense/{id}(id=${m.memberId})}" th:text="${m.name} + ' (' + ${m.birthDate.year} + '년생, ' + ${m.unitName} + ')'">대원</a></li></ul>
+  </section>
+
+  <form th:action="@{/civil-defense}" method="get" class="search-bar">
+    <label for="ca" class="sr-only">구분</label>
+    <select id="ca" name="active" class="select"><option value="true" th:selected="${active}">편성</option><option value="false" th:selected="${!active}">해제</option></select>
+    <label for="cu" class="sr-only">민방위대</label>
+    <select id="cu" name="unit" class="select"><option value="">전체 민방위대</option><option th:each="u : ${units}" th:value="${u}" th:text="${u}" th:selected="${u == unit}">대</option></select>
+    <label for="cq" class="sr-only">이름</label><input id="cq" name="q" class="input" th:value="${q}" placeholder="이름" maxlength="50">
+    <button type="submit" class="btn btn-outline">보기</button>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="${active} ? '편성 대원' : '해제 대원 (파기 예정)'">대원</h2><span class="muted" th:text="${#lists.size(rows)} + '명'">0명</span></div>
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">대원이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list">
+      <thead><tr><th scope="col">이름</th><th scope="col">출생 연도</th><th scope="col">민방위대</th><th scope="col">편성일</th><th scope="col" th:unless="${active}">해제·파기 예정</th></tr></thead>
+      <tbody><tr th:each="m : ${rows}">
+        <td><a th:href="@{/civil-defense/{id}(id=${m.memberId})}" th:text="${m.name}">이름</a></td>
+        <td th:text="${m.birthDate.year} + '년'">연도</td><td th:text="${m.unitName}">대</td><td th:text="${m.joinedOn}">날짜</td>
+        <td th:unless="${active}" th:text="${m.releasedOn} + ' ' + ${m.releaseReason} + ' / 파기 ' + ${m.purgeAfter}">해제</td>
+      </tr></tbody>
+    </table></div>
+    <form th:unless="${active}" th:action="@{/civil-defense/purge}" method="post" style="padding:12px 22px;" data-confirm="보유기간이 지난 해제 대원 정보를 지금 파기할까요? 되돌릴 수 없습니다.">
+      <button type="submit" class="btn btn-plain btn-sm">보유기간 지난 정보 지금 파기 (매일 새벽 자동)</button></form>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>올해 교육·훈련</h2></div>
+    <p th:if="${#lists.isEmpty(trainings)}" class="hint" style="padding:18px 22px;">교육이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(trainings)}"><table class="list">
+      <thead><tr><th scope="col">날짜</th><th scope="col" style="text-align:left">교육</th><th scope="col">장소</th><th scope="col">대상·참석</th></tr></thead>
+      <tbody><tr th:each="t : ${trainings}">
+        <td th:text="${t.heldOn}">날짜</td><td class="left"><a th:href="@{/civil-defense/trainings/{id}(id=${t.trainingId})}" th:text="${t.title}">교육</a></td>
+        <td th:text="${t.place}">장소</td><td th:text="${t.invited} + '명 중 ' + ${t.attended} + '명 참석'">참석</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px;">
+    <form class="panel" th:action="@{/civil-defense}" method="post" style="gap:12px;">
+      <h2>대원 편성</h2>
+      <div class="field"><label for="mn">이름 <span class="req">*</span></label><input id="mn" name="name" class="input" required maxlength="100"></div>
+      <div class="field"><label for="mb">생년월일 <span class="req">*</span></label><input id="mb" name="birthDate" type="date" class="input" required></div>
+      <div class="field"><label for="ma">주소 <span class="req">*</span></label><input id="ma" name="address" class="input" required maxlength="300"></div>
+      <div class="field"><label for="mp">연락처</label><input id="mp" name="phone" class="input" maxlength="20" placeholder="교육 통지용"></div>
+      <div class="field"><label for="mu">민방위대 <span class="req">*</span></label><input id="mu" name="unitName" class="input" required maxlength="100" placeholder="예: ○○동 지역대"></div>
+      <div class="field"><label for="mj">편성일 <span class="req">*</span></label><input id="mj" name="joinedOn" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">편성</button></div>
+    </form>
+    <form class="panel" th:action="@{/civil-defense/trainings}" method="post" style="gap:12px;">
+      <h2>교육·훈련 만들기</h2>
+      <div class="field"><label for="tt">교육명 <span class="req">*</span></label><input id="tt" name="title" class="input" required maxlength="200" placeholder="예: 민방위 기본교육 (1~4년차)"></div>
+      <div class="field"><label for="td">날짜 <span class="req">*</span></label><input id="td" name="heldOn" type="date" class="input" required></div>
+      <div class="field"><label for="tp">장소 <span class="req">*</span></label><input id="tp" name="place" class="input" required maxlength="200"></div>
+      <div class="field"><label for="th">시간 <span class="req">*</span></label><input id="th" name="hours" type="number" class="input" min="1" max="99" value="4" required></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">만들기</button></div>
+    </form>
+  </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

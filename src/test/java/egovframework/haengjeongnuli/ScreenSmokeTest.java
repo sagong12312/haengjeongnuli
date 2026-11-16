@@ -28,7 +28,7 @@ class ScreenSmokeTest {
             "/hr", "/hr/duty", "/hr/duty/new", "/board", "/board/write", "/board/upload", "/records", "/records/new",
             "/records/report", "/search?q=민원", "/stats", "/notifications", "/mypage/password", "/security-apps",
             "/admin/users", "/admin/holidays", "/admin/audit", "/admin/audit/review", "/admin/depts", "/admin/org",
-            "/admin/files", "/admin/blocks", "/admin/security-apps", "/forms", "/forms?source=staff", "/admin/forms", "/hygiene/sanctions", "/hygiene/sanctions?law=공중위생관리법", "/property", "/property?all=true&cls=행정재산", "/vehicles", "/vehicles?month=2026-01");
+            "/admin/files", "/admin/blocks", "/admin/security-apps", "/forms", "/forms?source=staff", "/admin/forms", "/hygiene/sanctions", "/hygiene/sanctions?law=공중위생관리법", "/property", "/property?all=true&cls=행정재산", "/vehicles", "/vehicles?month=2026-01", "/civil-defense", "/civil-defense?active=false", "/foreign", "/foreign?active=false");
 
     static final List<String> CSV = List.of("/finance/budgets.csv", "/finance/contracts.csv", "/finance/purchases.csv",
             "/finance/assets.csv", "/civil/certs.csv", "/records/report.csv", "/stats/civil.csv", "/hygiene/sanctions.csv", "/property.csv");

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('민방위 대원')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/civil-defense}">민방위</a> › 대원</span><h1 th:text="${m.name}">이름</h1></div>
+  <section class="panel">
+    <dl class="doc-info">
+      <div><dt>생년월일</dt><dd th:text="${m.birthDate}">날짜</dd></div>
+      <div><dt>주소</dt><dd th:text="${m.address}">주소</dd></div>
+      <div><dt>연락처</dt><dd th:text="${m.phone} ?: '—'">연락처</dd></div>
+      <div><dt>민방위대</dt><dd th:text="${m.unitName}">대</dd></div>
+      <div><dt>편성일</dt><dd th:text="${m.joinedOn}">날짜</dd></div>
+      <div><dt>상태</dt><dd th:text="${m.active} ? '편성' : '해제 ' + ${m.releasedOn} + ' (' + ${m.releaseReason} + '), ' + ${m.purgeAfter} + ' 이후 파기'">상태</dd></div>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>교육 이력</h2>
+    <p th:if="${#lists.isEmpty(history)}" class="hint" style="margin:0;">교육 기록이 없습니다.</p>
+    <ul style="margin:0; padding-left:22px;"><li th:each="h : ${history}" th:text="${h['heldOn']} + ' ' + ${h['title']} + ' — ' + ${h['result']}">이력</li></ul>
+  </section>
+  <form th:if="${m.active}" class="panel" th:action="@{/civil-defense/{id}/update(id=${m.memberId})}" method="post" style="gap:12px;">
+    <h2>주소·연락처·소속 고치기</h2>
+    <div class="field"><label for="ua">주소</label><input id="ua" name="address" class="input" required maxlength="300" th:value="${m.address}"></div>
+    <div class="field"><label for="up">연락처</label><input id="up" name="phone" class="input" maxlength="20" th:value="${m.phone}"></div>
+    <div class="field"><label for="uu">민방위대</label><input id="uu" name="unitName" class="input" required maxlength="100" th:value="${m.unitName}"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">고치기</button></div>
+  </form>
+  <form th:if="${m.active}" class="panel" th:action="@{/civil-defense/{id}/release(id=${m.memberId})}" method="post" style="gap:12px;"
+        th:attr="data-confirm='편성을 해제할까요? ' + ${keepDays} + '일 뒤 명부에서 파기됩니다.'">
+    <h2>편성 해제</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="ro">해제일</label><input id="ro" name="on" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="rr">사유</label><select id="rr" name="reason" class="select"><option th:each="r : ${reasons}" th:value="${r}" th:text="${r}">사유</option></select></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">해제</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

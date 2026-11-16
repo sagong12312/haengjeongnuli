@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('민방위 교육')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/civil-defense}">민방위</a> › 교육</span><h1 th:text="${t.title}">교육</h1></div>
+  <p class="hint" th:text="${t.heldOn} + ' · ' + ${t.place} + ' · ' + ${t.hours} + '시간'">일시</p>
+  <form class="panel" th:action="@{/civil-defense/trainings/{id}/invite(id=${t.trainingId})}" method="post" style="flex-direction:row; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+    <div class="field"><label for="iu">대상 민방위대</label><select id="iu" name="unit" class="select"><option value="">편성 대원 전체</option>
+      <option th:each="u : ${units}" th:value="${u}" th:text="${u}">대</option></select></div>
+    <button type="submit" class="btn btn-primary">대상자 넣고 통지 기록</button>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>대상자</h2><span class="muted" th:text="${#lists.size(attends)} + '명'">0명</span></div>
+    <p th:if="${#lists.isEmpty(attends)}" class="hint" style="padding:18px 22px;">대상자가 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(attends)}"><table class="list">
+      <thead><tr><th scope="col">이름</th><th scope="col">민방위대</th><th scope="col">연락처</th><th scope="col">통지일</th><th scope="col">결과</th></tr></thead>
+      <tbody><tr th:each="a : ${attends}">
+        <td th:text="${a.name}">이름</td><td th:text="${a.unitName}">대</td><td th:text="${a.phone} ?: '—'">연락처</td><td th:text="${a.notifiedOn}">날짜</td>
+        <td><form th:action="@{/civil-defense/trainings/{id}/result(id=${t.trainingId})}" method="post" style="display:flex; gap:4px; justify-content:center; margin:0;">
+          <input type="hidden" name="memberId" th:value="${a.memberId}">
+          <label class="sr-only" th:for="'r' + ${a.memberId}">결과</label>
+          <select th:id="'r' + ${a.memberId}" name="result" class="select" style="height:34px; font-size:14px; width:80px;">
+            <option th:each="r : ${results}" th:value="${r}" th:text="${r}" th:selected="${r == a.result}">결과</option></select>
+          <label class="sr-only" th:for="'n' + ${a.memberId}">비고</label>
+          <input th:id="'n' + ${a.memberId}" name="note" class="input" maxlength="200" th:value="${a.note}" placeholder="면제 사유" style="height:34px; font-size:14px; width:110px;">
+          <button type="submit" class="btn btn-plain btn-sm">저장</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

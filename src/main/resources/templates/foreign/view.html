@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('외국인주민')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/foreign}">외국인주민</a> › 지원 대상</span><h1 th:text="${r.name}">이름</h1></div>
+  <section class="panel">
+    <dl class="doc-info">
+      <div><dt>국적</dt><dd th:text="${r.nationality}">국적</dd></div>
+      <div><dt>생년월일</dt><dd th:text="${r.birthDate}">날짜</dd></div>
+      <div><dt>사용 언어</dt><dd th:text="${r.language} ?: '—'">언어</dd></div>
+      <div><dt>체류자격</dt><dd th:text="${r.stayStatus} ?: '—'">자격</dd></div>
+      <div><dt>연락처</dt><dd th:text="${r.phone} ?: '—'">연락처</dd></div>
+      <div><dt>주소</dt><dd th:text="${r.address} ?: '—'">주소</dd></div>
+      <div><dt>동의일</dt><dd th:text="${r.consentOn}">날짜</dd></div>
+      <div><dt>상태</dt><dd th:text="${r.active} ? '지원 중' : '종료 ' + ${r.endedOn} + ' (' + ${r.endReason} + '), ' + ${r.purgeAfter} + ' 이후 파기'">상태</dd></div>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>지원 기록</h2>
+    <p th:if="${#lists.isEmpty(supports)}" class="hint" style="margin:0;">기록이 없습니다.</p>
+    <ul style="margin:0; padding-left:22px;"><li th:each="s : ${supports}" th:text="${s.supportOn} + ' [' + ${s.kind} + '] ' + ${s.content} + ' (' + ${s.staffName} + ')'">기록</li></ul>
+  </section>
+  <form th:if="${r.active}" class="panel" th:action="@{/foreign/{id}/support(id=${r.resId})}" method="post" style="gap:12px;">
+    <h2>지원 기록하기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="so">날짜</label><input id="so" name="on" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="sk">종류</label><select id="sk" name="kind" class="select"><option th:each="k : ${kinds}" th:value="${k}" th:text="${k}">종류</option></select></div>
+    </div>
+    <div class="field"><label for="sc">내용</label><textarea id="sc" name="content" class="textarea" rows="2" required maxlength="1000"></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">기록</button></div>
+  </form>
+  <form th:if="${r.active}" class="panel" th:action="@{/foreign/{id}/end(id=${r.resId})}" method="post" style="gap:12px;"
+        data-confirm="지원을 종료할까요? 보유기간이 지나면(동의 철회는 바로) 파기됩니다.">
+    <h2>지원 종료</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="eo">종료일</label><input id="eo" name="on" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="er">사유</label><input id="er" name="reason" class="input" required maxlength="200" placeholder="지원 완료·전출·동의 철회"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">종료</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
