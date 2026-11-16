@@ -57,6 +57,7 @@ public class CivilServiceImpl implements CivilService {
         vo.setHomePhone(form.isNoMobile() && !form.isNoHome() ? blankToNull(form.getHomePhone()) : null);
         vo.setEmail(blankToNull(form.getEmail()));
         vo.setAddress(blankToNull(form.getAddress()));
+        vo.setFaxNo(blankToNull(form.getFax()) == null ? null : form.getFax().trim());
         vo.setNotifyMethod(form.getNotify());
         vo.setTitle(form.getTitle().trim());
         vo.setContent(form.getContent());

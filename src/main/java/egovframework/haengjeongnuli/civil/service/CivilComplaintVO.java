@@ -37,6 +37,14 @@ public class CivilComplaintVO {
     private String resultText;
     private String rejectRemedy;
     private String resultNotify;
+    /** 민원인 팩스 번호 */
+    private String faxNo;
+    /** 결과를 팩스로 보낸 번호 */
+    private String resultFaxNo;
+    public String getFaxNo() { return faxNo; }
+    public void setFaxNo(String faxNo) { this.faxNo = faxNo; }
+    public String getResultFaxNo() { return resultFaxNo; }
+    public void setResultFaxNo(String resultFaxNo) { this.resultFaxNo = resultFaxNo; }
     private String completedBy;
 
     /** 처리기한이 기준일 이내로 남았고 아직 끝나지 않았는지 (목록 강조용, 서비스에서 채움) */

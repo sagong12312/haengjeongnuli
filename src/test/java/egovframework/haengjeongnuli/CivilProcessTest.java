@@ -130,4 +130,37 @@ class CivilProcessTest {
         // 기타민원은 전화로도 알릴 수 있다
         assertThat(process.complete(other, egovframework.haengjeongnuli.civil.service.ResultType.ANSWER, "안내", null, "전화", counter.u()).ok()).isTrue();
     }
+
+    @Test
+    void 팩스로_결과를_받기_원하면_팩스_번호를_받고_보낸_번호를_남긴다() throws Exception {
+        Staff counter = staff("창구", "민원봉사과", LoginUser.Role.COUNTER);
+        java.util.function.Function<String, org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder> intake = fax -> {
+            var b = post("/civil/new").param("kind", "SUGGESTION").param("route", "팩스").param("name", "김팩스")
+                    .param("mobile", "010-2222-3333").param("notify", "팩스").param("title", "팩스 민원 " + UUID.randomUUID())
+                    .param("content", "내용").param("privacyConsent", "true");
+            return fax == null ? b : b.param("fax", fax);
+        };
+        // 팩스를 고르고 번호가 없거나 꼴이 틀리면 접수되지 않는다
+        String noFax = counter.mvc().perform(intake.apply(null)).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(noFax).contains("팩스 번호를 지역번호부터");
+        String bad = counter.mvc().perform(intake.apply("123")).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(bad).contains("팩스 번호를 지역번호부터");
+        String url = counter.mvc().perform(intake.apply("02-123-4567")).andReturn().getResponse().getRedirectedUrl();
+        long id = Long.parseLong(url.substring("/civil/".length()));
+        assertThat(process.get(id).getFaxNo()).isEqualTo("02-123-4567");
+        // 민원인이 팩스를 원했으므로 팩스로 알릴 수 있고, 번호를 비우면 접수 때 번호로 보낸다
+        assertThat(process.complete(id, egovframework.haengjeongnuli.civil.service.ResultType.ANSWER, "답변", null, "팩스", "02-12", counter.u()).message())
+                .contains("보낼 팩스 번호");
+        assertThat(process.complete(id, egovframework.haengjeongnuli.civil.service.ResultType.ANSWER, "답변", null, "팩스", "", counter.u()).ok()).isTrue();
+        CivilComplaintVO c = process.get(id);
+        assertThat(c.getResultFaxNo()).isEqualTo("02-123-4567");
+        String view = counter.mvc().perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/civil/" + id))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(view).contains("팩스 (02-123-4567)");
+
+        // 팩스를 원하지 않은 건의는 팩스로 알릴 수 없다 (문서가 원칙)
+        long other = receive(counter, "SUGGESTION", "", "우편");
+        assertThat(process.complete(other, egovframework.haengjeongnuli.civil.service.ResultType.ANSWER, "답변", null, "팩스", "02-123-4567", counter.u()).message())
+                .contains("문서로 알리는 것이 원칙");
+    }
 }

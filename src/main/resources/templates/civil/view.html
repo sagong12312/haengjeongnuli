@@ -45,6 +45,7 @@
       <div th:if="${c.email}"><dt>이메일</dt><dd th:text="${c.email}">이메일</dd></div>
       <div th:if="${c.address}"><dt>주소</dt><dd th:text="${c.address}">주소</dd></div>
       <div><dt>받기 원하는 통지</dt><dd th:text="${c.notifyMethod}">문자</dd></div>
+      <div th:if="${c.faxNo}"><dt>팩스</dt><dd th:text="${c.faxNo}">팩스</dd></div>
     </dl>
   </section>
 
@@ -73,7 +74,7 @@
     <dl class="kv">
       <div><dt>결과</dt><dd th:text="${T(egovframework.haengjeongnuli.civil.service.ResultType).valueOf(c.resultType).label}">수용</dd></div>
       <div><dt>완료</dt><dd th:text="${#temporals.format(c.completedAt, 'yyyy-MM-dd HH:mm')} + (${c.late} ? ' (처리기한 지남)' : ' (기한 내)')">완료</dd></div>
-      <div><dt>결과 통지</dt><dd th:text="${c.resultNotify}">문서</dd></div>
+      <div><dt>결과 통지</dt><dd th:text="${c.resultNotify} + (${c.resultFaxNo} ? ' (' + ${c.resultFaxNo} + ')' : '')">문서</dd></div>
     </dl>
     <div style="white-space:pre-wrap;" th:text="${c.resultText}">결과</div>
     <div th:if="${c.rejectRemedy}" style="background:var(--soft); border-radius:10px; padding:12px 16px;">
@@ -109,12 +110,14 @@
           <select id="rnotify" name="notifyMethod" class="select" required>
             <option th:each="m : ${notifyMethods}" th:value="${m}" th:text="${m}">문서</option>
           </select></div>
+        <div class="field"><label for="rfax">보낼 팩스 번호 <span class="muted" style="font-size:16px;">(팩스로 알릴 때)</span></label>
+          <input id="rfax" name="faxNo" class="input" type="tel" maxlength="20" th:value="${c.faxNo}" placeholder="예: 02-123-4567"></div>
       </div>
       <div class="field"><label for="rtext">처리 결과 <span class="req">*</span></label>
         <textarea id="rtext" name="result" class="textarea" rows="6" required></textarea></div>
       <div class="field" id="remedy-field"><label for="rremedy">거부 이유와 구제절차 <span class="muted" style="font-size:16px;">(불수용·일부 수용이면 꼭 적습니다)</span></label>
         <textarea id="rremedy" name="remedy" class="textarea" rows="3" maxlength="1300" placeholder="예: 거부 이유 … / 이 처분에 이의가 있으면 처분이 있음을 안 날부터 90일 이내에 행정심판 또는 행정소송을 제기할 수 있습니다."></textarea></div>
-      <p class="hint" style="margin:0;">처리 결과는 문서로 알리는 것이 원칙입니다. 기타민원이거나 민원인이 요청한 경우에는 문자·전화·전자우편 등으로 알릴 수 있습니다 (민원처리법 제27조).</p>
+      <p class="hint" style="margin:0;">처리 결과는 문서로 알리는 것이 원칙입니다. 기타민원이거나 민원인이 요청한 경우에는 문자·전화·팩스·전자우편 등으로 알릴 수 있습니다 (민원처리법 제27조). 팩스로 보내면 보낸 번호가 처리 이력에 남습니다.</p>
       <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">처리 완료</button></div>
     </form>
 

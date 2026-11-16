@@ -260,9 +260,10 @@ public class CivilController {
                            @org.springframework.web.bind.annotation.RequestParam(required = false) String result,
                            @org.springframework.web.bind.annotation.RequestParam(required = false) String remedy,
                            @org.springframework.web.bind.annotation.RequestParam(required = false) String notifyMethod,
+                           @org.springframework.web.bind.annotation.RequestParam(required = false) String faxNo,
                            RedirectAttributes ra) {
         egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
-        egovframework.haengjeongnuli.civil.service.CivilProcessService.Result r = process.complete(id, type, result, remedy, notifyMethod, me);
+        egovframework.haengjeongnuli.civil.service.CivilProcessService.Result r = process.complete(id, type, result, remedy, notifyMethod, faxNo, me);
         if (r.ok()) {
             auditService.record(AuditAction.CIVIL_DONE, "민원 " + c.getReceiptNo(), type == null ? null : type.getLabel());
         }

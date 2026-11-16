@@ -11,11 +11,11 @@
         INSERT INTO CIVIL_COMPLAINT (
             COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE,
             APPLICANT_NAME, MOBILE, HOME_PHONE, EMAIL, ADDRESS, NOTIFY_METHOD,
-            TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, REGISTER_ID, ASSIGNEE_ID, PERIOD_DAYS, EXTEND_COUNT
+            TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, REGISTER_ID, ASSIGNEE_ID, PERIOD_DAYS, EXTEND_COUNT, FAX_NO
         ) VALUES (
             #{complaintId}, #{receiptNo}, #{kind}, #{lawInterpretYn}, #{legalAffair}, #{route},
             #{applicantName}, #{mobile}, #{homePhone}, #{email}, #{address}, #{notifyMethod},
-            #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{deadlineAt, jdbcType=TIMESTAMP}, #{registerId}, #{assigneeId}, #{periodDays, jdbcType=NUMERIC}, 0
+            #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{deadlineAt, jdbcType=TIMESTAMP}, #{registerId}, #{assigneeId}, #{periodDays, jdbcType=NUMERIC}, 0, #{faxNo}
         )
     </insert>
 
@@ -62,7 +62,7 @@
         SELECT COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE, APPLICANT_NAME, MOBILE, HOME_PHONE,
                EMAIL, ADDRESS, NOTIFY_METHOD, TITLE, CONTENT, DEPT, ASSIGNEE, ASSIGNEE_ID, STATUS, RECEIVED_AT,
                DEADLINE, DEADLINE_AT, COMPLETED_AT, REGISTER_ID, PERIOD_DAYS, NVL(EXTEND_COUNT, 0) AS EXTEND_COUNT,
-               RESULT_TYPE, RESULT_TEXT, REJECT_REMEDY, RESULT_NOTIFY, COMPLETED_BY
+               RESULT_TYPE, RESULT_TEXT, REJECT_REMEDY, RESULT_NOTIFY, COMPLETED_BY, FAX_NO, RESULT_FAX_NO
           FROM CIVIL_COMPLAINT WHERE COMPLAINT_ID = #{id}
     </select>
 
@@ -81,7 +81,8 @@
     <update id="complete" parameterType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
         UPDATE CIVIL_COMPLAINT
            SET STATUS = 'DONE', COMPLETED_AT = #{completedAt}, COMPLETED_BY = #{completedBy}, RESULT_TYPE = #{resultType},
-               RESULT_TEXT = #{resultText, jdbcType=CLOB}, REJECT_REMEDY = #{rejectRemedy}, RESULT_NOTIFY = #{resultNotify}
+               RESULT_TEXT = #{resultText, jdbcType=CLOB}, REJECT_REMEDY = #{rejectRemedy}, RESULT_NOTIFY = #{resultNotify},
+               RESULT_FAX_NO = #{resultFaxNo}
          WHERE COMPLAINT_ID = #{complaintId} AND STATUS &lt;&gt; 'DONE'
     </update>
 

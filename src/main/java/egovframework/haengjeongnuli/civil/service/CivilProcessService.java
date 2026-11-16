@@ -22,7 +22,7 @@ import egovframework.haengjeongnuli.user.service.UserService;
 public class CivilProcessService {
 
     /** 처리 결과 통지 방법. 문서가 원칙이고, 그 밖의 방법은 기타민원이거나 민원인이 요청한 경우 (법 제27조 제1항) */
-    public static final List<String> NOTIFY_METHODS = List.of("문서(우편·교부)", "전자문서", "문자", "전화", "전자우편", "구술");
+    public static final List<String> NOTIFY_METHODS = List.of("문서(우편·교부)", "전자문서", "문자", "팩스", "전화", "전자우편", "구술");
     private static final Set<String> DOCUMENT_METHODS = Set.of("문서(우편·교부)", "전자문서");
     private static final DateTimeFormatter AT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
@@ -177,6 +177,12 @@ public class CivilProcessService {
     /** 처리 완료와 결과 통지 (법 제27조) */
     @Transactional
     public Result complete(long id, ResultType type, String result, String remedy, String notifyMethod, LoginUser by) {
+        return complete(id, type, result, remedy, notifyMethod, null, by);
+    }
+
+    /** 처리 완료와 결과 통지. 팩스로 알리면 보낸 번호를 남긴다 (비우면 접수 때 받은 번호) */
+    @Transactional
+    public Result complete(long id, ResultType type, String result, String remedy, String notifyMethod, String faxNo, LoginUser by) {
         CivilComplaintVO c = get(id);
         if (c == null || !canProcess(c, by)) {
             return new Result(false, "이 민원을 처리할 권한이 없습니다.");
@@ -206,6 +212,14 @@ public class CivilProcessService {
             return new Result(false, "처리 결과는 문서로 알리는 것이 원칙입니다. 기타민원이거나 민원인이 요청한 경우에만 "
                     + notifyMethod + "(으)로 알릴 수 있습니다 (민원처리법 제27조 제1항).");
         }
+        String fax = null;
+        if ("팩스".equals(notifyMethod)) {
+            fax = faxNo == null || faxNo.isBlank() ? c.getFaxNo() : faxNo.trim();
+            if (!CivilForm.isFaxNumber(fax)) {
+                return new Result(false, "팩스로 알리려면 보낼 팩스 번호를 지역번호부터 입력하세요 (예: 02-123-4567).");
+            }
+        }
+        c.setResultFaxNo(fax);
         c.setCompletedAt(LocalDateTime.now());
         c.setCompletedBy(by.getLoginId());
         c.setResultType(type.name());
@@ -215,7 +229,7 @@ public class CivilProcessService {
         if (mapper.complete(c) == 0) {
             return new Result(false, "이미 처리를 마친 민원입니다.");
         }
-        history(id, "DONE", type.getLabel() + " · 결과 통지: " + notifyMethod, by);
+        history(id, "DONE", type.getLabel() + " · 결과 통지: " + notifyMethod + (fax == null ? "" : " (" + fax + ")"), by);
         if (c.getRegisterId() != null && !c.getRegisterId().equals(by.getLoginId())) {
             notificationService.notify(c.getRegisterId(), "접수한 민원 " + c.getReceiptNo() + " 처리가 끝났습니다.", "/civil/" + id);
         }
@@ -231,6 +245,7 @@ public class CivilProcessService {
         return switch (method) {
             case "문자" -> asked.equals("문자");
             case "전자우편" -> asked.equals("이메일");
+            case "팩스" -> asked.equals("팩스");
             default -> false;
         };
     }
