@@ -28,7 +28,7 @@ class ScreenSmokeTest {
             "/hr", "/hr/duty", "/hr/duty/new", "/board", "/board/write", "/board/upload", "/records", "/records/new",
             "/records/report", "/search?q=민원", "/stats", "/notifications", "/mypage/password", "/security-apps",
             "/admin/users", "/admin/holidays", "/admin/audit", "/admin/audit/review", "/admin/depts", "/admin/org",
-            "/admin/files", "/admin/blocks", "/admin/security-apps");
+            "/admin/files", "/admin/blocks", "/admin/security-apps", "/forms", "/forms?source=staff", "/admin/forms");
 
     static final List<String> CSV = List.of("/finance/budgets.csv", "/finance/contracts.csv", "/finance/purchases.csv",
             "/finance/assets.csv", "/civil/certs.csv", "/records/report.csv", "/stats/civil.csv");

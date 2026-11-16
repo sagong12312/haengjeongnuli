@@ -6,7 +6,8 @@
 
 <main class="page narrow">
   <div th:replace="~{fragments/layout :: flash}"></div>
-  <div><span class="crumb"><a th:href="@{/building}">건축·토지</a> › 인허가 대장</span><h1 th:text="${c.site}">대지</h1></div>
+  <div><span class="crumb"><a th:href="@{/building}">건축·토지</a> › 인허가 대장</span><h1 th:text="${c.site}">대지</h1>
+    <a th:href="@{/forms(source='building', sourceId=${c.caseId})}">한글 서식으로 만들기</a></div>
   <section class="panel">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
       <h2 th:text="${c.kindLabel}">구분</h2><span th:class="'badge ' + ${c.statusBadge}" th:text="${c.statusLabel}">상태</span>

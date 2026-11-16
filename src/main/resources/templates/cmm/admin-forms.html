@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('한글 서식 관리')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/admin/users}">시스템 관리</a> › 한글 서식</span><h1>한글 서식 관리</h1></div>
+  <p class="hint">기관에서 쓰던 한글 서식(.hwp)을 올립니다. 서식 안에 <b>누름틀</b>(한글: 입력 › 필드 입력 › 누름틀)을 넣고 이름을 아래 표의 이름으로 정하면,
+    직원이 민원·영업소·건축·직원 정보로 채워 만들 수 있습니다. 누름틀이 없는 서식이나 HWPX는 내려받기·보기만 됩니다.
+    이름에 가족관계·기본증명·등본·초본·인감 등이 들어간 법정 증명서 서식은 채워 만들기가 자동으로 막힙니다.</p>
+
+  <form class="panel" th:action="@{/admin/forms}" method="post" enctype="multipart/form-data" style="gap:14px;">
+    <h2>서식 올리기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="ff">서식 파일 (여러 개 가능) <span class="req">*</span></label><input id="ff" name="files" type="file" class="input" multiple accept=".hwp,.hwpx" required></div>
+      <div class="field"><label for="fn">서식 이름 (한 개 올릴 때, 비우면 파일 이름)</label><input id="fn" name="name" class="input" maxlength="100"></div>
+      <div class="field"><label for="fc">분류</label><select id="fc" name="category" class="select"><option value="">이름으로 자동</option>
+        <option th:each="c : ${categories}" th:value="${c}" th:text="${c}">민원</option></select></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">올리기</button></div>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>서식</h2><span class="muted" th:text="${#lists.size(forms)} + '개'">0개</span></div>
+    <p th:if="${#lists.isEmpty(forms)}" class="hint" style="padding:18px 22px;">올린 서식이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(forms)}"><table class="list" style="min-width:900px">
+      <thead><tr><th scope="col">분류</th><th scope="col" style="text-align:left">서식</th><th scope="col" style="text-align:left">누름틀</th><th scope="col">채워 만들기</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="f : ${forms}">
+        <td th:text="${f.category}">민원</td>
+        <td class="left"><b th:text="${f.name}">서식</b><small class="muted" style="display:block" th:text="${f.originalName}">파일</small></td>
+        <td class="left"><span th:if="${#lists.isEmpty(f.fieldList)}" class="muted">없음</span>
+          <span th:each="n : ${f.fieldList}" th:class="'badge ' + (${known[n]} ? 'badge-green' : 'badge-gray')" style="margin:2px;" th:text="${n}"
+                th:title="${known[n]} ?: '자동으로 채우지 않는 이름: 직원이 직접 입력'">이름</span></td>
+        <td th:text="${f.fillable} ? '됨' : (${f.fillableYn == 'N'} ? '법정 증명서라 안 됨' : '누름틀 없음')">됨</td>
+        <td><form th:action="@{/admin/forms/{id}/{a}(id=${f.formId}, a=${f.inUse} ? 'stop' : 'use')}" method="post" style="margin:0;">
+          <button type="submit" class="btn btn-plain btn-sm" th:text="${f.inUse} ? '숨기기' : '다시 쓰기'">숨기기</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel">
+    <h2>자동으로 채워지는 누름틀 이름</h2>
+    <p class="hint" style="margin:0;">초록색은 자동으로 채워지고, 회색 이름은 직원이 직접 입력합니다.</p>
+    <dl class="doc-info"><div th:each="k : ${known}"><dt th:text="${k.key}">이름</dt><dd th:text="${k.value}">설명</dd></div></dl>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -61,10 +61,10 @@ public class ContractService {
         if (title == null || title.length() > 300) {
             return Result.fail("계약명을 300자 이내로 입력하세요.");
         }
-        if (!ContractVO.KINDS.contains(in.getContractKind())) {
+        if (in.getContractKind() == null || !ContractVO.KINDS.contains(in.getContractKind())) {
             return Result.fail("계약 종류(공사·물품·용역)를 고르세요.");
         }
-        if (!ContractVO.METHODS.contains(in.getMethod())) {
+        if (in.getMethod() == null || !ContractVO.METHODS.contains(in.getMethod())) {
             return Result.fail("계약 방법을 고르세요.");
         }
         String reason = trim(in.getPrivateReason());

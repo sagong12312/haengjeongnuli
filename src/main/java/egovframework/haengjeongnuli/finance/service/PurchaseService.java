@@ -144,7 +144,7 @@ public class PurchaseService {
         if (t == null || t.length() > 300) {
             return Result.fail("구매 건 이름을 300자 이내로 입력하세요.");
         }
-        if (!PurchaseVO.TYPES.contains(purType)) {
+        if (purType == null || !PurchaseVO.TYPES.contains(purType)) {
             return Result.fail("종류(물품·용역·공사)를 고르세요.");
         }
         if (estimated == null || estimated <= 0 || estimated > FinanceService.MAX_AMOUNT) {
@@ -544,7 +544,7 @@ public class PurchaseService {
         if (!canEditAsset(a, me) || !AssetVO.IDLE.equals(a.getStatus()) || a.getIdleDocId() == null) {
             return Result.fail("결재로 불용을 결정한 우리 부서 물품만 처분할 수 있습니다.");
         }
-        if (!AssetVO.DISPOSE_METHODS.contains(method)) {
+        if (method == null || !AssetVO.DISPOSE_METHODS.contains(method)) {
             return Result.fail("처분 방법(폐기·매각·양여·관리전환)을 고르세요.");
         }
         String r = trim(reason);

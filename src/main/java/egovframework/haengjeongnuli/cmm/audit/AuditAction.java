@@ -51,6 +51,8 @@ public enum AuditAction {
     ASSET_SAVE("물품대장 기록"),
     SECURITY_APP_SAVE("보안 프로그램 안내 관리"),
     SECURITY_APP_ACK("보안 프로그램 설치 확인"),
+    HWP_FORM_SAVE("한글 서식 관리"),
+    HWP_FORM_FILL("한글 서식 채워 만들기"),
     FIN_EXPORT("재정 자료 내려받기"),
     CERT_EXPORT("증명 발급 일계표 내려받기"),
     CIVIL_ASSIGN("민원 배정"),

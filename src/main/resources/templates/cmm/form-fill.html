@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${f.name})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page">
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › <a th:href="@{/forms(source=${source}, sourceId=${sourceId})}">한글 서식함</a> › 채워 만들기</span>
+    <h1 th:text="${f.name}">서식</h1></div>
+  <p class="hint">누름틀마다 들어갈 값을 확인하고 고친 뒤 <b>한글 파일 만들기</b>를 누르세요. 비워 둔 칸은 서식의 안내 글자가 그대로 남습니다.
+    만든 파일은 서버에 남기지 않고 바로 내려받으며, 누가 어떤 서식을 채웠는지는 접속기록에 남습니다.</p>
+
+  <form class="panel" th:action="@{/forms/{id}/fill(id=${f.formId}, source=${source}, sourceId=${sourceId})}" method="get" style="gap:10px;"
+        th:if="${!#lists.isEmpty(staff) or source == 'staff' or source == null}">
+    <h2>직원 정보 채우기</h2>
+    <input type="hidden" name="source" value="staff">
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <div class="field" th:if="${!#lists.isEmpty(staff)}"><label for="sid">직원 (관리자)</label>
+        <select id="sid" name="sourceId" class="select"><option value="">본인</option>
+          <option th:each="u : ${staff}" th:value="${u.userId}" th:selected="${u.userId == sourceId}" th:text="(${u.deptName} ?: '') + ' ' + ${u.userName} + ' ' + (${u.positionName} ?: '')">직원</option></select></div>
+      <button type="submit" class="btn btn-outline" th:text="${#lists.isEmpty(staff)} ? '내 정보로 채우기' : '이 직원 정보로 채우기'">내 정보로 채우기</button>
+    </div>
+  </form>
+
+  <form class="panel" th:action="@{/forms/{id}/fill(id=${f.formId})}" method="post" style="gap:14px;">
+    <input type="hidden" name="source" th:value="${source}"><input type="hidden" name="sourceId" th:value="${sourceId}">
+    <div class="field" th:each="r, st : ${rows}">
+      <label th:for="'v' + ${st.index}"><b th:text="${r.key}">누름틀</b>
+        <span class="muted" style="font-size:16px;" th:if="${known[r.key]}" th:text="' — ' + ${known[r.key]}">설명</span></label>
+      <input type="hidden" name="names" th:value="${r.key}">
+      <textarea th:id="'v' + ${st.index}" name="values" class="input" rows="1" maxlength="2000" th:text="${r.value}"></textarea>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">한글 파일 만들기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

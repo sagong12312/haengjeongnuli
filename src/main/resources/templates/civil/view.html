@@ -9,6 +9,7 @@
   <div>
     <span class="crumb"><a th:href="@{/civil}">민원</a> › <span th:text="${c.receiptNo}">접수번호</span></span>
     <h1 th:text="${c.title}">민원 제목</h1>
+    <a th:href="@{/forms(source='civil', sourceId=${c.complaintId})}">한글 서식으로 만들기 (처리서 등)</a>
   </div>
 
   <div th:if="${c.overdue}" class="alert" role="alert" style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg);">

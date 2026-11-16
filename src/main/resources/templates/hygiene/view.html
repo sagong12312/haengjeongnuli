@@ -6,7 +6,8 @@
 
 <main class="page narrow">
   <div th:replace="~{fragments/layout :: flash}"></div>
-  <div><span class="crumb"><a th:href="@{/hygiene}">환경·위생</a> › 영업소</span><h1 th:text="${b.bizName}">상호</h1></div>
+  <div><span class="crumb"><a th:href="@{/hygiene}">환경·위생</a> › 영업소</span><h1 th:text="${b.bizName}">상호</h1>
+    <a th:href="@{/forms(source='hygiene', sourceId=${b.bizId})}">한글 서식으로 만들기 (시정권고서·시정명령서 등)</a></div>
   <section class="panel">
     <div style="display:flex; justify-content:space-between; align-items:center;"><h2>영업소 정보</h2>
       <span th:class="${b.open} ? 'badge badge-green' : 'badge badge-gray'" th:text="${b.open} ? '영업' : '폐업 ' + ${b.closedOn}">영업</span></div>
