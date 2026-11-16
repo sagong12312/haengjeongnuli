@@ -31,5 +31,6 @@ app:
     enabled: true
     secret: test-secret-for-epetition-api-0123456789
     allowed-networks: 127.0.0.1/32
+    require-https: false
   privacy:
     purge-cron: "-"

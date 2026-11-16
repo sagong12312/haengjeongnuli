@@ -50,13 +50,25 @@ public class EPetitionService {
     private final UserService users;
     private final int maxFails;
     private final int lockMinutes;
+    private final int ipMaxFails;
+    private final long ipWindowMillis;
+    /** 국민 IP별 최근 조회 실패 시각 (여러 접수번호에 같은 비밀번호를 넣어 보는 공격 막기) */
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.Deque<Long>> ipFails = new java.util.concurrent.ConcurrentHashMap<>();
+    /** 전체 조회 실패 (대량 시도 감지용) */
+    private final java.util.Deque<Long> allFails = new java.util.concurrent.ConcurrentLinkedDeque<>();
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EPetitionService.class);
+
     /** 없는 접수번호에도 같은 시간이 걸리게 비교할 값 */
     private final String dummyHash;
 
     public EPetitionService(CivilService civil, CivilProcessService process, EPetitionMapper mapper, PasswordEncoder encoder,
                             Validator validator, NotificationService notifications, UserService users,
                             @Value("${app.epetition.lookup-max-fails:5}") int maxFails,
-                            @Value("${app.epetition.lookup-lock-minutes:30}") int lockMinutes) {
+                            @Value("${app.epetition.lookup-lock-minutes:30}") int lockMinutes,
+                            @Value("${app.epetition.lookup-ip-max-fails:10}") int ipMaxFails,
+                            @Value("${app.epetition.lookup-ip-window-minutes:10}") int ipWindowMinutes) {
+        this.ipMaxFails = ipMaxFails;
+        this.ipWindowMillis = ipWindowMinutes * 60_000L;
         this.civil = civil;
         this.process = process;
         this.mapper = mapper;
@@ -156,6 +168,49 @@ public class EPetitionService {
     /** 처리상황 조회. 비밀번호가 틀리면 횟수를 세고, 정한 횟수를 넘으면 잠근다 (없는 번호와 틀린 비밀번호는 같은 답) */
     @Transactional(noRollbackFor = Problem.class)
     public Map<String, Object> lookup(String receiptNo, String password) {
+        return lookup(receiptNo, password, null);
+    }
+
+    /** clientIp: 전자민원이 X-EP-Client-IP 로 알려 준 국민 IP (없으면 IP 제한 없이 접수번호 잠금만) */
+    @Transactional(noRollbackFor = Problem.class)
+    public Map<String, Object> lookup(String receiptNo, String password, String clientIp) {
+        long nowMs = System.currentTimeMillis();
+        String ip = clientIp == null || clientIp.isBlank() ? null : clientIp.trim();
+        if (ip != null && recent(ipFails.get(ip), nowMs) >= ipMaxFails) {
+            throw new Problem(429, "too_many_attempts", "조회 비밀번호를 여러 번 틀렸습니다. 잠시 뒤 다시 시도해 주세요.");
+        }
+        try {
+            return doLookup(receiptNo, password);
+        } catch (Problem p) {
+            if ("not_matched".equals(p.code()) || "locked".equals(p.code())) {
+                if (ip != null) {
+                    if (ipFails.size() > 50_000) {
+                        ipFails.clear();
+                    }
+                    ipFails.computeIfAbsent(ip, k -> new java.util.concurrent.ConcurrentLinkedDeque<>()).addLast(nowMs);
+                }
+                allFails.addLast(nowMs);
+                if (recent(allFails, nowMs) == 300) {
+                    log.error("전자민원 처리상황 조회 실패가 {}분 동안 300건을 넘었습니다. 비밀번호 대입 공격인지 접속기록을 확인하세요.",
+                            ipWindowMillis / 60_000);
+                }
+            }
+            throw p;
+        }
+    }
+
+    /** 창 안의 실패 수 (오래된 것은 지운다) */
+    private int recent(java.util.Deque<Long> q, long nowMs) {
+        if (q == null) {
+            return 0;
+        }
+        while (!q.isEmpty() && q.peekFirst() < nowMs - ipWindowMillis) {
+            q.pollFirst();
+        }
+        return q.size();
+    }
+
+    private Map<String, Object> doLookup(String receiptNo, String password) {
         if (receiptNo == null || !receiptNo.matches("\\d{4}-\\d{6}") || password == null || password.length() > 64) {
             throw new Problem(401, "not_matched", "접수번호 또는 비밀번호가 맞지 않습니다.");
         }

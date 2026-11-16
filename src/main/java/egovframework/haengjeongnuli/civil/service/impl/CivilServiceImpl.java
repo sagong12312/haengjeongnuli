@@ -53,11 +53,12 @@ public class CivilServiceImpl implements CivilService {
         vo.setLegalAffair(form.getKind() == CivilKind.LEGAL ? form.getAffair() : null);
         vo.setRoute(form.getRoute());
         vo.setApplicantName(form.getName().trim());
-        vo.setMobile(form.isNoMobile() ? null : blankToNull(form.getMobile()));
-        vo.setHomePhone(form.isNoMobile() && !form.isNoHome() ? blankToNull(form.getHomePhone()) : null);
+        // 전화번호는 010-1234-5678 꼴로 통일해 저장한다 (검증은 CivilForm 에서 끝남)
+        vo.setMobile(form.isNoMobile() ? null : egovframework.haengjeongnuli.cmm.text.PhoneNumbers.mobile(form.getMobile()));
+        vo.setHomePhone(form.isNoMobile() && !form.isNoHome() ? egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(form.getHomePhone()) : null);
         vo.setEmail(blankToNull(form.getEmail()));
         vo.setAddress(blankToNull(form.getAddress()));
-        vo.setFaxNo(blankToNull(form.getFax()) == null ? null : form.getFax().trim());
+        vo.setFaxNo(egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(form.getFax()));
         vo.setNotifyMethod(form.getNotify());
         vo.setTitle(form.getTitle().trim());
         vo.setContent(form.getContent());

@@ -39,14 +39,21 @@ public class CivilForm {
     /** 접수 때 고를 수 있는 결과 통지 방법 */
     public static final java.util.List<String> NOTIFY_CHOICES = java.util.List.of("문자", "이메일", "팩스", "우편", "방문 수령");
 
-    /** 팩스 번호 꼴: 숫자와 '-'만, 숫자 9~12자리 (예: 02-123-4567, 0505-123-4567) */
+    /** 팩스 번호 꼴: 국내 전화번호 (지역번호·070·0505 등, 하이픈 있어도 없어도) */
     public static boolean isFaxNumber(String s) {
-        if (s == null || !s.trim().matches("[0-9-]{9,20}")) {
-            return false;
-        }
-        int digits = s.replaceAll("\\D", "").length();
-        return digits >= 9 && digits <= 12 && s.trim().startsWith("0");
+        return egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(s) != null;
     }
+
+    @AssertTrue(message = "휴대전화 번호를 010-1234-5678 꼴로 입력하세요.")
+    public boolean isMobileFormatOk() {
+        return noMobile || mobile == null || mobile.isBlank() || egovframework.haengjeongnuli.cmm.text.PhoneNumbers.mobile(mobile) != null;
+    }
+
+    @AssertTrue(message = "집전화 번호를 지역번호부터 입력하세요 (예: 02-123-4567).")
+    public boolean isHomeFormatOk() {
+        return homePhone == null || homePhone.isBlank() || egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(homePhone) != null;
+    }
+
     @NotBlank
     private String notify = "문자";
 

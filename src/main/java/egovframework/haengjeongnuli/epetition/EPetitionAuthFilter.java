@@ -44,15 +44,22 @@ public class EPetitionAuthFilter extends OncePerRequestFilter {
     private final byte[] secret;
     private final AllowedNetworkFilter networks;
     private final long skewSeconds;
+    private final boolean requireHttps;
     private final Map<String, Long> usedNonces = new ConcurrentHashMap<>();
 
     public EPetitionAuthFilter(boolean enabled, String secret, String networksCsv, long skewSeconds) {
+        this(enabled, secret, networksCsv, skewSeconds, false);
+    }
+
+    public EPetitionAuthFilter(boolean enabled, String secret, String networksCsv, long skewSeconds, boolean requireHttps) {
+        this.requireHttps = requireHttps;
         this.secret = secret == null ? new byte[0] : secret.getBytes(StandardCharsets.UTF_8);
-        this.enabled = enabled && this.secret.length >= 32;
+        // 전자민원과 같은 기준: 영문·숫자·기호(ASCII)만, 32자 이상 (한글이 섞이면 양쪽이 길이를 다르게 센다)
+        this.enabled = enabled && secret != null && secret.length() >= 32 && secret.matches("[\\x21-\\x7E]+");
         this.networks = new AllowedNetworkFilter(networksCsv == null ? "" : networksCsv);
         this.skewSeconds = skewSeconds;
         if (enabled && !this.enabled) {
-            log.error("전자민원 연동이 켜져 있지만 APP_EPETITION_SECRET 이 32자 미만이라 연동 API를 열지 않습니다.");
+            log.error("전자민원 연동이 켜져 있지만 APP_EPETITION_SECRET 이 영문·숫자·기호 32자 이상이 아니라 연동 API를 열지 않습니다.");
         }
     }
 
@@ -61,6 +68,12 @@ public class EPetitionAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         if (!enabled) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        if (requireHttps && !request.isSecure()) {
+            // 이름·연락처·조회 비밀번호가 평문으로 오가지 않게 한다
+            log.warn("전자민원 연동 API: HTTPS가 아닌 요청을 막았습니다 {}", request.getRemoteAddr());
+            deny(response, 403, "https_required");
             return;
         }
         if (!networks.isAllowed(request.getRemoteAddr())) {

@@ -46,6 +46,12 @@ app:
     enabled: ${APP_EPETITION_ENABLED:false}
     secret: ${APP_EPETITION_SECRET:}
     allowed-networks: ${APP_EPETITION_NETWORKS:}
+    # 전자민원 서버와는 HTTPS로만 주고받는다 (서명은 위조를 막을 뿐 내용을 감추지 않는다).
+    # 앞단 프록시가 TLS를 끝내면 APP_FORWARD_HEADERS=native 로 프록시의 X-Forwarded-Proto 를 믿게 한다.
+    require-https: ${APP_EPETITION_REQUIRE_HTTPS:true}
+    # 한 국민 IP(X-EP-Client-IP)가 조회 비밀번호를 이만큼 틀리면 잠시 조회를 막는다 (여러 접수번호에 같은 비밀번호를 넣어 보는 공격)
+    lookup-ip-max-fails: 10
+    lookup-ip-window-minutes: 10
     # 서명 시각 허용 오차(초)
     clock-skew-seconds: 300
     # 조회 비밀번호를 이 횟수 틀리면 잠시 잠근다

@@ -25,10 +25,14 @@
 | 환경변수 | 뜻 | 예 |
 |---|---|---|
 | `APP_EPETITION_ENABLED` | 연동 API 켜기 | `true` |
-| `APP_EPETITION_SECRET` | 서명 비밀값. **32자 이상** 무작위, 양쪽 서버 환경변수로만 보관하고 코드·저장소에 넣지 않음 | `openssl rand -hex 32` 결과 |
+| `APP_EPETITION_SECRET` | 서명 비밀값. **영문·숫자·기호로 32자 이상** 무작위 (한글 금지), 양쪽 서버 환경변수로만 보관하고 코드·저장소에 넣지 않음 | `openssl rand -hex 32` 결과 |
 | `APP_EPETITION_NETWORKS` | 전자민원 서버 주소 (CIDR, 쉼표로 여러 개) | `10.20.30.40/32` |
 
-꺼져 있거나 비밀값이 32자보다 짧으면 연동 API 주소는 모두 404를 돌려줍니다.
+| `APP_EPETITION_REQUIRE_HTTPS` | HTTPS로 온 요청만 받기 (기본 `true`, 내 PC 시험용 local 프로필만 `false`) | `true` |
+| `APP_FORWARD_HEADERS` | 앞단 프록시가 TLS를 끝내면 `native` (프록시의 X-Forwarded-Proto를 믿음) | `native` |
+
+꺼져 있거나 비밀값이 영문·숫자·기호 32자 이상이 아니면 연동 API 주소는 모두 404를 돌려줍니다.
+**서명은 위조를 막을 뿐 내용을 감추지 않습니다.** 이름·연락처·조회 비밀번호가 오가므로 두 서버 사이는 반드시 HTTPS로 연결합니다(`NURI_BASE_URL=https://…`).
 
 ## 3. 인증 (모든 요청)
 
@@ -39,7 +43,7 @@
 | `X-EP-Timestamp` | 지금 시각, 유닉스 초 (예: `1763280000`). 행정누리 시계와 **±300초** 안이어야 함 |
 | `X-EP-Nonce` | 요청마다 새로 만든 값. 영문·숫자·`_`·`-`로 16~64자 (예: UUID에서 `-`를 뺀 값). 같은 값을 다시 쓰면 거절 (재전송 방지) |
 | `X-EP-Signature` | 아래 방식으로 만든 서명 (소문자 16진수 64자) |
-| `X-EP-Client-IP` | (선택) 전자민원에 접속한 국민의 IP. 행정누리 접속기록에 남김 |
+| `X-EP-Client-IP` | 전자민원에 접속한 국민의 IP (**꼭 보내세요**). 행정누리 접속기록에 남기고, 조회 비밀번호를 많이 틀리는 IP를 막는 데 씁니다 |
 
 서명 만드는 법은 다음과 같습니다.
 
@@ -102,6 +106,7 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 | 401 | `bad_timestamp`, `bad_signature` | 시각·논스·서명이 틀림 |
 | 401 | `replayed` | 이미 쓴 논스 |
 | 413 | `body_too_large` | 본문이 256KB를 넘음 |
+| 403 | `https_required` | HTTPS가 아닌 요청 (`APP_EPETITION_REQUIRE_HTTPS=true`일 때) |
 
 ## 4. 응답 형식
 
@@ -138,9 +143,10 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 | `kind` | 질의(QUERY)·건의(SUGGESTION)·기타(OTHER)·고충(GRIEVANCE)만 받습니다. **법정민원(LEGAL)은 받지 않습니다.** 구비서류와 수수료가 있어 창구나 정부24로 안내하세요 |
 | `lawInterpretation` | 질의민원일 때 법령 해석 질의면 `true`(처리기간 14일), 제도·절차 질의면 `false`(7일) |
 | `name` | 필수, 100자 이내 |
-| `mobile` | 없으면 `homePhone`을 넣습니다. 둘 다 없으면 문자 통지를 고를 수 없습니다 |
+| `mobile` | 휴대전화(010·011·016~019). 하이픈·띄어쓰기는 있어도 없어도 되고 `010-1234-5678` 꼴로 저장합니다. 없으면 `homePhone`을 넣습니다. **휴대전화가 없으면 문자 통지를 고를 수 없습니다** |
+| `homePhone` | 집·사무실 전화: 지역번호(02, 031~064), 070, 0502~0508, 대표번호(15xx·16xx·18xx), 휴대전화 |
 | `email` | 이메일 형식, 200자 이내. 통지 방법이 이메일이면 필수 |
-| `fax` | 통지 방법이 팩스면 필수. 지역번호부터, 예: `02-123-4567` |
+| `fax` | 통지 방법이 팩스면 필수. `homePhone`과 같은 꼴 (예: `02-123-4567`, `0505-123-4567`) |
 | `notifyMethod` | 비우면 휴대전화가 있을 때 문자, 없으면 이메일로 정합니다 |
 | `title` / `content` | 필수. 제목 300자, 내용 20,000자 이내 |
 | `password` | 처리상황 조회 비밀번호. **영문과 숫자를 섞어 8~20자**. 행정누리에 BCrypt로만 저장하고, 전자민원은 저장하지 않습니다 |
@@ -183,6 +189,7 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 - 오류 응답은 다음과 같습니다.
   - `401 not_matched`: 접수번호가 없거나 비밀번호가 틀림. 둘을 구별하지 않습니다.
   - `423 locked`: 같은 접수번호로 비밀번호를 **5번 틀리면 30분** 동안 맞는 비밀번호도 거절합니다. message에 풀리는 시각이 있습니다.
+- `429 too_many_attempts`: 같은 국민 IP(`X-EP-Client-IP`)가 **10분 동안 10번** 틀리면(접수번호가 달라도) 그 IP의 조회를 잠시 막습니다. 여러 접수번호에 흔한 비밀번호를 넣어 보는 공격을 막기 위한 것입니다.
 - 전자민원 쪽에서도 국민 IP별 조회 횟수 제한과 자동입력 방지(CAPTCHA 등)를 꼭 두세요. 행정누리의 잠금은 접수번호 단위입니다.
 
 ### 5-3. 공개 상담 목록 `GET /api/epetition/v1/consultations?page=1&q=검색어`

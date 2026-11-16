@@ -215,7 +215,8 @@ public class CivilProcessService {
         String fax = null;
         if ("팩스".equals(notifyMethod)) {
             fax = faxNo == null || faxNo.isBlank() ? c.getFaxNo() : faxNo.trim();
-            if (!CivilForm.isFaxNumber(fax)) {
+            fax = egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(fax);
+            if (fax == null) {
                 return new Result(false, "팩스로 알리려면 보낼 팩스 번호를 지역번호부터 입력하세요 (예: 02-123-4567).");
             }
         }

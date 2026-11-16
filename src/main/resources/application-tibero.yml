@@ -1,5 +1,7 @@
 # 운영은 HTTPS 로 한다: 세션 쿠키를 HTTPS 에서만 보낸다. 내부망에서 어쩔 수 없이 HTTP 로 시험할 때만 APP_COOKIE_SECURE=false.
 server:
+  # 앞단 프록시(TLS 종료)가 있으면 native 로 바꿔 X-Forwarded-Proto/For 를 믿는다
+  forward-headers-strategy: ${APP_FORWARD_HEADERS:none}
   servlet:
     session:
       cookie:

@@ -46,9 +46,10 @@ public class SecurityConfig {
             @Value("${app.epetition.enabled:false}") boolean enabled,
             @Value("${app.epetition.secret:}") String secret,
             @Value("${app.epetition.allowed-networks:}") String networks,
-            @Value("${app.epetition.clock-skew-seconds:300}") long skew) throws Exception {
+            @Value("${app.epetition.clock-skew-seconds:300}") long skew,
+            @Value("${app.epetition.require-https:true}") boolean requireHttps) throws Exception {
         http.securityMatcher("/api/epetition/**")
-            .addFilterBefore(new egovframework.haengjeongnuli.epetition.EPetitionAuthFilter(enabled, secret, networks, skew),
+            .addFilterBefore(new egovframework.haengjeongnuli.epetition.EPetitionAuthFilter(enabled, secret, networks, skew, requireHttps),
                     DisableEncodeUrlFilter.class)
             .authorizeHttpRequests(a -> a.anyRequest().permitAll())
             .csrf(c -> c.disable())

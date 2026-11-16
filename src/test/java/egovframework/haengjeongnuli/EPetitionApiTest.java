@@ -43,6 +43,10 @@ class EPetitionApiTest {
 
     /** 전자민원 서버가 하는 것처럼 서명해 보낸다 */
     static MockHttpServletRequestBuilder signed(String method, String path, String body, String nonce) {
+        return signed(method, path, body, nonce, "203.0.113.7");
+    }
+
+    static MockHttpServletRequestBuilder signed(String method, String path, String body, String nonce, String clientIp) {
         String ts = String.valueOf(Instant.now().getEpochSecond());
         byte[] b = body == null ? new byte[0] : body.getBytes(StandardCharsets.UTF_8);
         String sig = EPetitionAuthFilter.sign(SECRET, method, path, ts, nonce, b);
@@ -50,7 +54,7 @@ class EPetitionApiTest {
         if (body != null) {
             r.contentType(MediaType.APPLICATION_JSON).content(b);
         }
-        return r.header("X-EP-Timestamp", ts).header("X-EP-Nonce", nonce).header("X-EP-Signature", sig).header("X-EP-Client-IP", "203.0.113.7");
+        return r.header("X-EP-Timestamp", ts).header("X-EP-Nonce", nonce).header("X-EP-Signature", sig).header("X-EP-Client-IP", clientIp);
     }
 
     static String nonce() {
@@ -77,6 +81,9 @@ class EPetitionApiTest {
         mvc().perform(signed("POST", "/api/epetition/v1/complaints", body, nonce()).with(r -> { r.setRemoteAddr("10.9.9.9"); return r; }))
                 .andExpect(status().isForbidden());
 
+        // 전화번호: 엉터리는 막고, 하이픈 없이 보내도 같은 꼴로 저장
+        assertThat(call(signed("POST", "/api/epetition/v1/complaints", body.replace("010-1234-5678", "abc"), nonce()), 422)
+                .get("error").asText()).isEqualTo("invalid_input");
         // 비밀번호 규칙
         assertThat(call(signed("POST", "/api/epetition/v1/complaints", body.replace("abc12345", "1234"), nonce()), 422)
                 .get("error").asText()).isEqualTo("invalid_password");
@@ -89,6 +96,7 @@ class EPetitionApiTest {
         String receiptNo = ok.get("data").get("receiptNo").asText();
         assertThat(receiptNo).matches("\\d{4}-\\d{6}");
         assertThat(ok.get("data").has("complaintId")).isFalse();
+        assertThat(process.get(Long.parseLong(receiptNo.substring(5))).getMobile()).isEqualTo("010-1234-5678");
         // 같은 논스로 다시 보내면 막는다 (재전송)
         call(signed("POST", "/api/epetition/v1/complaints", body, n), 401);
 
@@ -129,5 +137,36 @@ class EPetitionApiTest {
 
         // 직원 화면 경로는 이 연동 인증으로 열리지 않는다
         mvc().perform(signed("GET", "/civil", null, nonce())).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void 한_IP가_여러_접수번호에_비밀번호를_넣어_보면_막는다() throws Exception {
+        String ip = "198.51.100." + (int) (Math.random() * 200 + 1);
+        // 서로 다른 접수번호(없는 번호 포함)에 같은 비밀번호를 10번 → 그 IP는 잠시 조회 불가
+        for (int i = 0; i < 10; i++) {
+            String look = "{\"receiptNo\":\"2025-" + String.format("%06d", 900000 + i) + "\",\"password\":\"qwer1234\"}";
+            call(signed("POST", "/api/epetition/v1/complaints/lookup", look, nonce(), ip), 401);
+        }
+        String look = "{\"receiptNo\":\"2025-999999\",\"password\":\"qwer1234\"}";
+        assertThat(call(signed("POST", "/api/epetition/v1/complaints/lookup", look, nonce(), ip), 429).get("error").asText())
+                .isEqualTo("too_many_attempts");
+        // 다른 IP는 영향 없음
+        call(signed("POST", "/api/epetition/v1/complaints/lookup", look, nonce(), "192.0.2.55"), 401);
+    }
+
+    @Test
+    void HTTPS를_요구하면_http_요청은_막는다() throws Exception {
+        EPetitionAuthFilter f = new EPetitionAuthFilter(true, new String(SECRET, StandardCharsets.UTF_8), "127.0.0.1/32", 300, true);
+        org.springframework.mock.web.MockHttpServletRequest req = new org.springframework.mock.web.MockHttpServletRequest("GET", "/api/epetition/v1/consultations");
+        req.setRemoteAddr("127.0.0.1");
+        org.springframework.mock.web.MockHttpServletResponse res = new org.springframework.mock.web.MockHttpServletResponse();
+        f.doFilter(req, res, new org.springframework.mock.web.MockFilterChain());
+        assertThat(res.getStatus()).isEqualTo(403);
+        assertThat(res.getContentAsString()).contains("https_required");
+        // 한글 비밀값은 연동을 열지 않는다 (양쪽이 길이를 다르게 세는 문제)
+        EPetitionAuthFilter korean = new EPetitionAuthFilter(true, "내PC-시험용-비밀값-0123456789abcdefghijk", "127.0.0.1/32", 300, false);
+        org.springframework.mock.web.MockHttpServletResponse r2 = new org.springframework.mock.web.MockHttpServletResponse();
+        korean.doFilter(req, r2, new org.springframework.mock.web.MockFilterChain());
+        assertThat(r2.getStatus()).isEqualTo(404);
     }
 }

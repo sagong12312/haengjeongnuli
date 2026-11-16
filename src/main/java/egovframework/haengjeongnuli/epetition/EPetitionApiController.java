@@ -83,7 +83,7 @@ public class EPetitionApiController {
                                                       @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
         String no = req == null ? null : req.receiptNo();
         try {
-            Map<String, Object> out = service.lookup(no, req == null ? null : req.password());
+            Map<String, Object> out = service.lookup(no, req == null ? null : req.password(), clientIp);
             audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_LOOKUP, "민원 " + no, "성공 " + client(clientIp));
             return ok(out);
         } catch (EPetitionService.Problem p) {

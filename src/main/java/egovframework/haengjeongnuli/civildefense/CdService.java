@@ -71,8 +71,8 @@ public class CdService {
         if (n == null || n.length() > 100 || a == null || a.length() > 300 || u == null || u.length() > 100) {
             return new Result(false, "이름, 주소, 소속 민방위대를 입력하세요.", null);
         }
-        if (p != null && !p.matches("[0-9-]{9,20}")) {
-            return new Result(false, "연락처는 숫자와 '-'로 입력하세요.", null);
+        if (p != null && (p = egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(p)) == null) {
+            return new Result(false, "연락처를 010-1234-5678 꼴로 입력하세요.", null);
         }
         if (birth == null || joinedOn == null || joinedOn.isAfter(LocalDate.now())) {
             return new Result(false, "생년월일과 편성일을 입력하세요.", null);
@@ -101,10 +101,10 @@ public class CdService {
     @Transactional
     public Result update(long id, String address, String phone, String unit, LoginUser me) {
         String a = trim(address), p = trim(phone), u = trim(unit);
-        if (!canAccess(me) || a == null || u == null || a.length() > 300 || u.length() > 100 || (p != null && !p.matches("[0-9-]{9,20}"))) {
+        if (!canAccess(me) || a == null || u == null || a.length() > 300 || u.length() > 100 || (p != null && egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(p) == null)) {
             return new Result(false, "주소·연락처·소속을 바르게 입력하세요.", null);
         }
-        return mapper.update(id, a, p, u) == 1 ? new Result(true, "고쳤습니다.", id) : new Result(false, "편성 중인 대원이 아닙니다.", null);
+        return mapper.update(id, a, p == null ? null : egovframework.haengjeongnuli.cmm.text.PhoneNumbers.phone(p), u) == 1 ? new Result(true, "고쳤습니다.", id) : new Result(false, "편성 중인 대원이 아닙니다.", null);
     }
 
     /** 편성 해제. 보유기간이 지나면 명부에서 지운다 */
