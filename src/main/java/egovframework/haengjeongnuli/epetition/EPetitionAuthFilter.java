@@ -39,6 +39,8 @@ public class EPetitionAuthFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(EPetitionAuthFilter.class);
     static final int MAX_BODY = 256 * 1024;
+    /** 민원 접수(첨부 Base64 포함, 5MB × 3개)만 더 크게 받는다 */
+    static final int MAX_SUBMIT_BODY = 21 * 1024 * 1024;
 
     private final boolean enabled;
     private final byte[] secret;
@@ -81,8 +83,15 @@ public class EPetitionAuthFilter extends OncePerRequestFilter {
             deny(response, 403, "forbidden_network");
             return;
         }
-        byte[] body = request.getInputStream().readNBytes(MAX_BODY + 1);
-        if (body.length > MAX_BODY) {
+        int limit = "POST".equals(request.getMethod()) && request.getRequestURI().endsWith("/api/epetition/v1/complaints")
+                ? MAX_SUBMIT_BODY : MAX_BODY;
+        long declared = request.getContentLengthLong();
+        if (declared > limit) {
+            deny(response, 413, "body_too_large");
+            return;
+        }
+        byte[] body = request.getInputStream().readNBytes(limit + 1);
+        if (body.length > limit) {
             deny(response, 413, "body_too_large");
             return;
         }

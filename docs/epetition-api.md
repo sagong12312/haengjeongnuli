@@ -134,7 +134,8 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
   "content": "중앙로 가로등이 꺼져 있습니다.",
   "password": "abc12345",
   "publicConsent": true,
-  "privacyConsent": true
+  "privacyConsent": true,
+  "files": [ { "name": "현장 사진.jpg", "contentBase64": "/9j/4AAQ..." } ]
 }
 ```
 
@@ -151,6 +152,7 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 | `title` / `content` | 필수. 제목 300자, 내용 20,000자 이내 |
 | `password` | 처리상황 조회 비밀번호. **영문과 숫자를 섞어 8~20자**. 행정누리에 BCrypt로만 저장하고, 전자민원은 저장하지 않습니다 |
 | `publicConsent` | 처리 결과를 공개 상담으로 공개해도 되는지에 대한 민원인 동의. 동의해도 담당 공무원이 개인정보를 확인하고 게시해야 공개됩니다 |
+| `files` | (선택) 첨부 **3개까지**, 하나에 **5MB까지**, 사진(jpg·jpeg·png)·PDF·한글(hwp·hwpx)만. `contentBase64`는 파일 내용을 Base64로. 확장자뿐 아니라 실제 내용(파일 머리)도 검사해 형식을 속이면 거절하고, **하나라도 문제면 민원 전체를 접수하지 않습니다**(`422 invalid_file`, message에 파일 이름). 접수되면 행정누리 민원의 구비서류로 들어갑니다. 이 요청만 본문을 21MB까지 받습니다 |
 | `privacyConsent` | 개인정보 수집·이용 동의. **`true`가 아니면 접수하지 않습니다** |
 
 응답 예는 다음과 같습니다.
@@ -235,7 +237,6 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 
 ## 7. 아직 없는 것 (필요하면 행정누리 쪽에 요청)
 
-- **첨부파일 접수**: 지금은 글로만 접수합니다. 붙임이 필요하면 업로드 API를 따로 만들어야 합니다(확장자·실제 형식 검사 포함).
 - **법정민원 신청**: 구비서류와 수수료가 있어 정부24 연계 대상입니다.
 - **본인확인**(휴대폰·공동인증): 행정누리는 본인확인 결과를 받지 않습니다. 붙이게 되면 확인 결과(CI 등)를 넘길 필드를 협의해야 합니다.
 - **조회 비밀번호 재설정**: 민원인이 기관에 연락하면, 직원이 행정누리 민원 상세에서 본인을 확인한 뒤 새 임시 비밀번호(영문 6 + 숫자 4)를 만들어 알려 줍니다(잠금도 풀림). 인터넷으로 스스로 재설정하는 기능은 없습니다(본인확인 수단이 없어서).

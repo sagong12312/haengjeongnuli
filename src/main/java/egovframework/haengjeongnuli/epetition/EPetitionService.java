@@ -48,6 +48,8 @@ public class EPetitionService {
     private final Validator validator;
     private final NotificationService notifications;
     private final UserService users;
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.civil.service.CivilFileService civilFiles;
     private final int maxFails;
     private final int lockMinutes;
     private final int ipMaxFails;
@@ -98,7 +100,54 @@ public class EPetitionService {
 
     public record ReceiveRequest(String kind, Boolean lawInterpretation, String name, String mobile, String homePhone, String email,
                                  String address, String fax, String notifyMethod, String title, String content, String password,
-                                 Boolean publicConsent, Boolean privacyConsent) {}
+                                 Boolean publicConsent, Boolean privacyConsent, List<Attachment> files) {}
+
+    /** 전자민원 첨부: 파일 이름과 내용(Base64) */
+    public record Attachment(String name, String contentBase64) {}
+
+    /** 국민이 붙일 수 있는 형식 (사진·PDF·한글), 개수·크기 */
+    public static final Set<String> ATTACH_EXTENSIONS = Set.of("jpg", "jpeg", "png", "pdf", "hwp", "hwpx");
+    public static final int MAX_FILES = 3;
+    public static final int MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+    /** 첨부를 확인해 저장할 파일로 바꾼다. 문제가 있으면 Problem */
+    List<org.springframework.web.multipart.MultipartFile> attachments(List<Attachment> in) {
+        List<org.springframework.web.multipart.MultipartFile> out = new ArrayList<>();
+        if (in == null || in.isEmpty()) {
+            return out;
+        }
+        if (in.size() > MAX_FILES) {
+            throw new Problem(422, "invalid_file", "첨부파일은 " + MAX_FILES + "개까지 붙일 수 있습니다.");
+        }
+        for (Attachment a : in) {
+            String name = a == null || a.name() == null ? "" : egovframework.haengjeongnuli.cmm.file.FileStorage.cleanName(a.name());
+            int dot = name.lastIndexOf('.');
+            String ext = dot < 0 ? "" : name.substring(dot + 1).toLowerCase(java.util.Locale.ROOT);
+            if (name.isBlank() || name.length() > 200 || !ATTACH_EXTENSIONS.contains(ext)) {
+                throw new Problem(422, "invalid_file", "첨부파일은 사진(jpg·png), PDF, 한글(hwp·hwpx)만 붙일 수 있습니다: " + name);
+            }
+            byte[] bytes;
+            try {
+                String b64 = a.contentBase64() == null ? "" : a.contentBase64();
+                if (b64.length() > (MAX_FILE_BYTES / 3 + 2) * 4) {
+                    throw new Problem(422, "invalid_file", "첨부파일은 하나에 5MB까지입니다: " + name);
+                }
+                bytes = java.util.Base64.getDecoder().decode(b64);
+            } catch (IllegalArgumentException e) {
+                throw new Problem(422, "invalid_file", "첨부파일을 읽을 수 없습니다: " + name);
+            }
+            if (bytes.length == 0 || bytes.length > MAX_FILE_BYTES) {
+                throw new Problem(422, "invalid_file", "첨부파일은 비어 있지 않고 하나에 5MB까지여야 합니다: " + name);
+            }
+            org.springframework.web.multipart.MultipartFile f = new egovframework.haengjeongnuli.cmm.file.BytesFile(name, bytes);
+            String problem = civilFiles.check(List.of(f));
+            if (problem != null) {
+                throw new Problem(422, "invalid_file", problem);
+            }
+            out.add(f);
+        }
+        return out;
+    }
 
     /** 민원 접수 */
     @Transactional
@@ -146,8 +195,17 @@ public class EPetitionService {
         if ("이메일".equals(f.getNotify()) && f.getEmail() == null) {
             throw new Problem(422, "invalid_input", "이메일로 결과를 받으려면 이메일을 입력하세요.");
         }
+        // 첨부는 접수 전에 모두 확인한다 (하나라도 문제면 접수하지 않음)
+        List<org.springframework.web.multipart.MultipartFile> files = attachments(r.files());
         CivilComplaintVO c = civil.receive(f, REGISTER_ID);
         mapper.setLookup(c.getComplaintId(), encoder.encode(pw), Boolean.TRUE.equals(r.publicConsent()) ? "Y" : "N");
+        if (!files.isEmpty()) {
+            try {
+                civilFiles.save(c.getComplaintId(), files, REGISTER_ID);
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("첨부파일 저장 실패", e);
+            }
+        }
         // 창구 직원·관리자에게 배정할 민원이 왔다고 알린다
         for (LoginUser u : users.list()) {
             if (u.isEnabled() && (u.getRole() == LoginUser.Role.COUNTER || u.isAdmin())) {
@@ -162,6 +220,7 @@ public class EPetitionService {
         out.put("receivedAt", c.getReceivedAt().format(DT));
         out.put("deadlineAt", c.getDeadlineAt() == null ? null : c.getDeadlineAt().format(DT));
         out.put("complaintId", c.getComplaintId());
+        out.put("files", files.size());
         return out;
     }
 

@@ -193,4 +193,32 @@ class EPetitionApiTest {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(page).contains("전자민원 조회 비밀번호").doesNotContain(pw);
     }
+
+    @Test
+    void 사진_PDF를_붙이면_구비서류로_들어가고_형식을_속인_파일은_접수하지_않는다() throws Exception {
+        java.util.Base64.Encoder b64 = java.util.Base64.getEncoder();
+        byte[] png = new byte[64];
+        byte[] sig = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+        System.arraycopy(sig, 0, png, 0, sig.length);
+        String pdf = b64.encodeToString("%PDF-1.4\n%fake\n".getBytes(StandardCharsets.US_ASCII));
+        String head = "{\"kind\":\"OTHER\",\"name\":\"첨부시험\",\"mobile\":\"010-3333-4444\",\"title\":\"첨부 민원\","
+                + "\"content\":\"사진을 붙입니다\",\"password\":\"attach123\",\"privacyConsent\":true,\"files\":";
+        // 형식을 속인 파일(png 이름에 다른 내용) → 접수 안 함
+        String bad = head + "[{\"name\":\"현장.png\",\"contentBase64\":\"" + b64.encodeToString("MZ not png".getBytes()) + "\"}]}";
+        assertThat(call(signed("POST", "/api/epetition/v1/complaints", bad, nonce(), "192.0.2.88"), 422).get("error").asText()).isEqualTo("invalid_file");
+        // 허용하지 않는 형식
+        String exe = head + "[{\"name\":\"a.exe\",\"contentBase64\":\"AAAA\"}]}";
+        assertThat(call(signed("POST", "/api/epetition/v1/complaints", exe, nonce(), "192.0.2.88"), 422).get("message").asText()).contains("사진");
+        // 4개는 안 됨
+        String one = "{\"name\":\"a.pdf\",\"contentBase64\":\"" + pdf + "\"}";
+        String four = head + "[" + String.join(",", one, one, one, one) + "]}";
+        assertThat(call(signed("POST", "/api/epetition/v1/complaints", four, nonce(), "192.0.2.88"), 422).get("message").asText()).contains("3개");
+        // 정상
+        String ok = head + "[{\"name\":\"현장 사진.png\",\"contentBase64\":\"" + b64.encodeToString(png) + "\"}," + one + "]}";
+        JsonNode d = call(signed("POST", "/api/epetition/v1/complaints", ok, nonce(), "192.0.2.88"), 200).get("data");
+        assertThat(d.get("files").asInt()).isEqualTo(2);
+        long id = Long.parseLong(d.get("receiptNo").asText().substring(5));
+        assertThat(ctx.getBean(egovframework.haengjeongnuli.civil.service.CivilFileService.class).list(id))
+                .extracting(f -> f.getOriginalName()).containsExactlyInAnyOrder("현장 사진.png", "a.pdf");
+    }
 }
