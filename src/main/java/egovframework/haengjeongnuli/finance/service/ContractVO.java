@@ -35,6 +35,10 @@ public class ContractVO {
     private String createdName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    /** 이 계약의 구매 건 (견적·검수 기록) */
+    private Long purchaseId;
+    public Long getPurchaseId() { return purchaseId; }
+    public void setPurchaseId(Long purchaseId) { this.purchaseId = purchaseId; }
 
     public String getStatusLabel() {
         return switch (status == null ? "" : status) {

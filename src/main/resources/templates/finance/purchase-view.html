@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${p.purNo})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('finance')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/finance}">재정·세무</a> › <a th:href="@{/finance/purchases(year=${p.purYear})}">구매</a> › <span th:text="${p.purNo}">번호</span></span>
+    <h1 th:text="${p.title}">구매 건</h1></div>
+
+  <!-- 진행 흐름 -->
+  <section class="panel" aria-labelledby="flow-title">
+    <h2 id="flow-title">진행 흐름</h2>
+    <ol class="flow-steps" style="display:flex; flex-wrap:wrap; gap:8px; list-style:none; padding:0; margin:0;">
+      <li th:with="done=${p.quoteCount > 0}"><span th:class="'badge ' + (${done} ? 'badge-green' : 'badge-gray')" th:text="'1. 견적 ' + ${p.quoteCount} + '곳'">견적</span></li>
+      <li th:with="done=${p.selectedQuoteId != null}"><span th:class="'badge ' + (${done} ? 'badge-green' : 'badge-gray')" th:text="'2. 업체 선정' + (${done} ? ' ✓' : '')">선정</span></li>
+      <li><span th:class="'badge ' + (${!#lists.isEmpty(contracts)} ? 'badge-green' : 'badge-gray')" th:text="'3. 계약 ' + ${#lists.size(contracts)} + '건 (필요할 때)'">계약</span></li>
+      <li th:with="n=${#lists.size(docs.?[kind == '지출품의' and status == 'DONE'])}"><span th:class="'badge ' + (${n > 0} ? 'badge-green' : 'badge-gray')" th:text="'4. 지출품의 ' + ${n} + '건'">품의</span></li>
+      <li><span th:class="'badge ' + (${p.status == 'INSPECTED'} ? 'badge-green' : (${#lists.isEmpty(inspections)} ? 'badge-gray' : 'badge-orange'))"
+                th:text="'5. 검수 ' + (${p.status == 'INSPECTED'} ? '합격' : (${#lists.isEmpty(inspections)} ? '전' : '불합격·재검사'))">검수</span></li>
+      <li><span th:class="'badge ' + (${paid > 0} ? 'badge-green' : 'badge-gray')" th:text="'6. 지출결의 ' + ${#numbers.formatInteger(paid, 1, 'COMMA')} + '원'">지출</span></li>
+      <li th:if="${p.purType == '물품'}"><span th:class="'badge ' + (${!#lists.isEmpty(assets)} ? 'badge-green' : 'badge-gray')" th:text="'7. 물품대장 ' + ${#lists.size(assets)} + '건'">물품</span></li>
+    </ol>
+    <dl class="doc-info">
+      <div><dt>구매번호</dt><dd th:text="${p.purNo}">번호</dd></div>
+      <div><dt>종류</dt><dd th:text="${p.purType}">물품</dd></div>
+      <div><dt>부서·담당</dt><dd th:text="${p.deptName} + ' · ' + ${p.createdName}">부서</dd></div>
+      <div><dt>추정 금액</dt><dd th:text="${#numbers.formatInteger(p.estimatedAmount, 1, 'COMMA')} + '원'">금액</dd></div>
+      <div th:if="${budget}"><dt>예산</dt><dd><a th:href="@{/finance/budget/{id}(id=${budget.budgetId})}" th:text="${budget.code} + ' ' + (${budget.detailName} ?: '')">예산</a></dd></div>
+      <div th:if="${p.vendor}"><dt>선정 업체</dt><dd th:text="${p.vendor} + ' ' + ${#numbers.formatInteger(p.selectedAmount, 1, 'COMMA')} + '원'">업체</dd></div>
+      <div th:if="${p.selectReason}"><dt>선정 사유</dt><dd th:text="${p.selectReason}">사유</dd></div>
+      <div th:if="${p.selectedQuoteId != null}"><dt>지급 한도</dt><dd th:text="${#numbers.formatInteger(limit, 1, 'COMMA')} + '원 (' + (${#lists.isEmpty(contracts)} ? '선정 금액' : '계약 금액') + ') · 결의한 금액 ' + ${#numbers.formatInteger(paid, 1, 'COMMA')} + '원'">한도</dd></div>
+      <div><dt>상태</dt><dd th:text="${p.statusLabel} + (${p.cancelReason} ? ' — ' + ${p.cancelReason} : '')">상태</dd></div>
+      <div th:if="${p.note}"><dt>내용</dt><dd style="white-space:pre-line" th:text="${p.note}">내용</dd></div>
+    </dl>
+    <div class="form-actions" th:if="${canEdit and p.status != 'CANCELED'}" style="flex-wrap:wrap; gap:8px;">
+      <a class="btn btn-outline" th:if="${p.selectedQuoteId != null and p.status == 'SELECTED'}" th:href="@{/finance/contracts(purchase=${p.purchaseId})}">계약 등록</a>
+      <a class="btn btn-outline" th:href="@{/approval/draft(kind='지출품의', purchase=${p.purchaseId})}">지출품의 기안</a>
+      <a class="btn btn-primary" th:if="${p.status == 'INSPECTED'}" th:href="@{/approval/draft(kind='지출결의', purchase=${p.purchaseId})}">지출결의 기안</a>
+      <a class="btn btn-outline" th:if="${p.status == 'INSPECTED' and p.purType == '물품'}" th:href="@{/finance/assets(purchase=${p.purchaseId})}">물품대장에 올리기</a>
+    </div>
+  </section>
+
+  <!-- 견적 -->
+  <section class="panel flush" aria-labelledby="q-title">
+    <div class="panel-head"><h2 id="q-title">견적 비교</h2><span class="muted">금액이 싼 순서</span></div>
+    <p th:if="${#lists.isEmpty(quotes)}" class="hint" style="padding:18px 22px;">아직 받은 견적이 없습니다.</p>
+    <form th:unless="${#lists.isEmpty(quotes)}" th:action="@{/finance/purchases/{id}/select(id=${p.purchaseId})}" method="post" id="selectForm"></form>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(quotes)}"><table class="list" style="min-width:820px">
+      <thead><tr><th scope="col" th:if="${canEdit and p.status == 'QUOTING'}">고르기</th><th scope="col">업체</th><th scope="col">사업자등록번호</th>
+        <th scope="col">견적 금액</th><th scope="col">추정 대비</th><th scope="col">견적일</th><th scope="col">견적서</th><th scope="col">비고</th>
+        <th scope="col" th:if="${canEdit and p.status == 'QUOTING'}">빼기</th></tr></thead>
+      <tbody><tr th:each="q, st : ${quotes}">
+        <td th:if="${canEdit and p.status == 'QUOTING'}"><input type="radio" name="quoteId" form="selectForm" th:value="${q.quoteId}" th:id="'qs' + ${q.quoteId}" th:checked="${st.first}">
+          <label class="sr-only" th:for="'qs' + ${q.quoteId}" th:text="${q.vendor} + ' 고르기'">고르기</label></td>
+        <td th:style="${q.quoteId == p.selectedQuoteId} ? 'font-weight:700' : ''" th:text="${q.vendor} + (${q.quoteId == p.selectedQuoteId} ? ' (선정)' : '') + (${st.first} ? ' · 최저' : '')">업체</td>
+        <td th:text="${q.bizNo} ?: '—'">번호</td>
+        <td th:text="${#numbers.formatInteger(q.amount, 1, 'COMMA')} + '원'">금액</td>
+        <td th:text="${#numbers.formatDecimal(q.amount * 100.0 / p.estimatedAmount, 1, 1)} + '%'">100%</td>
+        <td th:text="${q.quoteDate}">날짜</td>
+        <td><th:block th:if="${q.storedName}"><a th:href="@{/finance/purchases/quotes/{id}/file(id=${q.quoteId})}" th:text="${q.originalName}">파일</a>
+          <a th:if="${@hwpViewer.supports(q.originalName)}" th:href="@{/finance/purchases/quotes/{id}/view(id=${q.quoteId})}"> (보기)</a></th:block>
+          <span th:unless="${q.storedName}">—</span></td>
+        <td th:text="${q.note} ?: ''">비고</td>
+        <td th:if="${canEdit and p.status == 'QUOTING'}"><form th:action="@{/finance/purchases/{id}/quotes/{q}/delete(id=${p.purchaseId}, q=${q.quoteId})}" method="post"
+              data-confirm="이 견적을 뺄까요?"><button type="submit" class="btn btn-plain btn-sm">빼기</button></form></td>
+      </tr></tbody>
+    </table></div>
+    <div th:if="${canEdit and p.status == 'QUOTING' and !#lists.isEmpty(quotes)}" style="padding:16px 22px; display:flex; flex-direction:column; gap:10px;">
+      <div class="field"><label for="sreason">선정 사유 (견적이 한 곳뿐이거나, 최저가가 아니거나, 추정 금액보다 비싸면 필수)</label>
+        <input id="sreason" name="reason" form="selectForm" class="input" maxlength="500" placeholder="예: 1인 견적 — 추정가격 ○○원 이하로 시행령 제30조에 따름"></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" form="selectForm" class="btn btn-primary">이 업체로 선정</button></div>
+    </div>
+    <form th:if="${canEdit and p.status == 'SELECTED' and #lists.isEmpty(inspections) and #lists.isEmpty(contracts)}" th:action="@{/finance/purchases/{id}/unselect(id=${p.purchaseId})}"
+          method="post" style="padding:12px 22px;" data-confirm="업체 선정을 되돌릴까요?"><button type="submit" class="btn btn-plain btn-sm">업체 선정 되돌리기</button></form>
+  </section>
+
+  <form class="panel" th:if="${canEdit and p.status == 'QUOTING'}" th:action="@{/finance/purchases/{id}/quotes(id=${p.purchaseId})}" method="post"
+        enctype="multipart/form-data" style="gap:14px;">
+    <h2>견적 넣기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="qv">업체 <span class="req">*</span></label><input id="qv" name="vendor" class="input" required maxlength="200"></div>
+      <div class="field"><label for="qb">사업자등록번호</label><input id="qb" name="bizNo" class="input" maxlength="12" placeholder="000-00-00000"></div>
+      <div class="field"><label for="qa">견적 금액 <span class="req">*</span></label><input id="qa" name="amount" class="input" required inputmode="numeric"></div>
+      <div class="field"><label for="qd">견적일 <span class="req">*</span></label><input id="qd" name="quoteDate" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+    </div>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));">
+      <div class="field"><label for="qf">견적서 파일</label><input id="qf" name="file" type="file" class="input"></div>
+      <div class="field"><label for="qn">비고</label><input id="qn" name="note" class="input" maxlength="500"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">견적 넣기</button></div>
+  </form>
+
+  <!-- 계약·결재 -->
+  <section class="panel" aria-labelledby="link-title">
+    <h2 id="link-title">계약·결재 문서</h2>
+    <p th:if="${#lists.isEmpty(contracts) and #lists.isEmpty(docs)}" class="hint" style="margin:0;">연결된 계약·결재 문서가 없습니다.</p>
+    <ul style="margin:0; padding-left:22px; display:flex; flex-direction:column; gap:6px;">
+      <li th:each="c : ${contracts}"><a th:href="@{/finance/contracts}" th:text="'[계약] ' + ${c['contractNo']} + ' ' + ${c['title']}">계약</a>
+        <span th:text="' — ' + ${c['party']} + ' ' + ${#numbers.formatInteger(c['amount'], 1, 'COMMA')} + '원 · ' + (${c['status'] == 'ACTIVE'} ? '이행 중' : (${c['status'] == 'DONE'} ? '완료' : '해제·해지'))">상태</span></li>
+      <li th:each="d : ${docs}"><a th:href="@{/approval/{id}(id=${d['docId']})}" th:text="'[' + ${d['kind']} + '] ' + ${d['title']}">문서</a>
+        <span th:text="' — ' + (${d['payAmount']} != null ? ${#numbers.formatInteger(d['payAmount'], 1, 'COMMA')} + '원 · ' : '')
+            + (${d['status'] == 'DONE'} ? '결재 완료' : (${d['status'] == 'PROG'} ? '결재 중' : (${d['status'] == 'REJECT'} ? '반려' : '임시저장')))">상태</span></li>
+    </ul>
+  </section>
+
+  <!-- 검수 -->
+  <section class="panel" aria-labelledby="i-title" th:if="${p.selectedQuoteId != null}">
+    <h2 id="i-title">검수(검사)</h2>
+    <p class="hint" style="margin:0;" th:text="'납품·완료 신고를 받은 날부터 ' + ${inspectDays} + '일 안에 검사합니다(시행령 제64조). 구매를 맡은 직원(' + ${p.createdName} + ')이 아닌 같은 부서의 다른 직원이 검수합니다.'">안내</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(inspections)}"><table class="list">
+      <thead><tr><th scope="col">완료 신고일</th><th scope="col">검수일</th><th scope="col">걸린 날</th><th scope="col">결과</th><th scope="col">검수자</th><th scope="col">내용</th></tr></thead>
+      <tbody><tr th:each="i : ${inspections}">
+        <td th:text="${i.notifiedDate}">날짜</td><td th:text="${i.inspectedDate}">날짜</td>
+        <td th:text="${i.days} + '일'" th:style="${i.days > inspectDays} ? 'color:var(--danger, #b42318); font-weight:700' : ''">일</td>
+        <td><span th:class="'badge ' + (${i.passed} ? 'badge-green' : 'badge-red')" th:text="${i.passed} ? '합격' : '불합격'">결과</span></td>
+        <td th:text="${i.inspectorName}">검수자</td><td class="left" th:text="${i.note} ?: ''">내용</td>
+      </tr></tbody>
+    </table></div>
+    <form th:if="${canInspect and p.status == 'SELECTED'}" th:action="@{/finance/purchases/{id}/inspect(id=${p.purchaseId})}" method="post" style="display:flex; flex-direction:column; gap:12px;">
+      <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+        <div class="field"><label for="ind">완료 신고(납품)일 <span class="req">*</span></label><input id="ind" name="notifiedDate" type="date" class="input" required th:max="${today}"></div>
+        <div class="field"><label for="iid">검수일 <span class="req">*</span></label><input id="iid" name="inspectedDate" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+        <div class="field"><label for="ir">결과</label><select id="ir" name="result" class="select"><option value="PASS">합격</option><option value="FAIL">불합격</option></select></div>
+      </div>
+      <div class="field"><label for="inote">검수 내용 (불합격이거나 14일을 넘기면 필수)</label><textarea id="inote" name="note" class="input" rows="2" maxlength="1000"></textarea></div>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">검수 기록</button></div>
+    </form>
+    <p th:if="${canEdit and !canInspect and p.status == 'SELECTED'}" class="hint" style="margin:0;">구매를 맡은 직원은 검수할 수 없습니다. 같은 부서의 다른 직원에게 검수를 부탁하세요.</p>
+  </section>
+
+  <!-- 물품 -->
+  <section class="panel" th:if="${p.purType == '물품' and !#lists.isEmpty(assets)}" aria-labelledby="a-title">
+    <h2 id="a-title">물품대장에 올린 물품</h2>
+    <ul style="margin:0; padding-left:22px;"><li th:each="a : ${assets}" th:text="${a.assetNo} + ' ' + ${a.name} + ' ' + ${a.quantity} + '개 · ' + ${a.statusLabel} + (${a.location} ? ' · ' + ${a.location} : '')">물품</li></ul>
+  </section>
+
+  <form class="panel" th:if="${canEdit and p.open}" th:action="@{/finance/purchases/{id}/cancel(id=${p.purchaseId})}" method="post" style="gap:10px;"
+        data-confirm="이 구매 건을 취소할까요?">
+    <h2>구매 취소</h2>
+    <div class="field"><label for="cr">취소 사유 <span class="req">*</span></label><input id="cr" name="reason" class="input" required maxlength="500"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">구매 취소</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

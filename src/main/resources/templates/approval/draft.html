@@ -118,6 +118,15 @@
                       th:text="'[' + (${c.spendType} ?: '일반') + '] ' + ${c.title} + ' — 잔액 ' + ${#numbers.formatInteger(c.remaining, 1, 'COMMA')} + '원'">품의</option>
             </select>
           </div>
+          <div class="field">
+            <label for="spurchase">구매 건 (견적·검수)</label>
+            <select id="spurchase" th:field="*{purchaseId}" class="select">
+              <option value="">연결 안 함</option>
+              <option th:each="p : ${purchases}" th:value="${p.purchaseId}"
+                      th:text="${p.purNo} + ' ' + ${p.title} + ' — ' + ${p.statusLabel}">구매</option>
+            </select>
+            <p class="hint only-spending" style="margin:0;">구매 건에 연결한 지출결의는 검수 합격 뒤에만 올라가고, 선정·계약 금액을 넘겨 지급할 수 없습니다.</p>
+          </div>
         </div>
         <p th:if="${#lists.isEmpty(spendable)}" class="hint" style="margin:0;">올해 우리 부서의 승인된 세출 예산이 없습니다. 재정 화면에서 예산을 작성해 승인을 받은 뒤 올리세요.</p>
         <div class="field" id="sbudget-field">

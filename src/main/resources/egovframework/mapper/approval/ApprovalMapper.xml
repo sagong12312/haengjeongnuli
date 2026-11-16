@@ -12,7 +12,7 @@
         D.RESTRICT_DETAIL, D.RECEIVER_TYPE, D.RECEIVER, D.VIA, D.REFERENCE_TO, D.SENDER, D.EFFECTIVE_DATE,
         D.TITLE, D.STATUS, D.DRAFTER_ID, D.DRAFTER_NAME, D.DRAFTER_POSITION, D.DRAFTER_DEPT,
         D.CREATED_AT, D.UPDATED_AT, D.SUBMITTED_AT, D.COMPLETED_AT, D.RECEIVED_BY, D.RECEIVED_AT, D.RECEIPT_NO,
-        D.BUDGET_ID, D.PAY_AMOUNT, D.PAYEE, D.PAY_METHOD, D.DELEGATED_YN, D.SPEND_TYPE, D.COMMIT_DOC_ID, D.SPEND_TARGET
+        D.BUDGET_ID, D.PAY_AMOUNT, D.PAYEE, D.PAY_METHOD, D.DELEGATED_YN, D.SPEND_TYPE, D.COMMIT_DOC_ID, D.SPEND_TARGET, D.PURCHASE_ID
     </sql>
 
     <insert id="insertDoc" parameterType="egovframework.haengjeongnuli.approval.service.ApprovalDocVO">
@@ -20,13 +20,13 @@
             DOC_ID, KIND, RETENTION, DISCLOSURE, RESTRICT_REASONS, RESTRICT_DETAIL, RECEIVER_TYPE, RECEIVER,
             VIA, REFERENCE_TO, SENDER, EFFECTIVE_DATE, TITLE, BODY, STATUS, DRAFTER_ID, DRAFTER_NAME,
             DRAFTER_POSITION, DRAFTER_DEPT, CREATED_AT, SUBMITTED_AT, DELETED_YN,
-            BUDGET_ID, PAY_AMOUNT, PAYEE, PAY_METHOD, DELEGATED_YN, SPEND_TYPE, COMMIT_DOC_ID, SPEND_TARGET
+            BUDGET_ID, PAY_AMOUNT, PAYEE, PAY_METHOD, DELEGATED_YN, SPEND_TYPE, COMMIT_DOC_ID, SPEND_TARGET, PURCHASE_ID
         ) VALUES (
             #{docId}, #{kind}, #{retention}, #{disclosure}, #{restrictReasons}, #{restrictDetail}, #{receiverType}, #{receiver},
             #{via}, #{referenceTo}, #{sender}, #{effectiveDate, jdbcType=DATE}, #{title}, #{body, jdbcType=CLOB}, #{status},
             #{drafterId}, #{drafterName}, #{drafterPosition}, #{drafterDept}, #{createdAt},
             #{submittedAt, jdbcType=TIMESTAMP}, 'N',
-            #{budgetId, jdbcType=NUMERIC}, #{payAmount, jdbcType=NUMERIC}, #{payee}, #{payMethod}, #{delegatedYn}, #{spendType}, #{commitDocId, jdbcType=NUMERIC}, #{spendTarget}
+            #{budgetId, jdbcType=NUMERIC}, #{payAmount, jdbcType=NUMERIC}, #{payee}, #{payMethod}, #{delegatedYn}, #{spendType}, #{commitDocId, jdbcType=NUMERIC}, #{spendTarget}, #{purchaseId, jdbcType=NUMERIC}
         )
     </insert>
 
@@ -40,7 +40,8 @@
                BODY = #{body, jdbcType=CLOB}, UPDATED_AT = #{updatedAt},
                BUDGET_ID = #{budgetId, jdbcType=NUMERIC}, PAY_AMOUNT = #{payAmount, jdbcType=NUMERIC},
                PAYEE = #{payee}, PAY_METHOD = #{payMethod}, DELEGATED_YN = #{delegatedYn},
-               SPEND_TYPE = #{spendType}, COMMIT_DOC_ID = #{commitDocId, jdbcType=NUMERIC}, SPEND_TARGET = #{spendTarget}
+               SPEND_TYPE = #{spendType}, COMMIT_DOC_ID = #{commitDocId, jdbcType=NUMERIC}, SPEND_TARGET = #{spendTarget},
+               PURCHASE_ID = #{purchaseId, jdbcType=NUMERIC}
          WHERE DOC_ID = #{docId} AND STATUS = 'DRAFT' AND DELETED_YN = 'N'
     </update>
 

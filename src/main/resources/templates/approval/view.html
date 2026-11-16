@@ -115,6 +115,8 @@
       <div><dt>예산</dt><dd>
         <a th:if="${budget}" th:href="@{/finance/budget/{id}(id=${budget.budgetId})}"
            th:text="${budget.detailName} + ' / ' + ${budget.code} + ' ' + ${budget.codeName}">예산</a></dd></div>
+      <div th:if="${purchase}"><dt>구매 건</dt><dd><a th:href="@{/finance/purchases/{id}(id=${purchase.purchaseId})}"
+          th:text="${purchase.purNo} + ' ' + ${purchase.title} + ' (' + ${purchase.statusLabel} + ')'">구매 건</a></dd></div>
       <div th:if="${doc.commitDocId}"><dt>지출품의</dt><dd><a th:href="@{/approval/{id}(id=${doc.commitDocId})}">품의 문서 보기</a></dd></div>
       <div><dt>금액</dt><dd style="font-weight:700;" th:text="${payText}">금액</dd></div>
       <div th:if="${doc.payee}"><dt th:text="${doc.commitment} ? '거래처(예정)' : '채권자'">채권자</dt><dd th:text="${doc.payee}">채권자</dd></div>

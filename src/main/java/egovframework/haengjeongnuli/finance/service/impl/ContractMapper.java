@@ -16,7 +16,7 @@ public interface ContractMapper {
 
     String COLS = "CONTRACT_ID, CONTRACT_NO, CONTRACT_YEAR, TITLE, CONTRACT_KIND, METHOD, PRIVATE_REASON, PARTY, PARTY_BIZ_NO, AMOUNT, "
             + "DEPOSIT, CONTRACT_DATE, START_DATE, END_DATE, BUDGET_ID, STATUS, STATUS_NOTE, DEPT_NAME, CREATED_BY, CREATED_NAME, "
-            + "CREATED_AT, UPDATED_AT ";
+            + "CREATED_AT, UPDATED_AT, PURCHASE_ID ";
 
     @Select("SELECT SEQ_CONTRACT.NEXTVAL FROM DUAL")
     long nextId();
@@ -24,7 +24,7 @@ public interface ContractMapper {
     @Insert("INSERT INTO CONTRACT (" + COLS + ") VALUES (#{contractId}, #{contractNo}, #{contractYear}, #{title}, #{contractKind}, "
             + "#{method}, #{privateReason}, #{party}, #{partyBizNo}, #{amount}, #{deposit, jdbcType=NUMERIC}, #{contractDate}, "
             + "#{startDate, jdbcType=DATE}, #{endDate, jdbcType=DATE}, #{budgetId, jdbcType=NUMERIC}, 'ACTIVE', NULL, #{deptName}, "
-            + "#{createdBy}, #{createdName}, #{createdAt}, NULL)")
+            + "#{createdBy}, #{createdName}, #{createdAt}, NULL, #{purchaseId, jdbcType=NUMERIC})")
     void insert(ContractVO c);
 
     @Select("<script>SELECT " + COLS + "FROM CONTRACT WHERE CONTRACT_YEAR = #{year} "

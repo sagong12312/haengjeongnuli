@@ -20,10 +20,12 @@ public class ContractService {
 
     private final ContractMapper mapper;
     private final FinanceService finance;
+    private final PurchaseService purchases;
 
-    public ContractService(ContractMapper mapper, FinanceService finance) {
+    public ContractService(ContractMapper mapper, FinanceService finance, PurchaseService purchases) {
         this.mapper = mapper;
         this.finance = finance;
+        this.purchases = purchases;
     }
 
     /** 볼 부서: 예산편성과·관리자는 고른 부서(비우면 전체), 그 밖에는 내 부서 */
@@ -98,6 +100,15 @@ public class ContractService {
                 return Result.fail("관련 예산은 우리 부서의 승인된 세출예산에서 고르세요.");
             }
         }
+        if (in.getPurchaseId() != null) {
+            PurchaseVO p = purchases.get(in.getPurchaseId());
+            if (!purchases.canEdit(p, me) || !PurchaseVO.SELECTED.equals(p.getStatus())) {
+                return Result.fail("구매 건은 업체를 고르고 납품을 기다리는 우리 부서 건에서 고르세요.");
+            }
+            if (!in.getContractKind().equals(p.getPurType())) {
+                return Result.fail("계약 종류가 구매 건의 종류(" + p.getPurType() + ")와 다릅니다.");
+            }
+        }
         LocalDateTime now = LocalDateTime.now();
         ContractVO c = new ContractVO();
         c.setContractId(mapper.nextId());
@@ -115,6 +126,7 @@ public class ContractService {
         c.setStartDate(in.getStartDate());
         c.setEndDate(in.getEndDate());
         c.setBudgetId(in.getBudgetId());
+        c.setPurchaseId(in.getPurchaseId());
         c.setDeptName(me.dept());
         c.setCreatedBy(me.getLoginId());
         c.setCreatedName(me.getUserName());

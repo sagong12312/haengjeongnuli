@@ -234,6 +234,10 @@ public class ApprovalDocVO {
 
     private String spendType;
     private Long commitDocId;
+    /** 연결한 구매 건 (견적·검수) */
+    private Long purchaseId;
+    public Long getPurchaseId() { return purchaseId; }
+    public void setPurchaseId(Long purchaseId) { this.purchaseId = purchaseId; }
     private String spendTarget;
     public String getSpendType() { return spendType; }
     public void setSpendType(String spendType) { this.spendType = spendType; }

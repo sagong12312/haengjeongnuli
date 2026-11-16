@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('물품대장')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('finance')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/finance}">재정·세무</a> › <a th:href="@{/finance/purchases}">구매</a> › 물품대장</span><h1>물품대장</h1></div>
+  <p class="hint">취득한 물품의 위치·사용자를 적고, 해마다 실물을 확인(재물조사)합니다. 쓰지 않는 물품은 <b>불용</b>으로 정한 뒤 처분(매각·폐기·양여 등)을 기록합니다.
+    구매 건으로 산 물품은 검수 합격 뒤 그 구매 건을 골라 올리면 구매 금액을 넘겨 올릴 수 없습니다.</p>
+
+  <form th:action="@{/finance/assets}" method="get" class="search-bar">
+    <th:block th:if="${seeAll}"><label for="adp" class="sr-only">부서</label>
+      <select id="adp" name="dept" class="select"><option value="">전체 부서</option>
+        <option th:each="d : ${@deptService.activeNames()}" th:value="${d}" th:selected="${d == scope}" th:text="${d}">부서</option></select></th:block>
+    <label for="ast" class="sr-only">상태</label>
+    <select id="ast" name="status" class="select"><option value="">사용·불용</option>
+      <option value="USE" th:selected="${status == 'USE'}">사용</option><option value="IDLE" th:selected="${status == 'IDLE'}">불용</option>
+      <option value="DISPOSED" th:selected="${status == 'DISPOSED'}">처분</option></select>
+    <label for="aq" class="sr-only">검색</label><input id="aq" name="q" class="input" th:value="${q}" placeholder="품명·물품번호·위치·사용자" maxlength="100">
+    <button type="submit" class="btn btn-outline">보기</button>
+    <a class="btn btn-plain" th:href="@{/finance/assets.csv(dept=${scope}, status=${status}, q=${q})}">CSV 내려받기</a>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>물품</h2>
+      <span class="muted" th:text="${#lists.size(rows)} + '건 · ' + ${#numbers.formatInteger(total, 1, 'COMMA')} + '원 · 올해 재물조사 ' + ${checkedThisYear} + '건'">합계</span></div>
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">물품이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list" style="min-width:1200px">
+      <thead><tr><th scope="col">물품번호</th><th scope="col" style="text-align:left">품명·규격</th><th scope="col">수량·금액</th><th scope="col">취득일</th>
+        <th scope="col">부서</th><th scope="col">위치·사용자</th><th scope="col">재물조사</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="a : ${rows}" th:with="mine=${a.deptName == loginUser.dept() and a.status != 'DISPOSED'}">
+        <td style="font-weight:700" th:text="${a.assetNo}">번호</td>
+        <td class="left"><span th:text="${a.name}">품명</span><small class="muted" style="display:block" th:text="${a.spec} ?: ''">규격</small>
+          <small th:if="${a.purchaseId}" style="display:block"><a th:href="@{/finance/purchases/{id}(id=${a.purchaseId})}" th:text="${a.purNo}">구매</a></small></td>
+        <td th:text="${a.quantity} + '개 · ' + ${#numbers.formatInteger(a.total, 1, 'COMMA')} + '원'">수량</td>
+        <td th:text="${a.acquiredDate}">날짜</td>
+        <td th:text="${a.deptName}">부서</td>
+        <td>
+          <span th:text="(${a.location} ?: '—') + ' / ' + (${a.userName} ?: '—')">위치</span>
+          <form th:if="${mine}" th:action="@{/finance/assets/{id}/place(id=${a.assetId})}" method="post" style="display:flex; gap:4px; margin:6px 0 0; justify-content:center;">
+            <label class="sr-only" th:for="'al' + ${a.assetId}">위치</label>
+            <input th:id="'al' + ${a.assetId}" name="location" class="input" th:value="${a.location}" placeholder="위치" maxlength="200" style="height:36px; font-size:14px; width:110px;">
+            <label class="sr-only" th:for="'au' + ${a.assetId}">사용자</label>
+            <input th:id="'au' + ${a.assetId}" name="userName" class="input" th:value="${a.userName}" placeholder="사용자" maxlength="100" style="height:36px; font-size:14px; width:90px;">
+            <button type="submit" class="btn btn-plain btn-sm" style="height:36px;">고치기</button>
+          </form>
+        </td>
+        <td><span th:text="${a.lastCheckedAt} ? ${a.lastCheckedAt} + ' ' + ${a.lastCheckedBy} : '안 함'">날짜</span>
+          <form th:if="${mine}" th:action="@{/finance/assets/{id}/check(id=${a.assetId})}" method="post" style="margin:6px 0 0;">
+            <button type="submit" class="btn btn-plain btn-sm">실물 확인</button></form></td>
+        <td>
+          <span th:class="'badge ' + (${a.status == 'USE'} ? 'badge-green' : (${a.status == 'IDLE'} ? 'badge-orange' : 'badge-gray'))" th:text="${a.statusLabel}">상태</span>
+          <small th:if="${a.disposeReason}" style="display:block" th:text="${a.disposedAt} + ' ' + ${a.disposeReason}">처분</small>
+          <form th:if="${mine}" th:action="@{/finance/assets/{id}/status(id=${a.assetId})}" method="post" style="margin:6px 0 0;">
+            <input type="hidden" name="status" th:value="${a.status == 'USE'} ? 'IDLE' : 'USE'">
+            <button type="submit" class="btn btn-plain btn-sm" th:text="${a.status == 'USE'} ? '불용으로' : '다시 사용'">불용으로</button></form>
+          <form th:if="${mine and a.status == 'IDLE'}" th:action="@{/finance/assets/{id}/dispose(id=${a.assetId})}" method="post"
+                style="display:flex; gap:4px; margin:6px 0 0; justify-content:center;" data-confirm="처분을 기록하면 되돌릴 수 없습니다. 기록할까요?">
+            <label class="sr-only" th:for="'ad' + ${a.assetId}">처분 사유</label>
+            <input th:id="'ad' + ${a.assetId}" name="reason" class="input" required placeholder="매각·폐기 등" maxlength="500" style="height:36px; font-size:14px; width:110px;">
+            <button type="submit" class="btn btn-plain btn-sm" style="height:36px;">처분</button>
+          </form>
+        </td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form class="panel" th:action="@{/finance/assets}" method="post" style="gap:16px;">
+    <h2>물품 올리기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="an">품명 <span class="req">*</span></label><input id="an" name="name" class="input" required maxlength="200"></div>
+      <div class="field"><label for="asp">규격</label><input id="asp" name="spec" class="input" maxlength="300"></div>
+      <div class="field"><label for="aqt">수량 <span class="req">*</span></label><input id="aqt" name="quantity" class="input" required inputmode="numeric" value="1"></div>
+      <div class="field"><label for="aup">단가 <span class="req">*</span></label><input id="aup" name="unitPrice" class="input" required inputmode="numeric"></div>
+      <div class="field"><label for="aad">취득일 <span class="req">*</span></label><input id="aad" name="acquiredDate" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="apu">구매 건</label><select id="apu" name="purchaseId" class="select"><option value="">(구매 건 없이: 기증·이관 등)</option>
+        <option th:each="p : ${purchaseOptions}" th:value="${p.purchaseId}" th:selected="${p.purchaseId == purchaseId}" th:text="${p.purNo} + ' ' + ${p.title}">구매</option></select></div>
+      <div class="field"><label for="alc">위치</label><input id="alc" name="location" class="input" maxlength="200" placeholder="예: 민원실"></div>
+      <div class="field"><label for="ausr">사용자</label><input id="ausr" name="userName" class="input" maxlength="100"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">올리기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

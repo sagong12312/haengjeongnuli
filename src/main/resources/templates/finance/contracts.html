@@ -70,6 +70,11 @@
       <div class="field"><label for="cb">관련 예산</label><select id="cb" name="budgetId" class="select"><option value="">(지정 안 함)</option>
         <option th:each="b : ${budgets}" th:value="${b.budgetId}" th:text="${b.code} + ' ' + (${b.detailName} ?: '') + ' · ' + ${#numbers.formatInteger(b.amount, 1, 'COMMA')} + '원'">예산</option></select></div>
     </div>
+    <div class="field" th:unless="${#lists.isEmpty(purchases)}"><label for="cpu">구매 건 (견적을 받아 업체를 고른 건)</label>
+      <select id="cpu" name="purchaseId" class="select"><option value="">(연결 안 함)</option>
+        <option th:each="p : ${purchases}" th:value="${p.purchaseId}" th:selected="${p.purchaseId == purchaseId}"
+                th:text="${p.purNo} + ' ' + ${p.title} + ' — ' + ${p.vendor} + ' ' + ${#numbers.formatInteger(p.selectedAmount, 1, 'COMMA')} + '원'">구매</option></select>
+      <p class="hint" style="margin:0;">구매 건을 연결하면 대금 지급 한도가 계약 금액이 되고, 구매 화면에서 계약·검수·지출 흐름을 한눈에 봅니다.</p></div>
     <div class="field"><label for="cr">수의계약 근거·사유 (수의계약이면 필수)</label><input id="cr" name="privateReason" class="input" maxlength="500" placeholder="예: 시행령 제25조 해당 항·호와 그 사유"></div>
     <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">계약 등록</button></div>
   </form>

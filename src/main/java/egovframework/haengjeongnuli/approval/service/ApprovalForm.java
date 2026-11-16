@@ -71,6 +71,10 @@ public class ApprovalForm {
 
     private String spendType = "일반";
     private Long commitDocId;
+    /** 연결한 구매 건 (견적·검수) */
+    private Long purchaseId;
+    public Long getPurchaseId() { return purchaseId; }
+    public void setPurchaseId(Long purchaseId) { this.purchaseId = purchaseId; }
     private String spendTarget;
     public String getSpendType() { return spendType; }
     public void setSpendType(String spendType) { this.spendType = spendType; }
@@ -132,6 +136,7 @@ public class ApprovalForm {
         f.payMethod = d.getPayMethod() == null ? "계좌이체" : d.getPayMethod();
         f.spendType = d.getSpendType() == null ? "일반" : d.getSpendType();
         f.commitDocId = d.getCommitDocId();
+        f.purchaseId = d.getPurchaseId();
         f.spendTarget = d.getSpendTarget();
         f.delegated = d.isDelegated();
         for (ApprovalLineVO l : d.getLines()) {

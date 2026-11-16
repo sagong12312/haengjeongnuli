@@ -40,7 +40,7 @@
         <a th:if="${loginUser.counterStaff or loginUser.admin}" class="menu-card" th:href="@{/civil/certs}"><b>증명 발급</b><span>등·초본·인감증명 발급대장, 수수료</span></a>
         <a class="menu-card" th:href="@{/finance(area='rev')}"><b>세입</b><span>세입예산, 수납 기록 (세입 담당)</span></a>
         <a class="menu-card" th:href="@{/finance(area='fin')}"><b>재정·회계</b><span>예산 편성·집행, 추경·이월, 지출결의</span></a>
-        <a class="menu-card" th:href="@{/finance/contracts}"><b>계약</b><span>공사·물품·용역 계약대장, 완료·해지</span></a>
+        <a class="menu-card" th:href="@{/finance/purchases}"><b>구매·계약</b><span>견적 비교, 계약대장, 검수, 물품대장</span></a>
         <a class="menu-card" th:href="@{/hr}"><b>인사</b><span>인사정보, 근태, 휴가·출장·시간외근무 신청</span></a>
         <a class="menu-card" th:href="@{/board}"><b>게시판</b><span>공지사항, 건의사항, 자료실</span></a>
         <a th:if="${loginUser.admin}" class="menu-card" th:href="@{/admin/users}"><b>시스템 관리</b><span>직원 계정·권한, 부서, 기관 정보·관인, 공휴일, 접속 기록</span></a>

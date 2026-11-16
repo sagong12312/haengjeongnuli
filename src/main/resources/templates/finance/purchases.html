@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('구매')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('finance')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/finance}">재정·세무</a> › 구매</span><h1 th:text="${year} + '년 구매'">구매</h1>
+    <a th:href="@{/finance/contracts}">계약대장</a> <a th:href="@{/finance/assets}" style="margin-left:12px;">물품대장</a></div>
+  <p class="hint">구매는 <b>견적 받기 → 업체 선정 → (계약) → 지출품의 → 납품·완료 신고 → 검수 → 지출결의 → 물품대장</b> 순서로 합니다.
+    견적이 한 곳뿐이거나 가장 싼 업체가 아니면 선정 사유를 적어야 하고, 지출결의는 검수에 합격한 뒤에만 올릴 수 있습니다.</p>
+
+  <form th:action="@{/finance/purchases}" method="get" class="search-bar">
+    <label for="py" class="sr-only">연도</label>
+    <select id="py" name="year" class="select"><option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option></select>
+    <th:block th:if="${seeAll}"><label for="pdp" class="sr-only">부서</label>
+      <select id="pdp" name="dept" class="select"><option value="">전체 부서</option>
+        <option th:each="d : ${@deptService.activeNames()}" th:value="${d}" th:selected="${d == scope}" th:text="${d}">부서</option></select></th:block>
+    <button type="submit" class="btn btn-outline">보기</button>
+    <a class="btn btn-plain" th:href="@{/finance/purchases.csv(year=${year}, dept=${scope})}">CSV 내려받기</a>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>구매 건</h2><span class="muted" th:text="${#lists.size(rows)} + '건'">0건</span></div>
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">구매 건이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list" style="min-width:960px">
+      <thead><tr><th scope="col">구매번호</th><th scope="col" style="text-align:left">구매 건</th><th scope="col">종류</th><th scope="col">추정 금액</th>
+        <th scope="col">견적</th><th scope="col">선정 업체</th><th scope="col">부서</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="p : ${rows}">
+        <td><a th:href="@{/finance/purchases/{id}(id=${p.purchaseId})}" style="font-weight:700" th:text="${p.purNo}">번호</a></td>
+        <td class="left"><a th:href="@{/finance/purchases/{id}(id=${p.purchaseId})}" th:text="${p.title}">구매 건</a></td>
+        <td th:text="${p.purType}">물품</td>
+        <td th:text="${#numbers.formatInteger(p.estimatedAmount, 1, 'COMMA')} + '원'">금액</td>
+        <td th:text="${p.quoteCount} + '곳'">0곳</td>
+        <td th:text="${p.vendor} ? ${p.vendor} + ' ' + ${#numbers.formatInteger(p.selectedAmount, 1, 'COMMA')} + '원' : '—'">업체</td>
+        <td th:text="${p.deptName}">부서</td>
+        <td><span th:class="'badge ' + (${p.status == 'QUOTING'} ? 'badge-gray' : (${p.status == 'SELECTED'} ? 'badge-orange' : (${p.status == 'INSPECTED'} ? 'badge-green' : 'badge-gray')))"
+                  th:text="${p.statusLabel}">상태</span></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form class="panel" th:action="@{/finance/purchases}" method="post" style="gap:16px;">
+    <h2>구매 건 만들기</h2>
+    <div class="field"><label for="pt">구매 건 이름 <span class="req">*</span></label><input id="pt" name="title" class="input" required maxlength="300" placeholder="예: 민원실 의자 10개 구매"></div>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="ptp">종류</label><select id="ptp" name="purType" class="select"><option th:each="t : ${types}" th:value="${t}" th:text="${t}">물품</option></select></div>
+      <div class="field"><label for="pea">추정 금액 <span class="req">*</span></label><input id="pea" name="estimatedAmount" class="input" required inputmode="numeric" placeholder="예: 1,500,000"></div>
+      <div class="field"><label for="pb">관련 예산</label><select id="pb" name="budgetId" class="select"><option value="">(지정 안 함)</option>
+        <option th:each="b : ${budgets}" th:value="${b.budgetId}" th:text="${b.code} + ' ' + (${b.detailName} ?: '') + ' · ' + ${#numbers.formatInteger(b.amount, 1, 'COMMA')} + '원'">예산</option></select></div>
+    </div>
+    <div class="field"><label for="pn">내용 (규격·수량 등)</label><textarea id="pn" name="note" class="input" rows="3" maxlength="1000"></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary btn-lg">만들기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -62,6 +62,55 @@ public class ApprovalController {
     private final egovframework.haengjeongnuli.approval.service.DispatchService dispatch;
     @org.springframework.beans.factory.annotation.Autowired
     private egovframework.haengjeongnuli.approval.service.ApprovalTemplateService templates;
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.finance.service.PurchaseService purchases;
+
+    /** 구매 건에서 품의·결의 시작: 종류·예산·업체·금액을 가져온다 */
+    private void prefillPurchase(ApprovalForm form, long purchaseId, LoginUser me) {
+        egovframework.haengjeongnuli.finance.service.PurchaseVO p = purchases.get(purchaseId);
+        if (!purchases.canEdit(p, me) || egovframework.haengjeongnuli.finance.service.PurchaseVO.CANCELED.equals(p.getStatus())) {
+            return;
+        }
+        form.setPurchaseId(purchaseId);
+        form.setSpendType(switch (p.getPurType()) {
+            case "물품" -> "물품구매";
+            case "용역" -> "용역";
+            case "공사" -> "공사";
+            default -> "일반";
+        });
+        if (p.getVendor() != null) {
+            form.setPayee(p.getVendor());
+        }
+        if (ApprovalForm.SPENDING.equals(form.getKind())) {
+            form.setTitle("[지출] " + p.getTitle());
+            long left = purchases.payLimit(p) - purchases.paid(purchaseId);
+            if (left > 0) {
+                form.setPayAmount(String.format("%,d", left));
+            }
+            // 이 구매 건의 결재 끝난 품의가 있으면 그 안에서 지급
+            java.util.Set<Long> open = new java.util.HashSet<>();
+            for (egovframework.haengjeongnuli.finance.service.CommitVO c : finance.openCommits(me.getDeptName())) {
+                open.add(c.getDocId());
+            }
+            for (java.util.Map<String, Object> d : purchases.docs(purchaseId)) {
+                Long id = ((Number) d.get("docId")).longValue();
+                if (ApprovalForm.COMMIT.equals(d.get("kind")) && open.contains(id)) {
+                    form.setCommitDocId(id);
+                    egovframework.haengjeongnuli.finance.service.CommitVO cv = finance.commitOf(id);
+                    form.setBudgetId(cv.getBudgetId());
+                    break;
+                }
+            }
+        } else {
+            form.setKind(ApprovalForm.COMMIT);
+            form.setTitle("[품의] " + p.getTitle());
+            long amt = p.getSelectedAmount() != null ? purchases.payLimit(p) : p.getEstimatedAmount();
+            form.setPayAmount(String.format("%,d", amt));
+        }
+        if (form.getBudgetId() == null) {
+            form.setBudgetId(p.getBudgetId());
+        }
+    }
 
     public ApprovalController(ApprovalService approvalService, AuditService auditService, FileStorage fileStorage,
                               egovframework.haengjeongnuli.finance.service.FinanceService finance,
@@ -106,7 +155,7 @@ public class ApprovalController {
     public String draftForm(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Long from,
                             @RequestParam(required = false) String kind, @RequestParam(required = false) Long budgetId,
                             @RequestParam(required = false) Long template, @RequestParam(required = false) Long commit,
-                            Model model) {
+                            @RequestParam(required = false) Long purchase, Model model) {
         ApprovalForm form = new ApprovalForm();
         if (kind != null && ApprovalForm.KINDS.contains(kind)) {
             form.setKind(kind);
@@ -131,6 +180,9 @@ public class ApprovalController {
                 form.setTitle("[지출] " + c.getTitle());
                 form.setSpendTarget(c.getSpendTarget());
             }
+        }
+        if (purchase != null) {
+            prefillPurchase(form, purchase, me);
         }
         if (template != null) {
             egovframework.haengjeongnuli.approval.service.ApprovalTemplateVO t = templates.get(template, me);
@@ -183,6 +235,7 @@ public class ApprovalController {
         }
         if (d.isBudgetDoc()) {
             model.addAttribute("budget", finance.get(d.getBudgetId()));
+            model.addAttribute("purchase", d.getPurchaseId() == null ? null : purchases.get(d.getPurchaseId()));
             model.addAttribute("payText", egovframework.haengjeongnuli.cmm.KoreanAmount.official(d.getPayAmount() == null ? 0 : d.getPayAmount()));
         }
         return "approval/view";
@@ -533,6 +586,7 @@ public class ApprovalController {
         model.addAttribute("payMethods", ApprovalForm.PAY_METHODS);
         model.addAttribute("spendTypes", ApprovalForm.SPEND_TYPES);
         model.addAttribute("commits", finance.openCommits(me.getDeptName()));
+        model.addAttribute("purchases", purchases.openForDept(me.dept()));
         // 지출결의에 고를 수 있는 예산과 지금 쓸 수 있는 금액
         Long selfId = doc == null ? null : doc.getDocId();
         java.util.List<egovframework.haengjeongnuli.finance.service.BudgetVO> spendable =

@@ -43,11 +43,14 @@ public class ApprovalServiceImpl implements ApprovalService {
     private final NotificationService notificationService;
     private final FinanceService finance;
     private final egovframework.haengjeongnuli.records.service.RecordService records;
+    private final egovframework.haengjeongnuli.finance.service.PurchaseService purchases;
 
     public ApprovalServiceImpl(ApprovalMapper mapper, UserService userService, FileStorage fileStorage,
                                NotificationService notificationService, FinanceService finance,
-                               egovframework.haengjeongnuli.records.service.RecordService records) {
+                               egovframework.haengjeongnuli.records.service.RecordService records,
+                               egovframework.haengjeongnuli.finance.service.PurchaseService purchases) {
         this.records = records;
+        this.purchases = purchases;
         this.mapper = mapper;
         this.userService = userService;
         this.fileStorage = fileStorage;
@@ -138,6 +141,12 @@ public class ApprovalServiceImpl implements ApprovalService {
                 } else {
                     f.setBudgetId(c.getBudgetId());
                 }
+            }
+            // 구매 건: 같은 부서·취소 안 된 건, 지출결의는 검수 합격 뒤 지급 한도 안에서만
+            String purchaseProblem = purchases.checkDoc(f.getPurchaseId(), f.isSpending(), submit, f.payAmountValue(),
+                    me.getDeptName(), docId);
+            if (purchaseProblem != null) {
+                err.put("purchaseId", purchaseProblem);
             }
             if (submit) {
                 if (f.isSpending() && blank(f.getPayee())) {
@@ -527,6 +536,7 @@ public class ApprovalServiceImpl implements ApprovalService {
         d.setSpendType(budgetDoc ? f.getSpendType() : null);
         d.setCommitDocId(f.isSpending() ? f.getCommitDocId() : null);
         d.setSpendTarget(budgetDoc ? trim(f.getSpendTarget(), 500) : null);
+        d.setPurchaseId(budgetDoc ? f.getPurchaseId() : null);
     }
 
     /** 검토자들, 협조자들, 결재권자 차례. 결재권자가 비어 있으면(임시저장) 검토·협조만 둔다. */

@@ -30,16 +30,19 @@ public class ContractController {
     private final ContractService contracts;
     private final FinanceService finance;
     private final AuditService audit;
+    private final egovframework.haengjeongnuli.finance.service.PurchaseService purchases;
 
-    public ContractController(ContractService contracts, FinanceService finance, AuditService audit) {
+    public ContractController(ContractService contracts, FinanceService finance, AuditService audit,
+                              egovframework.haengjeongnuli.finance.service.PurchaseService purchases) {
         this.contracts = contracts;
         this.finance = finance;
         this.audit = audit;
+        this.purchases = purchases;
     }
 
     @GetMapping("/finance/contracts")
     public String list(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Integer year,
-                       @RequestParam(required = false) String dept, Model model) {
+                       @RequestParam(required = false) String dept, @RequestParam(required = false) Long purchase, Model model) {
         int now = Year.now().getValue();
         int y = year == null || year < 2000 || year > now ? now : year;
         List<ContractVO> rows = contracts.list(me, y, dept);
@@ -53,6 +56,9 @@ public class ContractController {
         model.addAttribute("methods", ContractVO.METHODS);
         model.addAttribute("budgets", finance.spendable(me, now));
         model.addAttribute("today", LocalDate.now());
+        model.addAttribute("purchases", purchases.openForDept(me.dept()).stream()
+                .filter(p -> egovframework.haengjeongnuli.finance.service.PurchaseVO.SELECTED.equals(p.getStatus())).toList());
+        model.addAttribute("purchaseId", purchase);
         return "finance/contracts";
     }
 
@@ -83,7 +89,8 @@ public class ContractController {
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate contractDate,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-                         @RequestParam(required = false) Long budgetId, RedirectAttributes ra) {
+                         @RequestParam(required = false) Long budgetId, @RequestParam(required = false) Long purchaseId,
+                         RedirectAttributes ra) {
         ContractVO in = new ContractVO();
         in.setTitle(title);
         in.setContractKind(contractKind);
@@ -98,12 +105,13 @@ public class ContractController {
         in.setStartDate(startDate);
         in.setEndDate(endDate);
         in.setBudgetId(budgetId);
+        in.setPurchaseId(purchaseId);
         FinanceService.Result r = contracts.create(in, me);
         if (r.ok()) {
             audit.record(AuditAction.CONTRACT_SAVE, "계약 " + r.id(), "등록: " + title);
         }
         ra.addFlashAttribute("message", r.message());
-        return "redirect:/finance/contracts";
+        return r.ok() && purchaseId != null ? "redirect:/finance/purchases/" + purchaseId : "redirect:/finance/contracts";
     }
 
     @PostMapping("/finance/contracts/{id}/close")
