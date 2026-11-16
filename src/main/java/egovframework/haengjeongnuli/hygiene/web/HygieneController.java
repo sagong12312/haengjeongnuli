@@ -24,7 +24,7 @@ import egovframework.haengjeongnuli.hygiene.service.FoodBusinessVO;
 import egovframework.haengjeongnuli.hygiene.service.HygieneCheckVO;
 import egovframework.haengjeongnuli.hygiene.service.HygieneService;
 
-/** 환경·위생: 식품 영업소 대장, 위생 점검, 처리 중인 영업신고 민원 */
+/** 환경·위생: 식품·공중위생 영업소 대장, 위생 점검, 행정처분 대장, 처리 중인 영업신고 민원 */
 @Controller
 public class HygieneController {
 
@@ -49,6 +49,8 @@ public class HygieneController {
         model.addAttribute("q", q);
         model.addAttribute("type", type);
         model.addAttribute("types", FoodBusinessVO.TYPES);
+        model.addAttribute("foodTypes", FoodBusinessVO.FOOD_TYPES);
+        model.addAttribute("publicTypes", FoodBusinessVO.PUBLIC_TYPES);
         model.addAttribute("complaints", civilService.search(s));
         model.addAttribute("canEdit", service.canEdit(me));
         model.addAttribute("depts", String.join("·", service.getDepts()));
@@ -83,7 +85,81 @@ public class HygieneController {
         model.addAttribute("actions", HygieneCheckVO.ACTIONS);
         model.addAttribute("canEdit", service.canEdit(me));
         model.addAttribute("today", LocalDate.now());
+        model.addAttribute("sanctions", sanctions.byBusiness(id));
+        model.addAttribute("sanctionKinds", egovframework.haengjeongnuli.hygiene.service.SanctionVO.KINDS);
+        java.util.Map<String, String> basis = new java.util.LinkedHashMap<>();
+        for (String k : egovframework.haengjeongnuli.hygiene.service.SanctionVO.KINDS) {
+            basis.put(k, egovframework.haengjeongnuli.hygiene.service.SanctionService.defaultBasis(b.getLawName(), k));
+        }
+        model.addAttribute("basisHint", basis);
         return "hygiene/view";
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.hygiene.service.SanctionService sanctions;
+
+    @PostMapping("/hygiene/{id:\\d+}/sanctions")
+    public String sanction(@AuthenticationPrincipal LoginUser me, @PathVariable long id, @RequestParam(required = false) String kind,
+                           @RequestParam(required = false) String violation, @RequestParam(required = false) String basis,
+                           @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate decidedOn,
+                           @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate startDate,
+                           @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) LocalDate endDate,
+                           @RequestParam(required = false) String amount, @RequestParam(required = false) Long checkId,
+                           @RequestParam(defaultValue = "false") boolean publish, RedirectAttributes ra) {
+        Long amt = null;
+        if (amount != null && !amount.isBlank()) {
+            String t = amount.replace(",", "").replace("원", "").trim();
+            amt = t.matches("\\d{1,15}") ? Long.valueOf(t) : -1L;
+        }
+        HygieneService.Result r = sanctions.record(id, kind, violation, basis, decidedOn, startDate, endDate, amt, checkId, publish, me);
+        if (r.ok()) {
+            audit.record(AuditAction.HYGIENE_SANCTION, "영업소 " + id, kind + " " + r.message());
+        }
+        ra.addFlashAttribute("message", r.message());
+        return "redirect:/hygiene/" + id;
+    }
+
+    @PostMapping("/hygiene/sanctions/{sid:\\d+}/{action:cancel|publish|unpublish}")
+    public String sanctionAction(@AuthenticationPrincipal LoginUser me, @PathVariable long sid, @PathVariable String action,
+                                 @RequestParam(required = false) String reason, RedirectAttributes ra) {
+        egovframework.haengjeongnuli.hygiene.service.SanctionVO s = sanctions.get(sid);
+        if (s == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        HygieneService.Result r = "cancel".equals(action) ? sanctions.cancel(sid, reason, me) : sanctions.setPublic(sid, "publish".equals(action), me);
+        if (r.ok()) {
+            audit.record(AuditAction.HYGIENE_SANCTION, "처분 " + s.getSanctionNo(), action + (reason == null ? "" : " " + reason));
+        }
+        ra.addFlashAttribute("message", r.message());
+        return "redirect:/hygiene/" + s.getBizId();
+    }
+
+    /** 행정처분 대장 (연도별, 법률별) */
+    @GetMapping("/hygiene/sanctions")
+    public String sanctionList(@RequestParam(required = false) Integer year, @RequestParam(required = false) String law, Model model) {
+        int now = java.time.Year.now().getValue();
+        int y = year == null || year < 2000 || year > now ? now : year;
+        model.addAttribute("rows", sanctions.range(y, law));
+        model.addAttribute("year", y);
+        model.addAttribute("years", List.of(now - 2, now - 1, now));
+        model.addAttribute("law", law);
+        return "hygiene/sanctions";
+    }
+
+    @GetMapping("/hygiene/sanctions.csv")
+    public org.springframework.http.ResponseEntity<byte[]> sanctionCsv(@RequestParam(required = false) Integer year,
+                                                                       @RequestParam(required = false) String law) {
+        int now = java.time.Year.now().getValue();
+        int y = year == null || year < 2000 || year > now ? now : year;
+        egovframework.haengjeongnuli.cmm.text.Csv csv = egovframework.haengjeongnuli.cmm.text.Csv.of("처분번호", "처분일", "상호", "업종",
+                "대표자", "소재지", "법률", "처분", "시작일", "끝나는 날", "금액", "위반 내용", "근거", "공개", "상태", "취소 사유");
+        for (egovframework.haengjeongnuli.hygiene.service.SanctionVO s : sanctions.range(y, law)) {
+            csv.row(s.getSanctionNo(), s.getDecidedOn(), s.getBizName(), s.getBizType(), s.getOwnerName(), s.getAddress(), s.getLawName(),
+                    s.getKind(), s.getStartDate(), s.getEndDate(), s.getAmount(), s.getViolation(), s.getBasis(), s.isPublic() ? "공개" : "",
+                    s.isCanceled() ? "취소" : "유효", s.getCancelReason());
+        }
+        audit.record(AuditAction.FIN_EXPORT, "행정처분 대장 " + y, law);
+        return csv.download(y + "_행정처분대장.csv");
     }
 
     @PostMapping("/hygiene/{id:\\d+}/check")

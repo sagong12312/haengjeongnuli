@@ -28,10 +28,42 @@ public class EPetitionApiController {
 
     private final EPetitionService service;
     private final AuditService audit;
+    private final egovframework.haengjeongnuli.hygiene.service.SanctionService sanctions;
 
-    public EPetitionApiController(EPetitionService service, AuditService audit) {
+    public EPetitionApiController(EPetitionService service, AuditService audit,
+                                  egovframework.haengjeongnuli.hygiene.service.SanctionService sanctions) {
         this.service = service;
         this.audit = audit;
+        this.sanctions = sanctions;
+    }
+
+    /** 행정처분 공개: 담당자가 공개로 고른 유효한 처분, 처분일부터 1년. 대표자 이름은 보내지 않는다 */
+    @GetMapping("/dispositions")
+    public ResponseEntity<Map<String, Object>> dispositions(@RequestParam(defaultValue = "1") int page,
+                                                            @RequestParam(required = false) String q) {
+        egovframework.haengjeongnuli.hygiene.service.SanctionService.PublicPage p = sanctions.publicPage(page, q == null || q.length() > 100 ? null : q);
+        java.util.List<Map<String, Object>> items = new java.util.ArrayList<>();
+        for (egovframework.haengjeongnuli.hygiene.service.SanctionVO s : p.items()) {
+            Map<String, Object> it = new LinkedHashMap<>();
+            it.put("decidedOn", s.getDecidedOn().toString());
+            it.put("bizName", s.getBizName());
+            it.put("bizType", s.getBizType());
+            it.put("address", s.getAddress());
+            it.put("law", s.getLawName());
+            it.put("kind", s.getKind());
+            it.put("startDate", s.getStartDate() == null ? null : s.getStartDate().toString());
+            it.put("endDate", s.getEndDate() == null ? null : s.getEndDate().toString());
+            it.put("amount", s.getAmount());
+            it.put("violation", s.getViolation());
+            it.put("basis", s.getBasis());
+            items.add(it);
+        }
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("total", p.total());
+        out.put("page", p.page());
+        out.put("totalPages", p.totalPages());
+        out.put("items", items);
+        return ok(out);
     }
 
     @PostMapping("/complaints")

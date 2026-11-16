@@ -4,11 +4,21 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** 식품 영업소 (영업신고 수리) */
+/** 위생 영업소: 식품 영업(식품위생법)과 공중위생영업(공중위생관리법) 신고 수리 */
 public class FoodBusinessVO {
-    /** 영업신고를 해야 하는 업종 (식품위생법 시행령 제25조 제1항) */
-    public static final List<String> TYPES = List.of("휴게음식점영업", "일반음식점영업", "위탁급식영업", "제과점영업",
+    /** 영업신고를 해야 하는 식품 업종 (식품위생법 시행령 제25조 제1항) */
+    public static final List<String> FOOD_TYPES = List.of("휴게음식점영업", "일반음식점영업", "위탁급식영업", "제과점영업",
             "즉석판매제조·가공업", "식품운반업", "식품소분·판매업", "식품냉동·냉장업", "용기·포장류제조업");
+    /** 공중위생영업 (공중위생관리법 제2조: 숙박·목욕장·이용·미용·세탁·건물위생관리업) */
+    public static final List<String> PUBLIC_TYPES = List.of("숙박업", "목욕장업", "이용업", "미용업", "세탁업", "건물위생관리업");
+    public static final List<String> TYPES = java.util.stream.Stream.concat(FOOD_TYPES.stream(), PUBLIC_TYPES.stream()).toList();
+
+    /** 업종의 근거 법률 */
+    public static String lawOf(String type) {
+        return type != null && PUBLIC_TYPES.contains(type) ? "공중위생관리법" : "식품위생법";
+    }
+
+    public String getLawName() { return lawOf(bizType); }
 
     private Long bizId;
     private String bizName;

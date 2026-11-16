@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('행정처분 대장')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+
+<main class="page">
+  <div><span class="crumb"><a th:href="@{/hygiene}">환경·위생</a> › 행정처분 대장</span><h1 th:text="${year} + '년 행정처분 대장'">행정처분 대장</h1></div>
+  <p class="hint">식품위생법·공중위생관리법에 따른 영업정지·과징금·과태료 등 처분 기록입니다. 취소된 처분도 지우지 않고 표시합니다.</p>
+  <form th:action="@{/hygiene/sanctions}" method="get" class="search-bar">
+    <label for="sy" class="sr-only">연도</label>
+    <select id="sy" name="year" class="select"><option th:each="y : ${years}" th:value="${y}" th:selected="${y == year}" th:text="${y} + '년'">2026년</option></select>
+    <label for="sl" class="sr-only">법률</label>
+    <select id="sl" name="law" class="select"><option value="">전체 법률</option>
+      <option value="식품위생법" th:selected="${law == '식품위생법'}">식품위생법</option>
+      <option value="공중위생관리법" th:selected="${law == '공중위생관리법'}">공중위생관리법</option></select>
+    <button type="submit" class="btn btn-outline">보기</button>
+    <a class="btn btn-plain" th:href="@{/hygiene/sanctions.csv(year=${year}, law=${law})}">CSV 내려받기</a>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>처분</h2><span class="muted" th:text="${#lists.size(rows)} + '건'">0건</span></div>
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">처분 기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list" style="min-width:1000px">
+      <thead><tr><th scope="col">처분번호</th><th scope="col">처분일</th><th scope="col" style="text-align:left">영업소</th><th scope="col">처분</th>
+        <th scope="col" style="text-align:left">위반 내용</th><th scope="col">공개</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="s : ${rows}">
+        <td th:text="${s.sanctionNo}">번호</td><td th:text="${s.decidedOn}">날짜</td>
+        <td class="left"><a th:href="@{/hygiene/{id}(id=${s.bizId})}" th:text="${s.bizName}">상호</a>
+          <small class="muted" style="display:block" th:text="${s.bizType} + ' · ' + ${s.lawName}">업종</small></td>
+        <td th:text="${s.summary}">처분</td>
+        <td class="left" th:text="${s.violation}">위반</td>
+        <td th:text="${s.public} ? '공개' : '—'">공개</td>
+        <td th:text="${s.canceled} ? '취소' : (${s.inForce} ? '집행 중' : '유효')">상태</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

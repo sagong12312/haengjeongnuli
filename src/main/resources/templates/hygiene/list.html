@@ -7,7 +7,8 @@
 <main class="page">
   <div th:replace="~{fragments/layout :: flash}"></div>
   <div class="page-head">
-    <div><span class="crumb"><a th:href="@{/}">홈</a> › 환경·위생</span><h1>환경·위생</h1></div>
+    <div><span class="crumb"><a th:href="@{/}">홈</a> › 환경·위생</span><h1>환경·위생</h1>
+      <a th:href="@{/hygiene/sanctions}">행정처분 대장</a></div>
     <a class="btn btn-outline" th:href="@{/civil/new}">영업신고 민원 접수 (창구)</a>
   </div>
 
@@ -31,7 +32,8 @@
       <form th:action="@{/hygiene}" method="get" role="search" style="display:flex; gap:8px; flex-wrap:wrap;">
         <label for="htype" class="sr-only">업종</label>
         <select id="htype" name="type" class="select" style="height:44px; font-size:16px;"><option value="">전체 업종</option>
-          <option th:each="t : ${types}" th:value="${t}" th:text="${t}" th:selected="${t == type}">업종</option></select>
+          <optgroup label="식품위생법"><option th:each="t : ${foodTypes}" th:value="${t}" th:text="${t}" th:selected="${t == type}">업종</option></optgroup>
+          <optgroup label="공중위생관리법"><option th:each="t : ${publicTypes}" th:value="${t}" th:text="${t}" th:selected="${t == type}">업종</option></optgroup></select>
         <label for="hq" class="sr-only">검색</label>
         <input id="hq" name="q" class="input" type="search" th:value="${q}" placeholder="상호, 소재지, 대표자" style="height:44px; font-size:16px;">
         <button type="submit" class="btn btn-outline" style="height:44px;">검색</button>
@@ -58,7 +60,9 @@
       <div class="field"><label for="hname">상호 <span class="req">*</span></label><input id="hname" name="name" class="input" maxlength="200" required></div>
       <div class="field"><label for="howner">대표자 <span class="req">*</span></label><input id="howner" name="owner" class="input" maxlength="100" required></div>
       <div class="field"><label for="htype2">업종 <span class="req">*</span></label><select id="htype2" name="type" class="select" required>
-        <option value="">선택</option><option th:each="t : ${types}" th:value="${t}" th:text="${t}">업종</option></select></div>
+        <option value="">선택</option>
+        <optgroup label="식품위생법"><option th:each="t : ${foodTypes}" th:value="${t}" th:text="${t}">업종</option></optgroup>
+        <optgroup label="공중위생관리법"><option th:each="t : ${publicTypes}" th:value="${t}" th:text="${t}">업종</option></optgroup></select></div>
       <div class="field"><label for="hdate">신고일 <span class="req">*</span></label><input id="hdate" name="reportedOn" type="date" class="input" required th:max="${today}"></div>
       <div class="field" style="grid-column:span 2;"><label for="haddr">소재지 <span class="req">*</span></label><input id="haddr" name="address" class="input" maxlength="300" required></div>
       <div class="field"><label for="hreceipt">민원 접수번호</label><input id="hreceipt" name="receiptNo" class="input" maxlength="20"></div>

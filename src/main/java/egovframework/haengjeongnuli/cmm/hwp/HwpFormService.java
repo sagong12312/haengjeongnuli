@@ -49,6 +49,8 @@ public class HwpFormService {
     private final HygieneService hygiene;
     private final BuildingService building;
     private final egovframework.haengjeongnuli.user.service.UserService users;
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.hygiene.service.impl.SanctionMapper sanctionMapper;
 
     public HwpFormService(HwpFormMapper mapper, FileStorage storage, OrgService org, CivilProcessService civil,
                           HygieneService hygiene, BuildingService building, egovframework.haengjeongnuli.user.service.UserService users) {
@@ -178,8 +180,16 @@ public class HwpFormService {
         KNOWN.put("신고일", "영업 신고일");
         KNOWN.put("점검일", "최근 위생 점검일");
         KNOWN.put("점검결과", "최근 점검 결과");
-        KNOWN.put("위반내용", "최근 점검의 위반 내용");
+        KNOWN.put("위반내용", "최근 처분(없으면 최근 점검)의 위반 내용");
         KNOWN.put("조치내용", "최근 점검의 조치 내용");
+        KNOWN.put("근거법률", "식품위생법 또는 공중위생관리법");
+        KNOWN.put("처분번호", "최근 행정처분 번호");
+        KNOWN.put("처분일", "최근 행정처분일");
+        KNOWN.put("처분종류", "영업정지·과징금 등");
+        KNOWN.put("처분내용", "처분 종류와 기간·금액 한 줄");
+        KNOWN.put("처분기간", "영업정지 기간");
+        KNOWN.put("처분금액", "과징금·과태료 금액");
+        KNOWN.put("처분근거", "처분 근거 조항");
         KNOWN.put("접수번호", "건축 접수번호");
         KNOWN.put("건축주", "건축주");
         KNOWN.put("대지위치", "건축 대지위치");
@@ -244,10 +254,23 @@ public class HwpFormService {
                 v.put("신고일", b.getReportedOn() == null ? "" : b.getReportedOn().format(KDATE));
                 List<HygieneCheckVO> checks = hygiene.checks(sourceId);
                 HygieneCheckVO last = checks.stream().max(java.util.Comparator.comparing(HygieneCheckVO::getCheckedOn)).orElse(null);
+                List<egovframework.haengjeongnuli.hygiene.service.SanctionVO> ss = sanctionMapper.selectByBiz(sourceId);
+                egovframework.haengjeongnuli.hygiene.service.SanctionVO s = ss.stream().filter(x -> !x.isCanceled()).findFirst().orElse(null);
+                if (s != null) {
+                    v.put("처분번호", s.getSanctionNo());
+                    v.put("처분일", s.getDecidedOn().format(KDATE));
+                    v.put("처분내용", s.getSummary());
+                    v.put("처분종류", s.getKind());
+                    v.put("처분기간", s.getStartDate() == null ? "" : s.getStartDate().format(KDATE) + " ~ " + s.getEndDate().format(KDATE));
+                    v.put("처분금액", s.getAmount() == null ? "" : String.format("%,d원", s.getAmount()));
+                    v.put("처분근거", s.getBasis());
+                    v.put("위반내용", s.getViolation());
+                }
+                v.put("근거법률", b.getLawName());
                 if (last != null) {
+                    v.putIfAbsent("위반내용", nz(last.getViolation()));
                     v.put("점검일", last.getCheckedOn().format(KDATE));
                     v.put("점검결과", nz(last.getResult()));
-                    v.put("위반내용", nz(last.getViolation()));
                     v.put("조치내용", nz(last.getAction()));
                 }
             }

@@ -59,6 +59,10 @@ class OracleReadinessTest {
                         .doesNotContain("UPDATE, DELETE ON " + t + " ").doesNotContain("DELETE ON " + t + " ");
             } else if (t.equals("AUDIT_CHAIN")) {
                 assertThat(grants).as(t).contains("GRANT SELECT, UPDATE ON AUDIT_CHAIN TO HJN_APP;");
+            } else if (t.equals("HYGIENE_SANCTION")) {
+                // 행정처분은 지우지 않고 취소로 표시한다
+                assertThat(grants).as(t).contains("GRANT SELECT, INSERT, UPDATE ON " + t + " TO HJN_APP;")
+                        .doesNotContain("DELETE ON " + t + " ");
             } else if (t.equals("DOC_REGISTRY_FIX")) {
                 // 수정 이력은 지울 수 없다 (상태만 바꾼다)
                 assertThat(grants).as(t).contains("GRANT SELECT, INSERT, UPDATE ON " + t + " TO HJN_APP;")

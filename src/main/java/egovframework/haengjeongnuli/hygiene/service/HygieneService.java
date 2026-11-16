@@ -23,6 +23,9 @@ public class HygieneService {
     private final HygieneMapper mapper;
     private final Set<String> depts;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.hygiene.service.impl.SanctionMapper sanctions;
+
     public HygieneService(HygieneMapper mapper, @Value("${app.work.hygiene-depts:위생과}") String depts) {
         this.mapper = mapper;
         this.depts = Arrays.stream(depts.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
@@ -86,6 +89,10 @@ public class HygieneService {
         }
         if (on == null || on.isBefore(b.getReportedOn()) || on.isAfter(LocalDate.now())) {
             return new Result(false, "폐업일은 신고일과 오늘 사이여야 합니다.", null);
+        }
+        // 공중위생영업은 영업정지 등의 기간 중에는 폐업신고를 할 수 없다 (공중위생관리법 제3조 제2항 단서)
+        if (FoodBusinessVO.PUBLIC_TYPES.contains(b.getBizType()) && sanctions != null && sanctions.countInForce(id, on) > 0) {
+            return new Result(false, "영업정지 등의 기간 중에는 폐업신고를 받을 수 없습니다 (공중위생관리법).", null);
         }
         return mapper.closeBusiness(id, on) == 1 ? new Result(true, "폐업으로 처리했습니다.", id)
                 : new Result(false, "이미 폐업한 영업소입니다.", null);

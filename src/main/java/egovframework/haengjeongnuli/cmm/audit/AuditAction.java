@@ -56,6 +56,7 @@ public enum AuditAction {
     EPETITION_RECEIVE("전자민원 접수(연동)"),
     EPETITION_LOOKUP("전자민원 처리상황 조회(연동)"),
     EPETITION_PUBLISH("공개 상담 게시·내림"),
+    HYGIENE_SANCTION("위생 행정처분 기록"),
     FIN_EXPORT("재정 자료 내려받기"),
     CERT_EXPORT("증명 발급 일계표 내려받기"),
     CIVIL_ASSIGN("민원 배정"),

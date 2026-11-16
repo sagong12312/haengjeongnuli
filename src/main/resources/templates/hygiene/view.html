@@ -10,9 +10,10 @@
     <a th:href="@{/forms(source='hygiene', sourceId=${b.bizId})}">한글 서식으로 만들기 (시정권고서·시정명령서 등)</a></div>
   <section class="panel">
     <div style="display:flex; justify-content:space-between; align-items:center;"><h2>영업소 정보</h2>
-      <span th:class="${b.open} ? 'badge badge-green' : 'badge badge-gray'" th:text="${b.open} ? '영업' : '폐업 ' + ${b.closedOn}">영업</span></div>
+      <span><span th:each="s : ${sanctions}" th:if="${s.inForce}" class="badge badge-red" style="margin-right:6px;" th:text="${s.kind} + ' 중 (~' + ${s.endDate} + ')'">영업정지 중</span>
+      <span th:class="${b.open} ? 'badge badge-green' : 'badge badge-gray'" th:text="${b.open} ? '영업' : '폐업 ' + ${b.closedOn}">영업</span></span></div>
     <dl class="kv">
-      <div><dt>업종</dt><dd th:text="${b.bizType}">업종</dd></div>
+      <div><dt>업종</dt><dd th:text="${b.bizType} + ' (' + ${b.lawName} + ')'">업종</dd></div>
       <div><dt>대표자</dt><dd th:text="${b.ownerName}">대표자</dd></div>
       <div><dt>소재지</dt><dd th:text="${b.address}">소재지</dd></div>
       <div><dt>신고일</dt><dd th:text="${b.reportedOn}">날짜</dd></div>
@@ -45,6 +46,49 @@
       </tr></tbody>
     </table></div>
   </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>행정처분</h2><a th:href="@{/hygiene/sanctions}">행정처분 대장 전체</a></div>
+    <p th:if="${#lists.isEmpty(sanctions)}" class="hint" style="padding:18px 22px;">행정처분 기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(sanctions)}"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">처분번호·처분일</th><th scope="col">처분</th><th scope="col" style="text-align:left">위반 내용·근거</th><th scope="col">공개</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="s : ${sanctions}">
+        <td><b th:text="${s.sanctionNo}">번호</b><small style="display:block" th:text="${s.decidedOn}">날짜</small></td>
+        <td th:text="${s.summary}">처분</td>
+        <td class="left"><span th:text="${s.violation}">위반</span><small class="muted" style="display:block" th:text="${s.basis}">근거</small></td>
+        <td><span th:text="${s.public} ? '공개' : '—'">공개</span>
+          <form th:if="${canEdit and !s.canceled}" th:action="@{/hygiene/sanctions/{sid}/{a}(sid=${s.sanctionId}, a=${s.public} ? 'unpublish' : 'publish')}" method="post" style="margin:4px 0 0;">
+            <button type="submit" class="btn btn-plain btn-sm" th:text="${s.public} ? '공개 내리기' : '공개하기'">공개</button></form></td>
+        <td><span th:class="'badge ' + (${s.canceled} ? 'badge-gray' : (${s.inForce} ? 'badge-red' : 'badge-orange'))"
+                  th:text="${s.canceled} ? '취소' : (${s.inForce} ? '집행 중' : '유효')">상태</span>
+          <small th:if="${s.cancelReason}" style="display:block" th:text="${s.cancelReason}">사유</small>
+          <form th:if="${canEdit and !s.canceled}" th:action="@{/hygiene/sanctions/{sid}/cancel(sid=${s.sanctionId})}" method="post"
+                style="display:flex; gap:4px; margin:4px 0 0; justify-content:center;" data-confirm="처분을 취소로 표시할까요? (행정심판 인용 등)">
+            <label class="sr-only" th:for="'sc' + ${s.sanctionId}">취소 사유</label>
+            <input th:id="'sc' + ${s.sanctionId}" name="reason" class="input" required placeholder="취소 사유" maxlength="500" style="height:34px; font-size:14px; width:110px;">
+            <button type="submit" class="btn btn-plain btn-sm">취소</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canEdit}" class="panel" th:action="@{/hygiene/{id}/sanctions(id=${b.bizId})}" method="post" style="gap:12px;">
+    <h2>행정처분 기록</h2>
+    <p class="hint" style="margin:0;" th:text="'처분 문서 결재를 마친 뒤 결과를 남깁니다. 영업정지·사용중지는 6개월 이내(' + ${b.lawName} + '), 영업소 폐쇄·허가 취소를 기록하면 대장도 폐업이 됩니다. 처분 근거를 비우면 기본 조항이 들어갑니다.'">안내</p>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="field"><label for="skind">처분 <span class="req">*</span></label><select id="skind" name="kind" class="select" required>
+        <option th:each="k : ${sanctionKinds}" th:value="${k}" th:text="${k} + (${basisHint[k]} != '' ? ' — ' + ${basisHint[k]} : '')">처분</option></select></div>
+      <div class="field"><label for="sdec">처분일 <span class="req">*</span></label><input id="sdec" name="decidedOn" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="sst">정지 시작일 (정지·사용중지)</label><input id="sst" name="startDate" type="date" class="input"></div>
+      <div class="field"><label for="sen">정지 끝나는 날</label><input id="sen" name="endDate" type="date" class="input"></div>
+      <div class="field"><label for="samt">금액 (과징금·과태료)</label><input id="samt" name="amount" class="input" inputmode="numeric" placeholder="예: 1,200,000"></div>
+      <div class="field"><label for="schk">관련 점검</label><select id="schk" name="checkId" class="select"><option value="">(없음)</option>
+        <option th:each="k : ${checks}" th:value="${k.checkId}" th:text="${k.checkedOn} + ' ' + ${k.result} + ' ' + (${k.violation} ?: '')">점검</option></select></div>
+    </div>
+    <div class="field"><label for="svio">위반 내용 <span class="req">*</span></label><textarea id="svio" name="violation" class="textarea" rows="2" maxlength="1000" required></textarea></div>
+    <div class="field"><label for="sbas">처분 근거 (법 조항)</label><input id="sbas" name="basis" class="input" maxlength="200" placeholder="비우면 기본 조항 (과태료·시정명령은 직접 적기)"></div>
+    <label class="check"><input type="checkbox" name="publish" value="true">전자민원 행정처분 공개에 올리기 (처분일부터 1년)</label>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">기록</button></div>
+  </form>
 
   <form th:if="${canEdit and b.open}" class="panel" th:action="@{/hygiene/{id}/close(id=${b.bizId})}" method="post" style="gap:12px;"
         data-confirm="폐업으로 처리할까요?">
