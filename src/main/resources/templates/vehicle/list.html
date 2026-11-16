@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('관용차량')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › 관용차량</span><h1>관용차량</h1></div>
+  <p class="hint">차를 쓴 직원은 누구나 운행일지를 적습니다. 주유·정비·검사·보험은 차량 담당 부서(<span th:text="${depts}">총무과</span>와 배정 부서)가 기록합니다.
+    정기검사·보험 만료가 30일 안이면 빨간색으로 표시합니다.</p>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>차량</h2><span class="muted" th:text="${#lists.size(vehicles)} + '대'">0대</span></div>
+    <p th:if="${#lists.isEmpty(vehicles)}" class="hint" style="padding:18px 22px;">등록된 차량이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(vehicles)}"><table class="list" style="min-width:860px">
+      <thead><tr><th scope="col">차량번호</th><th scope="col">차종</th><th scope="col">부서</th><th scope="col">주행거리</th><th scope="col">정기검사</th><th scope="col">보험 만료</th></tr></thead>
+      <tbody><tr th:each="v : ${vehicles}">
+        <td><a th:href="@{/vehicles/{id}(id=${v.vehicleId})}" style="font-weight:700" th:text="${v.plateNo}">번호</a></td>
+        <td th:text="${v.model} + ' (' + ${v.vehicleKind} + '·' + ${v.fuel} + ')'">차종</td>
+        <td th:text="${v.deptName}">부서</td>
+        <td th:text="${#numbers.formatInteger(v.odometer, 1, 'COMMA')} + 'km'">km</td>
+        <td th:style="${v.inspectionSoon} ? 'color:#B42318; font-weight:700' : ''" th:text="${v.inspectionDue} ?: '—'">검사</td>
+        <td th:style="${v.insuranceSoon} ? 'color:#B42318; font-weight:700' : ''" th:text="${v.insuranceDue} ?: '—'">보험</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="${ym} + ' 차량별 운행·비용'">월 합계</h2>
+      <form th:action="@{/vehicles}" method="get" style="display:flex; gap:6px; margin:0;"><label for="vm" class="sr-only">월</label>
+        <input id="vm" name="month" type="month" class="input" th:value="${ym}" style="height:38px;"><button type="submit" class="btn btn-plain btn-sm">보기</button></form></div>
+    <div class="table-wrap"><table class="list">
+      <thead><tr><th scope="col">차량번호</th><th scope="col">부서</th><th scope="col">운행</th><th scope="col">거리</th><th scope="col">주유량</th><th scope="col">비용</th></tr></thead>
+      <tbody><tr th:each="m : ${monthly}">
+        <td th:text="${m['plateNo']}">번호</td><td th:text="${m['deptName']}">부서</td><td th:text="${m['trips']} + '회'">회</td>
+        <td th:text="${#numbers.formatInteger(m['km'], 1, 'COMMA')} + 'km'">km</td>
+        <td th:text="${m['liters']} + 'ℓ'">ℓ</td>
+        <td th:text="${#numbers.formatInteger(m['cost'], 1, 'COMMA')} + '원'">원</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canRegister}" class="panel" th:action="@{/vehicles}" method="post" style="gap:14px;">
+    <h2>차량 등록</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="field"><label for="np">차량번호 <span class="req">*</span></label><input id="np" name="plateNo" class="input" required maxlength="20" placeholder="12가3456"></div>
+      <div class="field"><label for="nm">차종(모델) <span class="req">*</span></label><input id="nm" name="model" class="input" required maxlength="100"></div>
+      <div class="field"><label for="nk">구분</label><select id="nk" name="vehicleKind" class="select"><option th:each="k : ${kinds}" th:value="${k}" th:text="${k}">승용</option></select></div>
+      <div class="field"><label for="nf">연료</label><select id="nf" name="fuel" class="select"><option th:each="f : ${fuels}" th:value="${f}" th:text="${f}">휘발유</option></select></div>
+      <div class="field"><label for="nd">배정 부서 <span class="req">*</span></label><select id="nd" name="deptName" class="select" required>
+        <option th:each="d : ${@deptService.activeNames()}" th:value="${d}" th:text="${d}">부서</option></select></div>
+      <div class="field"><label for="na">취득일 <span class="req">*</span></label><input id="na" name="acquiredOn" type="date" class="input" required th:max="${today}"></div>
+      <div class="field"><label for="no">현재 주행거리(km)</label><input id="no" name="odometer" class="input" inputmode="numeric" value="0"></div>
+      <div class="field"><label for="ni">정기검사 만료</label><input id="ni" name="inspectionDue" type="date" class="input"></div>
+      <div class="field"><label for="ns">보험 만료</label><input id="ns" name="insuranceDue" type="date" class="input"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">등록</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('공유재산')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › 공유재산</span><h1>공유재산 대장</h1></div>
+  <p class="hint">토지·건물 등 공유재산과 사용허가(행정재산)·대부(일반재산)를 기록합니다. 행정재산 연간 사용료는 평정가격의 1천분의 10 이상 범위에서 조례로 정하므로,
+    그보다 적게 받으면 감면 근거를 적어야 합니다. 대장 등록·처분은 <span th:text="${depts}">회계과</span> 직원이, 사용허가·대부는 관리부서 직원도 기록합니다.</p>
+
+  <section class="panel" th:unless="${#lists.isEmpty(ending)}" style="border:2px solid #E8A33D;">
+    <h2>기간이 곧 끝나거나 지난 사용허가·대부 (30일 안)</h2>
+    <ul style="margin:0; padding-left:22px;"><li th:each="u : ${ending}">
+      <a th:href="@{/property/{id}(id=${u.propId})}" th:text="${u.propNo} + ' ' + ${u.propName}">재산</a>
+      <span th:text="' — ' + ${u.useType} + ' ' + ${u.userName} + ', ' + ${u.endDate} + (${u.daysLeft} < 0 ? ' (지남)' : ' (' + ${u.daysLeft} + '일 남음)')">기간</span></li></ul>
+  </section>
+
+  <form th:action="@{/property}" method="get" class="search-bar">
+    <label for="pc" class="sr-only">구분</label>
+    <select id="pc" name="cls" class="select"><option value="">전체 구분</option>
+      <option th:each="c : ${classes}" th:value="${c}" th:text="${c}" th:selected="${c == cls}">행정재산</option></select>
+    <label for="pq" class="sr-only">검색</label><input id="pq" name="q" class="input" th:value="${q}" placeholder="재산명·소재지·재산번호" maxlength="100">
+    <label class="check"><input type="checkbox" name="all" value="true" th:checked="${all}">처분한 재산도</label>
+    <button type="submit" class="btn btn-outline">보기</button>
+    <a class="btn btn-plain" th:href="@{/property.csv(cls=${cls}, q=${q}, all=${all})}">CSV 내려받기</a>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>재산</h2><span class="muted" th:text="${#lists.size(rows)} + '건'">0건</span></div>
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">재산이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list" style="min-width:960px">
+      <thead><tr><th scope="col">재산번호</th><th scope="col">종류·구분</th><th scope="col" style="text-align:left">재산명·소재지</th><th scope="col">면적</th>
+        <th scope="col">평정가격</th><th scope="col">관리부서</th><th scope="col">허가·대부</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="p : ${rows}">
+        <td><a th:href="@{/property/{id}(id=${p.propId})}" style="font-weight:700" th:text="${p.propNo}">번호</a></td>
+        <td th:text="${p.propKind} + ' · ' + ${p.propClass}">토지</td>
+        <td class="left"><span th:text="${p.name}">재산명</span><small class="muted" style="display:block" th:text="${p.location}">소재지</small></td>
+        <td th:text="${p.area} ? ${p.area} + '㎡' : '—'">면적</td>
+        <td th:text="${#numbers.formatInteger(p.appraised, 1, 'COMMA')} + '원'">가격</td>
+        <td th:text="${p.deptName}">부서</td>
+        <td th:text="${p.activeUses} > 0 ? ${p.activeUses} + '건 (~' + ${p.nextEnd} + ')' : '—'">허가</td>
+        <td th:text="${p.held} ? '보유' : '처분'">상태</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canRegister}" class="panel" th:action="@{/property}" method="post" style="gap:14px;">
+    <h2>재산 올리기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="rk">종류</label><select id="rk" name="propKind" class="select"><option th:each="k : ${kinds}" th:value="${k}" th:text="${k}">토지</option></select></div>
+      <div class="field"><label for="rc">구분</label><select id="rc" name="propClass" class="select"><option th:each="c : ${classes}" th:value="${c}" th:text="${c}">행정재산</option></select></div>
+      <div class="field"><label for="rn">재산명 <span class="req">*</span></label><input id="rn" name="name" class="input" required maxlength="200" placeholder="예: ○○동 주민센터 부지"></div>
+      <div class="field"><label for="rl">소재지 <span class="req">*</span></label><input id="rl" name="location" class="input" required maxlength="300"></div>
+      <div class="field"><label for="ra">면적(㎡)</label><input id="ra" name="area" class="input" inputmode="decimal"></div>
+      <div class="field"><label for="rv">평정가격 <span class="req">*</span></label><input id="rv" name="appraised" class="input" required inputmode="numeric"></div>
+      <div class="field"><label for="rq">취득일 <span class="req">*</span></label><input id="rq" name="acquiredOn" type="date" class="input" required th:max="${today}"></div>
+      <div class="field"><label for="rd">관리부서 <span class="req">*</span></label><select id="rd" name="deptName" class="select" required>
+        <option th:each="d : ${@deptService.activeNames()}" th:value="${d}" th:text="${d}">부서</option></select></div>
+    </div>
+    <div class="field"><label for="ru">용도</label><input id="ru" name="usePurpose" class="input" maxlength="300"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">올리기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

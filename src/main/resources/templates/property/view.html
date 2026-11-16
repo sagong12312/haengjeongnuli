@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${p.propNo})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/property}">공유재산</a> › <span th:text="${p.propNo}">번호</span></span><h1 th:text="${p.name}">재산</h1></div>
+  <section class="panel">
+    <dl class="doc-info">
+      <div><dt>재산번호</dt><dd th:text="${p.propNo}">번호</dd></div>
+      <div><dt>종류·구분</dt><dd th:text="${p.propKind} + ' · ' + ${p.propClass}">토지</dd></div>
+      <div><dt>소재지</dt><dd th:text="${p.location}">소재지</dd></div>
+      <div><dt>면적</dt><dd th:text="${p.area} ? ${p.area} + '㎡' : '—'">면적</dd></div>
+      <div><dt>평정가격</dt><dd th:text="${#numbers.formatInteger(p.appraised, 1, 'COMMA')} + '원 (연 사용료 하한 참고 ' + ${#numbers.formatInteger(p.minAnnualFee, 1, 'COMMA')} + '원)'">가격</dd></div>
+      <div><dt>취득일</dt><dd th:text="${p.acquiredOn}">날짜</dd></div>
+      <div><dt>관리부서</dt><dd th:text="${p.deptName}">부서</dd></div>
+      <div th:if="${p.usePurpose}"><dt>용도</dt><dd th:text="${p.usePurpose}">용도</dd></div>
+      <div><dt>상태</dt><dd th:text="${p.held} ? '보유' : '처분 ' + ${p.disposedOn} + ' — ' + ${p.disposeReason}">보유</dd></div>
+    </dl>
+    <form th:if="${canEdit and p.held}" th:action="@{/property/{id}/value(id=${p.propId})}" method="post" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <div class="field"><label for="va">평정가격 고치기</label><input id="va" name="appraised" class="input" inputmode="numeric" th:value="${p.appraised}"></div>
+      <div class="field" style="flex:1"><label for="vu">용도</label><input id="vu" name="usePurpose" class="input" maxlength="300" th:value="${p.usePurpose}"></div>
+      <button type="submit" class="btn btn-plain">고치기</button>
+    </form>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="${p.useType} + ' 기록'">사용허가 기록</h2></div>
+    <p th:if="${#lists.isEmpty(uses)}" class="hint" style="padding:18px 22px;">기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(uses)}"><table class="list" style="min-width:860px">
+      <thead><tr><th scope="col">상대방</th><th scope="col" style="text-align:left">목적</th><th scope="col">기간</th><th scope="col">연간 금액</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="u : ${uses}">
+        <td th:text="${u.userName}">상대방</td>
+        <td class="left" th:text="${u.purpose}">목적</td>
+        <td th:text="${u.startDate} + ' ~ ' + ${u.endDate}">기간</td>
+        <td><span th:text="${#numbers.formatInteger(u.annualFee, 1, 'COMMA')} + '원'">금액</span>
+          <small th:if="${u.feeNote}" class="muted" style="display:block" th:text="${u.feeNote}">감면</small></td>
+        <td><span th:text="${u.active} ? (${u.daysLeft} < 0 ? '기간 지남' : '진행 중') : '끝남 (' + ${u.endNote} + ')'">상태</span>
+          <form th:if="${canEdit and u.active}" th:action="@{/property/uses/{id}/end(id=${u.useId})}" method="post" style="display:flex; gap:4px; margin:4px 0 0; justify-content:center;">
+            <label class="sr-only" th:for="'ue' + ${u.useId}">종료 사유</label>
+            <input th:id="'ue' + ${u.useId}" name="note" class="input" required maxlength="300" placeholder="기간 만료·반환 등" style="height:34px; font-size:14px; width:120px;">
+            <button type="submit" class="btn btn-plain btn-sm">끝내기</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canEdit and p.held}" class="panel" th:action="@{/property/{id}/use(id=${p.propId})}" method="post" style="gap:12px;">
+    <h2 th:text="${p.useType} + ' 기록'">사용허가</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="un">상대방 <span class="req">*</span></label><input id="un" name="userName" class="input" required maxlength="200"></div>
+      <div class="field"><label for="us">시작일 <span class="req">*</span></label><input id="us" name="startDate" type="date" class="input" required></div>
+      <div class="field"><label for="ud">끝나는 날 <span class="req">*</span></label><input id="ud" name="endDate" type="date" class="input" required></div>
+      <div class="field"><label for="uf">연간 금액 <span class="req">*</span></label><input id="uf" name="annualFee" class="input" required inputmode="numeric" placeholder="무상이면 0"></div>
+    </div>
+    <div class="field"><label for="up">목적 <span class="req">*</span></label><input id="up" name="purpose" class="input" required maxlength="300"></div>
+    <div class="field"><label for="ufn">감면·무상 근거 (사용료가 하한보다 적으면 필수)</label><input id="ufn" name="feeNote" class="input" maxlength="300"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">기록</button></div>
+  </form>
+
+  <form th:if="${canDispose and p.held}" class="panel" th:action="@{/property/{id}/dispose(id=${p.propId})}" method="post" style="gap:12px;"
+        data-confirm="재산 처분을 기록할까요?">
+    <h2>처분</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="dn">처분일</label><input id="dn" name="on" type="date" class="input" required th:max="${today}"></div>
+      <div class="field"><label for="dr">처분 내용·근거 문서</label><input id="dr" name="reason" class="input" required maxlength="500" placeholder="매각(문서번호 …)"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">처분 기록</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

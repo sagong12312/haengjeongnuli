@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${v.plateNo})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/vehicles}">관용차량</a> › <span th:text="${v.plateNo}">번호</span></span>
+    <h1 th:text="${v.plateNo} + ' ' + ${v.model}">차량</h1></div>
+  <section class="panel">
+    <dl class="doc-info">
+      <div><dt>구분·연료</dt><dd th:text="${v.vehicleKind} + ' · ' + ${v.fuel}">승용</dd></div>
+      <div><dt>배정 부서</dt><dd th:text="${v.deptName}">부서</dd></div>
+      <div><dt>주행거리</dt><dd th:text="${#numbers.formatInteger(v.odometer, 1, 'COMMA')} + 'km'">km</dd></div>
+      <div><dt>정기검사 만료</dt><dd th:style="${v.inspectionSoon} ? 'color:#B42318; font-weight:700' : ''" th:text="${v.inspectionDue} ?: '—'">날짜</dd></div>
+      <div><dt>보험 만료</dt><dd th:style="${v.insuranceSoon} ? 'color:#B42318; font-weight:700' : ''" th:text="${v.insuranceDue} ?: '—'">날짜</dd></div>
+      <div><dt>상태</dt><dd th:text="${v.inUse} ? '운행' : '불용(운행 중지)'">운행</dd></div>
+    </dl>
+    <form th:if="${canManage}" th:action="@{/vehicles/{id}/dues(id=${v.vehicleId})}" method="post" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <div class="field"><label for="di">정기검사 만료</label><input id="di" name="inspectionDue" type="date" class="input" th:value="${v.inspectionDue}"></div>
+      <div class="field"><label for="ds">보험 만료</label><input id="ds" name="insuranceDue" type="date" class="input" th:value="${v.insuranceDue}"></div>
+      <button type="submit" class="btn btn-plain">고치기</button>
+    </form>
+  </section>
+
+  <form th:if="${v.inUse}" class="panel" th:action="@{/vehicles/{id}/log(id=${v.vehicleId})}" method="post" style="gap:12px;">
+    <h2>운행일지 적기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));">
+      <div class="field"><label for="ls">출발</label><input id="ls" name="startAt" type="datetime-local" class="input" required th:max="${now}"></div>
+      <div class="field"><label for="le">도착</label><input id="le" name="endAt" type="datetime-local" class="input" required th:value="${now}" th:max="${now}"></div>
+      <div class="field"><label for="lk">출발 km</label><input id="lk" name="startKm" class="input" required inputmode="numeric" th:value="${v.odometer}"></div>
+      <div class="field"><label for="lk2">도착 km</label><input id="lk2" name="endKm" class="input" required inputmode="numeric"></div>
+    </div>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));">
+      <div class="field"><label for="lp">목적</label><input id="lp" name="purpose" class="input" required maxlength="300" placeholder="예: 위생 점검 출장"></div>
+      <div class="field"><label for="ld">행선지</label><input id="ld" name="destination" class="input" required maxlength="200"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">적기</button></div>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="${ym} + ' 운행일지 (' + ${#numbers.formatInteger(km, 1, 'COMMA')} + 'km)'">운행일지</h2>
+      <span><form th:action="@{/vehicles/{id}(id=${v.vehicleId})}" method="get" style="display:inline-flex; gap:6px; margin:0;"><label for="vm" class="sr-only">월</label>
+        <input id="vm" name="month" type="month" class="input" th:value="${ym}" style="height:38px;"><button type="submit" class="btn btn-plain btn-sm">보기</button></form>
+        <a th:href="@{/vehicles/{id}/logs.csv(id=${v.vehicleId}, month=${ym})}">CSV</a></span></div>
+    <p th:if="${#lists.isEmpty(logs)}" class="hint" style="padding:18px 22px;">이 달 운행 기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(logs)}"><table class="list" style="min-width:820px">
+      <thead><tr><th scope="col">출발·도착</th><th scope="col">운전자</th><th scope="col" style="text-align:left">목적·행선지</th><th scope="col">km</th></tr></thead>
+      <tbody><tr th:each="l : ${logs}">
+        <td th:text="${#temporals.format(l.startAt, 'MM-dd HH:mm')} + ' ~ ' + ${#temporals.format(l.endAt, 'HH:mm')}">시각</td>
+        <td th:text="${l.driverName}">운전자</td>
+        <td class="left" th:text="${l.purpose} + ' / ' + ${l.destination}">목적</td>
+        <td th:text="${l.startKm} + ' → ' + ${l.endKm} + ' (' + ${l.distance} + ')'">km</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="${ym} + ' 주유·정비 (' + ${#numbers.formatInteger(cost, 1, 'COMMA')} + '원)'">비용</h2></div>
+    <p th:if="${#lists.isEmpty(costs)}" class="hint" style="padding:18px 22px;">이 달 기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(costs)}"><table class="list">
+      <thead><tr><th scope="col">날짜</th><th scope="col">종류</th><th scope="col">금액</th><th scope="col">주유량</th><th scope="col" style="text-align:left">업체·내용</th></tr></thead>
+      <tbody><tr th:each="c : ${costs}">
+        <td th:text="${c.doneOn}">날짜</td><td th:text="${c.costKind}">주유</td>
+        <td th:text="${#numbers.formatInteger(c.amount, 1, 'COMMA')} + '원'">원</td>
+        <td th:text="${c.liters} ? ${c.liters} + 'ℓ' : '—'">ℓ</td>
+        <td class="left" th:text="(${c.vendor} ?: '') + ' ' + (${c.note} ?: '')">내용</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form th:if="${canManage}" class="panel" th:action="@{/vehicles/{id}/cost(id=${v.vehicleId})}" method="post" style="gap:12px;">
+    <h2>주유·정비 기록</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));">
+      <div class="field"><label for="ck">종류</label><select id="ck" name="kind" class="select"><option th:each="k : ${costKinds}" th:value="${k}" th:text="${k}">주유</option></select></div>
+      <div class="field"><label for="co">날짜</label><input id="co" name="doneOn" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
+      <div class="field"><label for="ca">금액</label><input id="ca" name="amount" class="input" required inputmode="numeric"></div>
+      <div class="field"><label for="cl">주유량(ℓ)</label><input id="cl" name="liters" class="input" inputmode="decimal"></div>
+      <div class="field"><label for="cm">주행거리(km)</label><input id="cm" name="odometer" class="input" inputmode="numeric"></div>
+      <div class="field"><label for="cv">업체</label><input id="cv" name="vendor" class="input" maxlength="200"></div>
+    </div>
+    <div class="field"><label for="cn">내용 (정비·검사면 필수)</label><input id="cn" name="note" class="input" maxlength="500"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">기록</button></div>
+  </form>
+
+  <form th:if="${canRetire and v.inUse}" class="panel" th:action="@{/vehicles/{id}/retire(id=${v.vehicleId})}" method="post" data-confirm="이 차량을 불용(운행 중지)으로 바꿀까요?">
+    <h2>불용</h2>
+    <p class="hint" style="margin:0;">운행을 멈춥니다. 매각·폐차 등 처분은 물품 불용결정 절차를 따르세요.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-plain">불용으로</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
