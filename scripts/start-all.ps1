@@ -19,6 +19,18 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# 예상하지 못한 오류가 나도 창이 바로 닫히지 않게 빨간 글로 보여 준다
+trap {
+    Write-Host ''
+    Write-Host ('오류: ' + $_) -ForegroundColor Red
+    Write-Host ('위치: ' + $_.InvocationInfo.PositionMessage) -ForegroundColor Red
+    Write-Host ''
+    Write-Host '위 빨간 글을 그대로 알려 주시면 고쳐 드립니다.'
+    exit 1
+}
+
+Write-Host '행정누리 + 전자민원 켜기를 시작합니다.'
+
 function Fail([string]$message) {
     Write-Host ''
     Write-Host $message -ForegroundColor Red
@@ -77,33 +89,32 @@ if ($secret -notmatch '^[0-9a-f]{64}$') {
     Fail "비밀값 파일이 잘못되었습니다. $secretFile 을 지우고 다시 실행하세요."
 }
 
+# 새 창은 이 창의 환경변수를 물려받는다. 그래서 값을 여기서 정해 두고,
+# 새 창에는 짧은 명령만 넘긴다 (따옴표·한글이 섞인 긴 명령은 Windows 에서 깨지기 쉬움).
 # 행정누리: 이 PC에서만 열리게 (APP_ALLOWED_NETWORKS 를 주지 않으면 기본이 이 PC만)
-# 서버 글자는 UTF-8 로 나오므로 창도 UTF-8 로 맞춘다 (안 하면 한글이 깨져 보임)
-$utf8 = "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
-$nuriCmd = $utf8 + "`$host.UI.RawUI.WindowTitle = '행정누리 (끄려면 Ctrl+C)'; " +
-    "`$env:SERVER_PORT = '$NuriPort'; " +
-    "`$env:APP_EPETITION_ENABLED = 'true'; " +
-    "`$env:APP_EPETITION_SECRET = '$secret'; " +
-    "`$env:APP_EPETITION_NETWORKS = '127.0.0.1/32,::1/128'; " +
-    ".\gradlew.bat bootRun"
-Start-Process powershell -WorkingDirectory $nuriDir -ArgumentList @('-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $nuriCmd)
-
+$env:SERVER_PORT = "$NuriPort"
+$env:APP_EPETITION_ENABLED = 'true'
+$env:APP_EPETITION_SECRET = $secret
+$env:APP_EPETITION_NETWORKS = '127.0.0.1/32,::1/128'
 # 전자민원: 같은 PC 안의 행정누리를 부른다 (PC 밖으로 나가지 않으므로 http 허용)
-$safeOrg = $OrgName.Replace("'", "''")
+$env:NURI_BASE_URL = "http://127.0.0.1:$NuriPort"
+$env:EP_ALLOW_HTTP = 'true'
+$env:EP_SECRET = $secret
+$env:PORT = "$EPetitionPort"
+$env:COOKIE_SECURE = 'false'
+$env:ORG_NAME = $OrgName
+
+# cmd 창으로 띄운다. chcp 65001 은 서버가 내보내는 UTF-8 한글이 깨지지 않게 한다.
+Write-Host '행정누리 창을 엽니다...'
+Start-Process -FilePath 'cmd.exe' -WorkingDirectory $nuriDir -ArgumentList '/k chcp 65001 >nul & title 행정누리 - 끄려면 Ctrl+C & gradlew.bat bootRun'
+
 if (-not (Test-Path (Join-Path $EPetitionDir 'node_modules')) -and (Test-Path (Join-Path $EPetitionDir 'package-lock.json'))) {
-    $install = 'npm install; '
+    $install = 'npm install & '
 } else {
     $install = ''
 }
-$epCmd = $utf8 + "`$host.UI.RawUI.WindowTitle = '행정누리 전자민원 (끄려면 Ctrl+C)'; " +
-    "`$env:NURI_BASE_URL = 'http://127.0.0.1:$NuriPort'; " +
-    "`$env:EP_ALLOW_HTTP = 'true'; " +
-    "`$env:EP_SECRET = '$secret'; " +
-    "`$env:PORT = '$EPetitionPort'; " +
-    "`$env:COOKIE_SECURE = 'false'; " +
-    "`$env:ORG_NAME = '$safeOrg'; " +
-    $install + "npm start"
-Start-Process powershell -WorkingDirectory $EPetitionDir -ArgumentList @('-NoExit', '-ExecutionPolicy', 'Bypass', '-Command', $epCmd)
+Write-Host '전자민원 창을 엽니다...'
+Start-Process -FilePath 'cmd.exe' -WorkingDirectory $EPetitionDir -ArgumentList ('/k chcp 65001 >nul & title 행정누리 전자민원 - 끄려면 Ctrl+C & ' + $install + 'npm start')
 
 # 다른 기기에서 열 주소 (공유기가 준 이 PC 주소)
 $addrs = @()
