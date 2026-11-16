@@ -226,4 +226,35 @@ class PurchaseTest {
         assertThat(purchases.checkDoc(id, true, true, 11_000_000L, dept, null)).contains("10,900,000원");
         assertThat(purchases.checkDoc(id, true, true, 10_900_000L, dept, null)).isNull();
     }
+
+    @Test
+    void 구매와_물품대장은_20건씩_나눠_보여_주고_합계는_전체로_센다() throws Exception {
+        String dept = "쪽" + UUID.randomUUID().toString().substring(0, 4);
+        Staff buyer = staff("담당", dept);
+        for (int i = 1; i <= 45; i++) {
+            purchases.create("쪽나눔 구매 " + String.format("%02d", i), "물품", 1_000L, null, null, buyer.u());
+            AssetVO a = new AssetVO();
+            a.setName("쪽나눔 물품 " + String.format("%02d", i));
+            a.setQuantity(2);
+            a.setUnitPrice(1_000L);
+            a.setAcquiredDate(LocalDate.now());
+            a.setLocation(i % 2 == 0 ? "짝수실" : "홀수실");
+            purchases.registerAsset(a, buyer.u());
+        }
+        String p1 = body(buyer.mvc(), "/finance/purchases");
+        assertThat(p1).contains("45건 · 1/3쪽").contains("쪽나눔 구매 45").doesNotContain("쪽나눔 구매 25").contains("page=2");
+        String p3 = body(buyer.mvc(), "/finance/purchases?page=3");
+        assertThat(p3).contains("쪽나눔 구매 01").contains("쪽나눔 구매 05").doesNotContain("쪽나눔 구매 06");
+        // 쪽 번호가 넘치거나 잘못되면 끝 쪽·첫 쪽으로
+        assertThat(body(buyer.mvc(), "/finance/purchases?page=99")).contains("3/3쪽");
+        assertThat(body(buyer.mvc(), "/finance/purchases?page=-1")).contains("1/3쪽");
+
+        String a1 = body(buyer.mvc(), "/finance/assets");
+        assertThat(a1).contains("45건 · 90,000원").contains("1/3쪽").contains("쪽나눔 물품 45").doesNotContain("쪽나눔 물품 25");
+        // 검색 조건이 쪽 이동에도 남는다
+        String even = body(buyer.mvc(), "/finance/assets?q=짝수&page=2");
+        assertThat(even).contains("22건 · 44,000원").contains("2/2쪽").contains("q=%EC%A7%9D%EC%88%98");
+        // CSV는 나누지 않고 전부
+        assertThat(body(buyer.mvc(), "/finance/assets.csv").split("쪽나눔 물품", -1)).hasSize(46);
+    }
 }

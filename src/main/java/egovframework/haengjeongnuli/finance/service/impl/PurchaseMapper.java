@@ -40,6 +40,17 @@ public interface PurchaseMapper {
             + "ORDER BY P.PURCHASE_ID DESC</script>")
     List<PurchaseVO> selectList(@Param("year") int year, @Param("dept") String dept);
 
+    String P_WHERE = "WHERE P.PUR_YEAR = #{year} <if test='dept != null'>AND P.DEPT_NAME = #{dept}</if> ";
+
+    @Select("<script>SELECT COUNT(*) FROM PURCHASE P " + P_WHERE + "</script>")
+    int countList(@Param("year") int year, @Param("dept") String dept);
+
+    /** 한 쪽 (ROWNUM 으로 자른다: Oracle·Tibero·H2 공통) */
+    @Select("<script>SELECT * FROM (SELECT X.*, ROWNUM AS RN FROM (SELECT " + P_COLS + P_FROM + P_WHERE
+            + "ORDER BY P.PURCHASE_ID DESC) X WHERE ROWNUM &lt;= #{endRow}) WHERE RN &gt; #{startRow}</script>")
+    List<PurchaseVO> selectPage(@Param("year") int year, @Param("dept") String dept, @Param("startRow") int startRow,
+                                @Param("endRow") int endRow);
+
     @Select("SELECT " + P_COLS + P_FROM + "WHERE P.PURCHASE_ID = #{id}")
     PurchaseVO selectById(@Param("id") long id);
 
@@ -144,14 +155,29 @@ public interface PurchaseMapper {
             + "#{acquiredDate}, #{purchaseId, jdbcType=NUMERIC}, #{deptName}, #{location}, #{userName}, 'USE', #{createdBy}, #{createdAt})")
     void insertAsset(AssetVO a);
 
-    @Select("<script>SELECT " + A_COLS + "FROM ASSET A LEFT JOIN PURCHASE P ON P.PURCHASE_ID = A.PURCHASE_ID WHERE 1 = 1 "
+    String A_WHERE = "WHERE 1 = 1 "
             + "<if test='dept != null'>AND A.DEPT_NAME = #{dept} </if>"
             + "<if test='status != null'>AND A.STATUS = #{status} </if>"
             + "<if test='status == null'>AND A.STATUS &lt;&gt; 'DISPOSED' </if>"
             + "<if test='q != null'>AND (A.NAME LIKE #{q} ESCAPE '\\' OR A.ASSET_NO LIKE #{q} ESCAPE '\\' OR A.LOCATION LIKE #{q} ESCAPE '\\' "
-            + "OR A.USER_NAME LIKE #{q} ESCAPE '\\') </if>"
+            + "OR A.USER_NAME LIKE #{q} ESCAPE '\\') </if>";
+
+    @Select("<script>SELECT " + A_COLS + "FROM ASSET A LEFT JOIN PURCHASE P ON P.PURCHASE_ID = A.PURCHASE_ID " + A_WHERE
             + "ORDER BY A.ASSET_ID DESC</script>")
     List<AssetVO> selectAssets(@Param("dept") String dept, @Param("status") String status, @Param("q") String likeQuery);
+
+    @Select("<script>SELECT * FROM (SELECT X.*, ROWNUM AS RN FROM (SELECT " + A_COLS
+            + "FROM ASSET A LEFT JOIN PURCHASE P ON P.PURCHASE_ID = A.PURCHASE_ID " + A_WHERE
+            + "ORDER BY A.ASSET_ID DESC) X WHERE ROWNUM &lt;= #{endRow}) WHERE RN &gt; #{startRow}</script>")
+    List<AssetVO> selectAssetPage(@Param("dept") String dept, @Param("status") String status, @Param("q") String likeQuery,
+                                  @Param("startRow") int startRow, @Param("endRow") int endRow);
+
+    /** 건수, 금액 합, 올해 재물조사한 건수 (쪽과 상관없이 조건 전체) */
+    @Select("<script>SELECT COUNT(*) AS \"count\", COALESCE(SUM(A.QUANTITY * A.UNIT_PRICE), 0) AS \"total\", "
+            + "COALESCE(SUM(CASE WHEN A.LAST_CHECKED_AT &gt;= #{yearStart} THEN 1 ELSE 0 END), 0) AS \"checked\" FROM ASSET A "
+            + A_WHERE + "</script>")
+    Map<String, Object> summarizeAssets(@Param("dept") String dept, @Param("status") String status, @Param("q") String likeQuery,
+                                        @Param("yearStart") LocalDate yearStart);
 
     @Select("SELECT " + A_COLS + "FROM ASSET A LEFT JOIN PURCHASE P ON P.PURCHASE_ID = A.PURCHASE_ID WHERE A.ASSET_ID = #{id}")
     AssetVO selectAsset(@Param("id") long id);

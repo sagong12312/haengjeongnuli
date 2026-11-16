@@ -55,6 +55,49 @@ public class PurchaseService {
         return mapper.selectList(year, scope(me, dept));
     }
 
+    /** 목록 한 쪽에 보이는 건수 */
+    public static final int PAGE_SIZE = 20;
+
+    public record Page<T>(List<T> rows, int total, int page, int totalPages) {
+        public int from() { return Math.max(1, page - 4); }
+        public int to() { return Math.min(totalPages, from() + 9); }
+    }
+
+    private static int[] window(int total, int page) {
+        int pages = Math.max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+        int p = Math.min(Math.max(page, 1), pages);
+        return new int[] {p, pages, (p - 1) * PAGE_SIZE, p * PAGE_SIZE};
+    }
+
+    public Page<PurchaseVO> page(LoginUser me, int year, String dept, int page) {
+        String d = scope(me, dept);
+        int total = mapper.countList(year, d);
+        int[] w = window(total, page);
+        return new Page<>(mapper.selectPage(year, d, w[2], w[3]), total, w[0], w[1]);
+    }
+
+    /** 물품대장 한 쪽과 조건 전체의 건수·금액·올해 재물조사 건수 */
+    public record AssetPage(Page<AssetVO> page, long totalAmount, long checkedThisYear) {}
+
+    public AssetPage assetPage(LoginUser me, String dept, String status, String q, int page) {
+        String d = scope(me, dept);
+        String st = assetStatus(status);
+        String like = like(q);
+        Map<String, Object> sum = mapper.summarizeAssets(d, st, like, LocalDate.now().withDayOfYear(1));
+        int total = ((Number) sum.get("count")).intValue();
+        int[] w = window(total, page);
+        return new AssetPage(new Page<>(mapper.selectAssetPage(d, st, like, w[2], w[3]), total, w[0], w[1]),
+                ((Number) sum.get("total")).longValue(), ((Number) sum.get("checked")).longValue());
+    }
+
+    private static String assetStatus(String status) {
+        return AssetVO.USE.equals(status) || AssetVO.IDLE.equals(status) || AssetVO.DISPOSED.equals(status) ? status : null;
+    }
+
+    private static String like(String q) {
+        return trim(q) == null ? null : "%" + q.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+    }
+
     public PurchaseVO get(long id) {
         return mapper.selectById(id);
     }
@@ -379,9 +422,7 @@ public class PurchaseService {
     // ===== 물품대장 =====
 
     public List<AssetVO> assetList(LoginUser me, String dept, String status, String q) {
-        String st = AssetVO.USE.equals(status) || AssetVO.IDLE.equals(status) || AssetVO.DISPOSED.equals(status) ? status : null;
-        String like = trim(q) == null ? null : "%" + q.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
-        return mapper.selectAssets(scope(me, dept), st, like);
+        return mapper.selectAssets(scope(me, dept), assetStatus(status), like(q));
     }
 
     public AssetVO asset(long id) {

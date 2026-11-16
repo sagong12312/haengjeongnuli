@@ -63,13 +63,14 @@ public class PurchaseController {
 
     @GetMapping("/finance/purchases")
     public String list(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Integer year,
-                       @RequestParam(required = false) String dept, Model model) {
+                       @RequestParam(required = false) String dept, @RequestParam(defaultValue = "1") int page, Model model) {
         int y = year(year);
         int now = Year.now().getValue();
-        List<PurchaseVO> rows = purchases.list(me, y, dept);
+        PurchaseService.Page<PurchaseVO> pg = purchases.page(me, y, dept, page);
         model.addAttribute("year", y);
         model.addAttribute("years", List.of(now - 2, now - 1, now));
-        model.addAttribute("rows", rows);
+        model.addAttribute("rows", pg.rows());
+        model.addAttribute("pg", pg);
         model.addAttribute("scope", purchases.scope(me, dept));
         model.addAttribute("seeAll", finance.canSeeAllExp(me));
         model.addAttribute("types", PurchaseVO.TYPES);
@@ -233,10 +234,11 @@ public class PurchaseController {
     @GetMapping("/finance/assets")
     public String assets(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String dept,
                          @RequestParam(required = false) String status, @RequestParam(required = false) String q,
-                         @RequestParam(required = false) Long purchase, Model model) {
-        List<AssetVO> rows = purchases.assetList(me, dept, status, q);
-        model.addAttribute("rows", rows);
-        model.addAttribute("total", rows.stream().mapToLong(AssetVO::getTotal).sum());
+                         @RequestParam(required = false) Long purchase, @RequestParam(defaultValue = "1") int page, Model model) {
+        PurchaseService.AssetPage ap = purchases.assetPage(me, dept, status, q, page);
+        model.addAttribute("rows", ap.page().rows());
+        model.addAttribute("pg", ap.page());
+        model.addAttribute("total", ap.totalAmount());
         model.addAttribute("scope", purchases.scope(me, dept));
         model.addAttribute("seeAll", finance.canSeeAllExp(me));
         model.addAttribute("status", status);
@@ -245,9 +247,7 @@ public class PurchaseController {
                 .filter(p -> PurchaseVO.INSPECTED.equals(p.getStatus()) && "물품".equals(p.getPurType())).toList());
         model.addAttribute("purchaseId", purchase);
         model.addAttribute("today", LocalDate.now());
-        int yearNow = LocalDate.now().getYear();
-        model.addAttribute("checkedThisYear", rows.stream()
-                .filter(a -> a.getLastCheckedAt() != null && a.getLastCheckedAt().getYear() == yearNow).count());
+        model.addAttribute("checkedThisYear", ap.checkedThisYear());
         return "finance/assets";
     }
 
