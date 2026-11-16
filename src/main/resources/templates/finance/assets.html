@@ -7,7 +7,8 @@
 <main class="page">
   <div th:replace="~{fragments/layout :: flash}"></div>
   <div><span class="crumb"><a th:href="@{/finance}">재정·세무</a> › <a th:href="@{/finance/purchases}">구매</a> › 물품대장</span><h1>물품대장</h1></div>
-  <p class="hint">취득한 물품의 위치·사용자를 적고, 해마다 실물을 확인(재물조사)합니다. 쓰지 않는 물품은 <b>불용</b>으로 정한 뒤 처분(매각·폐기·양여 등)을 기록합니다.
+  <p class="hint">취득한 물품의 위치·사용자를 적고, 해마다 실물을 확인(재물조사)합니다. 망가졌거나 쓰지 않는 물품은 전자결재 <b>물품 불용결정</b>으로 불용을 정한 뒤
+    처분(폐기·매각·양여·관리전환)을 기록합니다 (공유재산 및 물품 관리법: 불용 결정 → 처분).
     구매 건으로 산 물품은 검수 합격 뒤 그 구매 건을 골라 올리면 구매 금액을 넘겨 올릴 수 없습니다.</p>
 
   <form th:action="@{/finance/assets}" method="get" class="search-bar">
@@ -27,11 +28,20 @@
     <div class="panel-head"><h2>물품</h2>
       <span class="muted" th:text="${pg.total} + '건 · ' + ${#numbers.formatInteger(total, 1, 'COMMA')} + '원 · 올해 재물조사 ' + ${checkedThisYear} + '건'
             + (${pg.totalPages > 1} ? ' · ' + ${pg.page} + '/' + ${pg.totalPages} + '쪽' : '')">합계</span></div>
+    <form id="idleForm" th:action="@{/approval/draft}" method="get" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:12px 22px; margin:0;"
+          th:unless="${#lists.isEmpty(rows)}">
+      <input type="hidden" name="kind" value="물품 불용결정">
+      <span class="hint" style="margin:0;">망가지거나 쓰지 않는 물품을 버리려면: 물품을 고르고 <b>불용 결정 기안</b> → 결재가 끝나면 자동으로 불용 → <b>처분</b> 기록</span>
+      <button type="submit" class="btn btn-outline btn-sm" data-require-checked="input[name=assets]:checked"
+              data-require-msg="불용으로 정할 물품을 하나 이상 고르세요.">고른 물품 불용 결정 기안</button>
+    </form>
     <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">물품이 없습니다.</p>
     <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}"><table class="list" style="min-width:1200px">
-      <thead><tr><th scope="col">물품번호</th><th scope="col" style="text-align:left">품명·규격</th><th scope="col">수량·금액</th><th scope="col">취득일</th>
+      <thead><tr><th scope="col"><span class="sr-only">고르기</span></th><th scope="col">물품번호</th><th scope="col" style="text-align:left">품명·규격</th><th scope="col">수량·금액</th><th scope="col">취득일</th>
         <th scope="col">부서</th><th scope="col">위치·사용자</th><th scope="col">재물조사</th><th scope="col">상태</th></tr></thead>
       <tbody><tr th:each="a : ${rows}" th:with="mine=${a.deptName == loginUser.dept() and a.status != 'DISPOSED'}">
+        <td><th:block th:if="${mine and a.status == 'USE'}"><input type="checkbox" name="assets" form="idleForm" th:value="${a.assetId}" th:id="'ai' + ${a.assetId}">
+          <label class="sr-only" th:for="'ai' + ${a.assetId}" th:text="${a.assetNo} + ' 고르기'">고르기</label></th:block></td>
         <td style="font-weight:700" th:text="${a.assetNo}">번호</td>
         <td class="left"><span th:text="${a.name}">품명</span><small class="muted" style="display:block" th:text="${a.spec} ?: ''">규격</small>
           <small th:if="${a.purchaseId}" style="display:block"><a th:href="@{/finance/purchases/{id}(id=${a.purchaseId})}" th:text="${a.purNo}">구매</a></small></td>
@@ -55,16 +65,20 @@
             <button type="submit" class="btn btn-plain btn-sm">실물 확인</button></form></td>
         <td>
           <span th:class="'badge ' + (${a.status == 'USE'} ? 'badge-green' : (${a.status == 'IDLE'} ? 'badge-orange' : 'badge-gray'))" th:text="${a.statusLabel}">상태</span>
-          <small th:if="${a.disposeReason}" style="display:block" th:text="${a.disposedAt} + ' ' + ${a.disposeReason}">처분</small>
-          <form th:if="${mine}" th:action="@{/finance/assets/{id}/status(id=${a.assetId})}" method="post" style="margin:6px 0 0;">
+          <small th:if="${a.idleDocId}" style="display:block"><a th:href="@{/approval/{id}(id=${a.idleDocId})}">불용 결정 문서</a></small>
+          <small th:if="${a.disposeReason}" style="display:block" th:text="${a.disposedAt} + ' ' + (${a.disposeMethod} ?: '') + ' ' + ${a.disposeReason}">처분</small>
+          <form th:if="${mine and a.status == 'IDLE'}" th:action="@{/finance/assets/{id}/status(id=${a.assetId})}" method="post" style="margin:6px 0 0;">
             <input type="hidden" name="page" th:value="${pg.page}"><input type="hidden" name="fStatus" th:value="${status}"><input type="hidden" name="fq" th:value="${q}"><input type="hidden" name="fDept" th:value="${scope}">
-            <input type="hidden" name="status" th:value="${a.status == 'USE'} ? 'IDLE' : 'USE'">
-            <button type="submit" class="btn btn-plain btn-sm" th:text="${a.status == 'USE'} ? '불용으로' : '다시 사용'">불용으로</button></form>
-          <form th:if="${mine and a.status == 'IDLE'}" th:action="@{/finance/assets/{id}/dispose(id=${a.assetId})}" method="post"
-                style="display:flex; gap:4px; margin:6px 0 0; justify-content:center;" data-confirm="처분을 기록하면 되돌릴 수 없습니다. 기록할까요?">
+            <input type="hidden" name="status" value="USE">
+            <button type="submit" class="btn btn-plain btn-sm">다시 사용</button></form>
+          <form th:if="${mine and a.status == 'IDLE' and a.idleDocId != null}" th:action="@{/finance/assets/{id}/dispose(id=${a.assetId})}" method="post"
+                style="display:flex; flex-wrap:wrap; gap:4px; margin:6px 0 0; justify-content:center;" data-confirm="처분을 기록하면 되돌릴 수 없습니다. 기록할까요?">
             <input type="hidden" name="page" th:value="${pg.page}"><input type="hidden" name="fStatus" th:value="${status}"><input type="hidden" name="fq" th:value="${q}"><input type="hidden" name="fDept" th:value="${scope}">
-            <label class="sr-only" th:for="'ad' + ${a.assetId}">처분 사유</label>
-            <input th:id="'ad' + ${a.assetId}" name="reason" class="input" required placeholder="매각·폐기 등" maxlength="500" style="height:36px; font-size:14px; width:110px;">
+            <label class="sr-only" th:for="'am' + ${a.assetId}">처분 방법</label>
+            <select th:id="'am' + ${a.assetId}" name="method" class="select" style="height:36px; font-size:14px; width:96px;">
+              <option th:each="m : ${disposeMethods}" th:value="${m}" th:text="${m}">폐기</option></select>
+            <label class="sr-only" th:for="'ad' + ${a.assetId}">처분 내용</label>
+            <input th:id="'ad' + ${a.assetId}" name="reason" class="input" required placeholder="업체·금액·받는 곳" maxlength="500" style="height:36px; font-size:14px; width:120px;">
             <button type="submit" class="btn btn-plain btn-sm" style="height:36px;">처분</button>
           </form>
         </td>

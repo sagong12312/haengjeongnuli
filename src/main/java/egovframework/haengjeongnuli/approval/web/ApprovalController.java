@@ -155,7 +155,8 @@ public class ApprovalController {
     public String draftForm(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) Long from,
                             @RequestParam(required = false) String kind, @RequestParam(required = false) Long budgetId,
                             @RequestParam(required = false) Long template, @RequestParam(required = false) Long commit,
-                            @RequestParam(required = false) Long purchase, Model model) {
+                            @RequestParam(required = false) Long purchase,
+                            @RequestParam(required = false) java.util.List<Long> assets, Model model) {
         ApprovalForm form = new ApprovalForm();
         if (kind != null && ApprovalForm.KINDS.contains(kind)) {
             form.setKind(kind);
@@ -183,6 +184,15 @@ public class ApprovalController {
         }
         if (purchase != null) {
             prefillPurchase(form, purchase, me);
+        }
+        if (assets != null && !assets.isEmpty()) {
+            // 물품대장에서 고른 물품의 불용 결정 기안
+            String body = purchases.idleDraftBody(assets, me);
+            if (body != null) {
+                form.setKind(ApprovalForm.IDLE);
+                form.setTitle("물품 불용 결정 (" + egovframework.haengjeongnuli.finance.service.PurchaseService.assetNumbersIn(body).size() + "건)");
+                form.setBody(body);
+            }
         }
         if (template != null) {
             egovframework.haengjeongnuli.approval.service.ApprovalTemplateVO t = templates.get(template, me);

@@ -184,12 +184,32 @@ class PurchaseTest {
         assertThat(a.getTotal()).isEqualTo(2_800_000L);
         other.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/check")).andExpect(status().isNotFound());
         buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/check")).andExpect(flash().attribute("message", containsString("실물을 확인")));
-        buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/dispose").param("reason", "폐기"))
-                .andExpect(flash().attribute("message", containsString("불용으로 정한")));
-        buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/status").param("status", "IDLE"));
-        buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/dispose").param("reason", "파손으로 폐기"))
-                .andExpect(flash().attribute("message", containsString("처분을 기록")));
+        // 망가진 물품 버리기: 결재로 불용을 정하기 전에는 처분·불용 전환이 안 된다
+        buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/dispose").param("method", "폐기").param("reason", "폐기"))
+                .andExpect(flash().attribute("message", containsString("결재로 불용을 결정한")));
+        buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/status").param("status", "IDLE"))
+                .andExpect(flash().attribute("message", containsString("전자결재 '물품 불용결정'")));
+        // 물품대장에서 고른 물품으로 불용 결정 기안 화면이 채워진다
+        String idleForm = body(buyer.mvc(), "/approval/draft?kind=물품 불용결정&assets=" + a.getAssetId());
+        assertThat(idleForm).contains("물품 불용 결정 (1건)").contains(a.getAssetNo());
+        String idleBody = purchases.idleDraftBody(java.util.List.of(a.getAssetId()), buyer.u()).replace("(예: 파손, 수리 불가)", "다리 파손, 수리 불가");
+        // 다른 부서 물품번호를 넣으면 올릴 수 없다
+        other.mvc().perform(draft("물품 불용결정", "남의 물품 불용", chief.u().getLoginId()).param("body", idleBody))
+                .andExpect(content().string(containsString("우리 부서 물품대장에 없습니다")));
+        long idleDoc = docId(buyer.mvc().perform(draft("물품 불용결정", "물품 불용 결정 (1건)", chief.u().getLoginId())
+                .param("body", idleBody)).andReturn());
+        assertThat(purchases.asset(a.getAssetId()).getStatus()).isEqualTo(AssetVO.USE); // 결재 중에는 그대로
+        chief.mvc().perform(post("/approval/" + idleDoc + "/approve"));
+        AssetVO idle = purchases.asset(a.getAssetId());
+        assertThat(idle.getStatus()).isEqualTo(AssetVO.IDLE);
+        assertThat(idle.getIdleDocId()).isEqualTo(idleDoc);
+        assertThat(body(buyer.mvc(), "/finance/assets?status=IDLE")).contains("불용 결정 문서").contains("/approval/" + idleDoc);
+        buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/dispose").param("method", "버림").param("reason", "x"))
+                .andExpect(flash().attribute("message", containsString("처분 방법")));
+        buyer.mvc().perform(post("/finance/assets/" + a.getAssetId() + "/dispose").param("method", "폐기").param("reason", "파손으로 폐기, ○○환경 수거"))
+                .andExpect(flash().attribute("message", containsString("폐기 처분을 기록")));
         assertThat(purchases.asset(a.getAssetId()).getStatus()).isEqualTo(AssetVO.DISPOSED);
+        assertThat(purchases.asset(a.getAssetId()).getDisposeMethod()).isEqualTo("폐기");
 
         // 흐름 화면
         String view = body(buyer.mvc(), url);

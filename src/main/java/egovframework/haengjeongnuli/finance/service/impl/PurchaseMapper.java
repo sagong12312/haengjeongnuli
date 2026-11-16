@@ -145,7 +145,7 @@ public interface PurchaseMapper {
 
     String A_COLS = "A.ASSET_ID, A.ASSET_NO, A.NAME, A.SPEC, A.QUANTITY, A.UNIT_PRICE, A.ACQUIRED_DATE, A.PURCHASE_ID, A.DEPT_NAME, "
             + "A.LOCATION, A.USER_NAME, A.STATUS, A.LAST_CHECKED_AT, A.LAST_CHECKED_BY, A.DISPOSED_AT, A.DISPOSE_REASON, A.CREATED_BY, "
-            + "A.CREATED_AT, P.PUR_NO ";
+            + "A.CREATED_AT, P.PUR_NO, A.IDLE_DOC_ID, A.DISPOSE_METHOD ";
 
     @Select("SELECT SEQ_ASSET.NEXTVAL FROM DUAL")
     long nextAssetId();
@@ -196,9 +196,19 @@ public interface PurchaseMapper {
     @Update("UPDATE ASSET SET LAST_CHECKED_AT = #{on}, LAST_CHECKED_BY = #{by} WHERE ASSET_ID = #{id} AND STATUS <> 'DISPOSED'")
     int check(@Param("id") long id, @Param("on") LocalDate on, @Param("by") String by);
 
-    @Update("UPDATE ASSET SET STATUS = #{status} WHERE ASSET_ID = #{id} AND STATUS IN ('USE', 'IDLE')")
-    int setStatus(@Param("id") long id, @Param("status") String status);
+    /** 불용을 되돌려 다시 쓴다 */
+    @Update("UPDATE ASSET SET STATUS = 'USE', IDLE_DOC_ID = NULL WHERE ASSET_ID = #{id} AND STATUS = 'IDLE'")
+    int reuse(@Param("id") long id);
 
-    @Update("UPDATE ASSET SET STATUS = 'DISPOSED', DISPOSED_AT = #{on}, DISPOSE_REASON = #{reason} WHERE ASSET_ID = #{id} AND STATUS = 'IDLE'")
-    int dispose(@Param("id") long id, @Param("on") LocalDate on, @Param("reason") String reason);
+    /** 결재가 끝난 불용 결정 문서를 반영한다 (쓰는 중인 그 부서 물품만) */
+    @Update("UPDATE ASSET SET STATUS = 'IDLE', IDLE_DOC_ID = #{docId} WHERE ASSET_NO = #{assetNo} AND DEPT_NAME = #{dept} AND STATUS = 'USE'")
+    int markIdle(@Param("assetNo") String assetNo, @Param("dept") String dept, @Param("docId") long docId);
+
+    @Select("<script>SELECT " + A_COLS + "FROM ASSET A LEFT JOIN PURCHASE P ON P.PURCHASE_ID = A.PURCHASE_ID WHERE A.ASSET_NO IN "
+            + "<foreach collection='nos' item='n' open='(' separator=',' close=')'>#{n}</foreach></script>")
+    List<AssetVO> selectAssetsByNo(@Param("nos") java.util.Collection<String> assetNos);
+
+    @Update("UPDATE ASSET SET STATUS = 'DISPOSED', DISPOSED_AT = #{on}, DISPOSE_METHOD = #{method}, DISPOSE_REASON = #{reason} "
+            + "WHERE ASSET_ID = #{id} AND STATUS = 'IDLE' AND IDLE_DOC_ID IS NOT NULL")
+    int dispose(@Param("id") long id, @Param("on") LocalDate on, @Param("method") String method, @Param("reason") String reason);
 }

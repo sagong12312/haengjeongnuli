@@ -247,6 +247,7 @@ public class PurchaseController {
                 .filter(p -> PurchaseVO.INSPECTED.equals(p.getStatus()) && "물품".equals(p.getPurType())).toList());
         model.addAttribute("purchaseId", purchase);
         model.addAttribute("today", LocalDate.now());
+        model.addAttribute("disposeMethods", AssetVO.DISPOSE_METHODS);
         model.addAttribute("checkedThisYear", ap.checkedThisYear());
         return "finance/assets";
     }
@@ -295,7 +296,7 @@ public class PurchaseController {
     public String assetAction(@AuthenticationPrincipal LoginUser me, @PathVariable long id, @PathVariable String action,
                               @RequestParam(required = false) String location, @RequestParam(required = false) String userName,
                               @RequestParam(required = false) String status, @RequestParam(required = false) String reason,
-                              @RequestParam(required = false) Integer page, @RequestParam(required = false) String fStatus,
+                              @RequestParam(required = false) String method, @RequestParam(required = false) Integer page, @RequestParam(required = false) String fStatus,
                               @RequestParam(required = false) String fq, @RequestParam(required = false) String fDept,
                               RedirectAttributes ra) {
         AssetVO a = purchases.asset(id);
@@ -306,10 +307,10 @@ public class PurchaseController {
             case "place" -> purchases.moveAsset(id, location, userName, me);
             case "check" -> purchases.checkAsset(id, me);
             case "status" -> purchases.setAssetStatus(id, status, me);
-            default -> purchases.disposeAsset(id, reason, me);
+            default -> purchases.disposeAsset(id, method, reason, me);
         };
         if (r.ok()) {
-            audit.record(AuditAction.ASSET_SAVE, "물품 " + a.getAssetNo(), action + " " + nz(location) + nz(userName) + nz(status) + nz(reason));
+            audit.record(AuditAction.ASSET_SAVE, "물품 " + a.getAssetNo(), action + " " + nz(location) + nz(userName) + nz(status) + nz(method) + nz(reason));
         }
         ra.addFlashAttribute("message", r.message());
         return "redirect:" + assetsUrl(page, fStatus, fq, fDept);

@@ -173,6 +173,11 @@ public class ApprovalServiceImpl implements ApprovalService {
         if (submit) {
             if (blank(f.getBody())) {
                 err.put("body", "본문을 입력하세요.");
+            } else if (ApprovalForm.IDLE.equals(f.getKind())) {
+                String idleProblem = purchases.checkIdleDecision(f.getBody(), me.getDeptName());
+                if (idleProblem != null) {
+                    err.put("body", idleProblem);
+                }
             }
             if (blank(f.getFinalApprover())) {
                 err.putIfAbsent("finalApprover", "결재권자를 지정하세요.");
@@ -337,6 +342,11 @@ public class ApprovalServiceImpl implements ApprovalService {
         } else if (d.isCommitment()) {
             // 지출품의는 결재가 끝나면 예산을 묶는다 (지출원인행위)
             finance.commitFromDoc(docId, d.getTitle(), d.getBudgetId(), d.getPayAmount(), d.getSpendType(), d.getDrafterDept());
+        } else if (ApprovalForm.IDLE.equals(d.getKind())) {
+            // 물품 불용결정: 본문의 물품을 물품대장에서 불용으로 (처분은 그 뒤에)
+            int n = purchases.applyIdleDecision(docId, d.getBody(), d.getDrafterDept());
+            notificationService.notify(d.getDrafterId(), "불용 결정이 끝나 물품 " + n + "건을 불용으로 바꿨습니다. 물품대장에서 처분을 기록하세요.",
+                    "/finance/assets?status=IDLE");
         }
         notificationService.notify(d.getDrafterId(),
                 "'" + d.getTitle() + "' 결재가 끝났습니다. (문서번호 " + docNo + ")", link(docId));

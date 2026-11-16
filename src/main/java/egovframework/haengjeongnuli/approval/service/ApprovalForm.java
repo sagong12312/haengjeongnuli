@@ -9,7 +9,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 /** 기안하기 입력값 */
 public class ApprovalForm {
 
-    public static final List<String> KINDS = List.of("일반 기안", "지출품의", "지출결의", "협조 요청", "보고");
+    public static final List<String> KINDS = List.of("일반 기안", "지출품의", "지출결의", "물품 불용결정", "협조 요청", "보고");
+    /** 물품 불용 결정: 본문에 적은 물품번호가 결재가 끝나면 물품대장에서 불용이 된다 */
+    public static final String IDLE = "물품 불용결정";
     public static final List<String> RETENTIONS = List.of("1년", "3년", "5년", "10년", "30년", "준영구", "영구");
     public static final List<String> DISCLOSURES = List.of("공개", "부분공개", "비공개");
     /** 정보공개법 제9조 제1항 각 호 */

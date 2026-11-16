@@ -520,30 +520,116 @@ public class PurchaseService {
         return Result.ok(a.getAssetNo() + " 실물을 확인했습니다.", id);
     }
 
-    /** 사용 ↔ 불용 */
+    /**
+     * 사용 ↔ 불용. 불용은 전자결재 '물품 불용결정'으로만 정하고(결재가 끝나면 자동 반영),
+     * 여기서는 불용을 되돌려 다시 쓰는 것만 한다.
+     */
     @Transactional
     public Result setAssetStatus(long id, String status, LoginUser me) {
         AssetVO a = asset(id);
-        if (!canEditAsset(a, me) || (!AssetVO.USE.equals(status) && !AssetVO.IDLE.equals(status))) {
-            return Result.fail("처분하지 않은 우리 부서 물품만 사용·불용으로 바꿀 수 있습니다.");
+        if (AssetVO.IDLE.equals(status)) {
+            return Result.fail("불용은 전자결재 '물품 불용결정'으로 정합니다. 물품을 골라 '불용 결정 기안'을 누르세요.");
         }
-        mapper.setStatus(id, status);
-        return Result.ok(AssetVO.IDLE.equals(status) ? "불용으로 바꿨습니다. 처분하려면 처분을 기록하세요." : "사용으로 바꿨습니다.", id);
+        if (!canEditAsset(a, me) || !AssetVO.USE.equals(status) || !AssetVO.IDLE.equals(a.getStatus())) {
+            return Result.fail("불용인 우리 부서 물품만 다시 사용으로 바꿀 수 있습니다.");
+        }
+        mapper.reuse(id);
+        return Result.ok(a.getAssetNo() + "을(를) 다시 사용으로 바꿨습니다. 처분하려면 불용 결정을 다시 받아야 합니다.", id);
     }
 
-    /** 처분: 불용으로 정한 물품만 */
+    /** 처분: 결재로 불용을 결정한 물품만 (공유재산 및 물품 관리법: 불용 결정 뒤 관리전환·매각·양여·폐기) */
     @Transactional
-    public Result disposeAsset(long id, String reason, LoginUser me) {
+    public Result disposeAsset(long id, String method, String reason, LoginUser me) {
         AssetVO a = asset(id);
-        if (!canEditAsset(a, me) || !AssetVO.IDLE.equals(a.getStatus())) {
-            return Result.fail("불용으로 정한 우리 부서 물품만 처분할 수 있습니다.");
+        if (!canEditAsset(a, me) || !AssetVO.IDLE.equals(a.getStatus()) || a.getIdleDocId() == null) {
+            return Result.fail("결재로 불용을 결정한 우리 부서 물품만 처분할 수 있습니다.");
+        }
+        if (!AssetVO.DISPOSE_METHODS.contains(method)) {
+            return Result.fail("처분 방법(폐기·매각·양여·관리전환)을 고르세요.");
         }
         String r = trim(reason);
         if (r == null || r.length() > 500) {
-            return Result.fail("처분 방법·사유(매각·폐기·양여 등)를 500자 이내로 입력하세요.");
+            return Result.fail("처분 내용(폐기 업체·매각 금액·받는 곳 등)을 500자 이내로 입력하세요.");
         }
-        mapper.dispose(id, LocalDate.now(), r);
-        return Result.ok(a.getAssetNo() + " 처분을 기록했습니다.", id);
+        if (mapper.dispose(id, LocalDate.now(), method, r) != 1) {
+            return Result.fail("처분할 수 없습니다.");
+        }
+        return Result.ok(a.getAssetNo() + " " + method + " 처분을 기록했습니다.", id);
+    }
+
+    // ===== 불용 결정 (전자결재) =====
+
+    /** 결재 문서 본문에 적힌 물품번호 */
+    private static final java.util.regex.Pattern ASSET_NO = java.util.regex.Pattern.compile("물품-\\d{4}-\\d{5}");
+
+    public static java.util.Set<String> assetNumbersIn(String body) {
+        java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        if (body != null) {
+            java.util.regex.Matcher m = ASSET_NO.matcher(body);
+            while (m.find()) {
+                out.add(m.group());
+            }
+        }
+        return out;
+    }
+
+    /** 불용 결정 기안을 올릴 수 없는 이유 (없으면 null): 본문의 물품이 모두 우리 부서의 쓰는 중인 물품이어야 한다 */
+    public String checkIdleDecision(String body, String dept) {
+        java.util.Set<String> nos = assetNumbersIn(body);
+        if (nos.isEmpty()) {
+            return "본문에 불용으로 정할 물품번호(물품-연도-번호)를 적으세요. 물품대장에서 물품을 골라 '불용 결정 기안'을 누르면 자동으로 들어갑니다.";
+        }
+        if (nos.size() > 200) {
+            return "한 문서에는 물품을 200건까지 넣을 수 있습니다.";
+        }
+        List<AssetVO> found = mapper.selectAssetsByNo(nos);
+        for (String no : nos) {
+            AssetVO a = found.stream().filter(x -> no.equals(x.getAssetNo())).findFirst().orElse(null);
+            if (a == null || dept == null || !dept.equals(a.getDeptName())) {
+                return no + "은(는) 우리 부서 물품대장에 없습니다.";
+            }
+            if (!AssetVO.USE.equals(a.getStatus())) {
+                return no + "은(는) 이미 " + a.getStatusLabel() + " 상태입니다.";
+            }
+        }
+        return null;
+    }
+
+    /** 결재가 끝난 불용 결정 문서를 물품대장에 반영한다. 반영한 건수 */
+    @Transactional
+    public int applyIdleDecision(long docId, String body, String dept) {
+        int n = 0;
+        for (String no : assetNumbersIn(body)) {
+            n += mapper.markIdle(no, dept, docId);
+        }
+        return n;
+    }
+
+    /** 불용 결정 기안 본문 (물품대장에서 고른 물품) */
+    public String idleDraftBody(List<Long> ids, LoginUser me) {
+        StringBuilder b = new StringBuilder("아래 물품을 불용으로 결정하고자 합니다.\n\n");
+        b.append("| 물품번호 | 품명 | 규격 | 수량 | 취득일 | 금액(원) | 불용 사유 |\n");
+        b.append("|---|---|---|---|---|---|---|\n");
+        int n = 0;
+        for (Long id : ids == null ? List.<Long>of() : ids.stream().distinct().limit(200).toList()) {
+            AssetVO a = asset(id);
+            if (a == null || !canEditAsset(a, me) || !AssetVO.USE.equals(a.getStatus())) {
+                continue;
+            }
+            b.append("| ").append(a.getAssetNo()).append(" | ").append(cell(a.getName())).append(" | ").append(cell(a.getSpec()))
+                    .append(" | ").append(a.getQuantity()).append(" | ").append(a.getAcquiredDate()).append(" | ")
+                    .append(String.format("%,d", a.getTotal())).append(" | (예: 파손, 수리 불가) |\n");
+            n++;
+        }
+        if (n == 0) {
+            return null;
+        }
+        b.append("\n처분 방법(예정): 폐기\n\n붙임 사진 등  1부.  끝.");
+        return b.toString();
+    }
+
+    private static String cell(String s) {
+        return s == null ? "" : s.replace("|", "/").replace("\n", " ");
     }
 
     private void deleteOnRollback(String stored) {

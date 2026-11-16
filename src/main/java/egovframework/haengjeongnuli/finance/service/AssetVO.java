@@ -12,6 +12,16 @@ public class AssetVO {
     /** 불용 (쓰지 않음, 처분 대기) */
     public static final String IDLE = "IDLE";
     public static final String DISPOSED = "DISPOSED";
+    /** 처분 방법 (공유재산 및 물품 관리법: 관리전환·매각·양여·폐기) */
+    public static final List<String> DISPOSE_METHODS = List.of("폐기", "매각", "양여", "관리전환");
+
+    /** 불용을 결정한 전자결재 문서 */
+    private Long idleDocId;
+    private String disposeMethod;
+    public Long getIdleDocId() { return idleDocId; }
+    public void setIdleDocId(Long idleDocId) { this.idleDocId = idleDocId; }
+    public String getDisposeMethod() { return disposeMethod; }
+    public void setDisposeMethod(String disposeMethod) { this.disposeMethod = disposeMethod; }
 
     private Long assetId;
     private String assetNo;

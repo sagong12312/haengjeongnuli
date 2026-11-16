@@ -1,0 +1,2 @@
+-- 물품 불용 결정(전자결재)과 처분 방법 (한 번만 실행)
+ALTER TABLE ASSET ADD (IDLE_DOC_ID NUMBER(19), DISPOSE_METHOD VARCHAR2(10 CHAR));
