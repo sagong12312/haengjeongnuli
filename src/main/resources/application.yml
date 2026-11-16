@@ -40,6 +40,17 @@ mybatis:
     jdbc-type-for-null: VARCHAR
 
 app:
+  # 행정누리 전자민원(국민용, 별도 서버) 연동 API. 기본은 꺼짐.
+  # 켜려면 APP_EPETITION_ENABLED=true, 서명 비밀값 APP_EPETITION_SECRET(32자 이상), 전자민원 서버 주소 APP_EPETITION_NETWORKS 를 정한다.
+  epetition:
+    enabled: ${APP_EPETITION_ENABLED:false}
+    secret: ${APP_EPETITION_SECRET:}
+    allowed-networks: ${APP_EPETITION_NETWORKS:}
+    # 서명 시각 허용 오차(초)
+    clock-skew-seconds: 300
+    # 조회 비밀번호를 이 횟수 틀리면 잠시 잠근다
+    lookup-max-fails: 5
+    lookup-lock-minutes: 30
   # 접속을 허용할 네트워크 (쉼표로 구분, CIDR 표기). 기본값: 이 PC(127.0.0.1, ::1)만.
   # 다른 PC에서도 쓰려면 APP_ALLOWED_NETWORKS 로 정한다. 예: 127.0.0.1/32,::1/128,192.168.0.0/24
   access:

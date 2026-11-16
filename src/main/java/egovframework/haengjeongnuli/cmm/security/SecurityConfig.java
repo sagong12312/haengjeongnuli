@@ -36,7 +36,32 @@ public class SecurityConfig {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
+    /**
+     * 행정누리 전자민원 연동 API: 직원 로그인·세션·CSRF 대신 허용 주소 + HMAC 서명으로 확인한다.
+     * 이 경로는 직원 화면용 필터(내부망 허용 목록, 세션 재확인)를 거치지 않는다.
+     */
     @Bean
+    @org.springframework.core.annotation.Order(1)
+    public SecurityFilterChain ePetitionChain(HttpSecurity http,
+            @Value("${app.epetition.enabled:false}") boolean enabled,
+            @Value("${app.epetition.secret:}") String secret,
+            @Value("${app.epetition.allowed-networks:}") String networks,
+            @Value("${app.epetition.clock-skew-seconds:300}") long skew) throws Exception {
+        http.securityMatcher("/api/epetition/**")
+            .addFilterBefore(new egovframework.haengjeongnuli.epetition.EPetitionAuthFilter(enabled, secret, networks, skew),
+                    DisableEncodeUrlFilter.class)
+            .authorizeHttpRequests(a -> a.anyRequest().permitAll())
+            .csrf(c -> c.disable())
+            .sessionManagement(s -> s.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+            .requestCache(r -> r.disable())
+            .formLogin(f -> f.disable())
+            .httpBasic(b -> b.disable())
+            .logout(l -> l.disable());
+        return http.build();
+    }
+
+    @Bean
+    @org.springframework.core.annotation.Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
             @Value("${app.access.allowed-networks}") String allowedNetworks,
             egovframework.haengjeongnuli.user.service.UserService userService,

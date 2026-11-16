@@ -96,7 +96,7 @@ $env:APP_ALLOWED_NETWORKS="127.0.0.1/32,::1/128,192.168.0.0/24"
 
 **이미 점검한 것**
 
-- 새로 설치(`schema.sql`)한 구조와, 예전 구조에 `migration/002~033`을 순서대로 적용한 구조가 테이블·컬럼·형식·길이·NULL 여부까지 같습니다(641개 항목). 로컬 H2 구조와도 같습니다.
+- 새로 설치(`schema.sql`)한 구조와, 예전 구조에 `migration/002~034`를 순서대로 적용한 구조가 테이블·컬럼·형식·길이·NULL 여부까지 같습니다(646개 항목). 로컬 H2 구조와도 같습니다.
 - 글자 컬럼은 모두 `VARCHAR2(n CHAR)`(글자 단위)입니다. Oracle 기본값은 바이트 단위라 한글(3바이트)이 화면에서 허용한 길이만큼 들어가지 않는 문제가 있었습니다. 4000바이트를 넘던 5개 컬럼은 1300자로 줄였습니다.
 - 컬럼 이름에 Oracle 예약어가 없고, SQL에 Oracle에 없는 문법(LIMIT, ILIKE 등)이 없습니다. Oracle에서 시각까지 들어가는 `CURRENT_DATE` 비교와 집계 함수 안 서브쿼리는 고쳤습니다.
 
@@ -220,6 +220,7 @@ $env:APP_COOKIE_SECURE="true"                            # HTTPS 로 운영할 �
 | `/finance/contracts` | 계약대장 |
 | `/finance/purchases`, `/finance/purchases/{번호}` | 구매: 견적 비교·업체 선정·검수, 품의→계약→검수→지출→물품 흐름 |
 | `/finance/assets` | 물품대장: 위치·사용자, 재물조사(실물 확인), 불용→처분 |
+| `/api/epetition/v1/**` | 행정누리 전자민원(국민용 별도 서버) 연동 API: 접수, 처리상황 조회, 공개 상담. 기본 꺼짐, 규격은 `docs/epetition-api.md` |
 | `/forms`, `/admin/forms` | 한글 서식함: 서식 내려받기·보기, 민원·영업소·건축·직원 정보로 누름틀 채워 만들기 / 관리자 서식 올리기 |
 | `/security-apps`, `/admin/security-apps` | 보안 프로그램 설치 안내와 직원별 설치 확인, 관리자 항목 관리·미확인 직원 |
 | `/admin/depts` | 부서(조직도) 관리 (관리자) |

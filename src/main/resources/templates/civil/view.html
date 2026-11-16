@@ -80,6 +80,13 @@
     <div style="white-space:pre-wrap;" th:text="${c.resultText}">결과</div>
     <div th:if="${c.rejectRemedy}" style="background:var(--soft); border-radius:10px; padding:12px 16px;">
       <b>거부 이유·구제절차</b><div style="white-space:pre-wrap; margin-top:4px;" th:text="${c.rejectRemedy}">구제절차</div></div>
+    <div th:if="${ep != null and ep['publicYn'] == 'Y'}" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+      <span th:text="${ep['publishedYn'] == 'Y'} ? '전자민원 공개 상담에 게시 중입니다.' : '민원인이 공개에 동의했습니다. 개인정보가 없는지 확인한 뒤 공개 상담에 게시할 수 있습니다.'">공개</span>
+      <form th:if="${canProcess}" th:action="@{/civil/{id}/publish(id=${c.complaintId})}" method="post" style="margin:0;"
+            th:attr="data-confirm=${ep['publishedYn'] == 'Y'} ? '공개 상담에서 내릴까요?' : '내용·결과에 개인정보가 없는지 확인했나요? 전자민원 공개 상담에 게시합니다.'">
+        <input type="hidden" name="on" th:value="${ep['publishedYn'] != 'Y'}">
+        <button type="submit" class="btn btn-outline btn-sm" th:text="${ep['publishedYn'] == 'Y'} ? '게시 내리기' : '공개 상담에 게시'">게시</button></form>
+    </div>
   </section>
 
   <th:block th:if="${canProcess and !c.done}">

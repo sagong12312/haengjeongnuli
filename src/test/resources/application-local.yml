@@ -26,3 +26,8 @@ app:
   # 테스트는 사설 주소에서 오는 요청도 쓴다
   access:
     allowed-networks: 127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12
+  # 전자민원 연동 API 시험용 (실제 비밀값은 운영 서버 환경변수로만)
+  epetition:
+    enabled: true
+    secret: test-secret-for-epetition-api-0123456789
+    allowed-networks: 127.0.0.1/32

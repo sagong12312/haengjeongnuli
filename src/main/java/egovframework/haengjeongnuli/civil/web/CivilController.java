@@ -192,6 +192,22 @@ public class CivilController {
 
     // ===== 민원 처리 =====
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.epetition.EPetitionService ePetition;
+
+    /** 전자민원 공개 상담 게시·내림 (민원인이 공개에 동의했고 처리가 끝난 민원) */
+    @PostMapping("/{id:\\d+}/publish")
+    public String publish(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
+                          @org.springframework.web.bind.annotation.RequestParam(defaultValue = "false") boolean on, RedirectAttributes ra) {
+        egovframework.haengjeongnuli.civil.service.CivilComplaintVO c = visible(id, me);
+        String problem = ePetition.publish(id, on, me);
+        if (problem == null) {
+            auditService.record(AuditAction.EPETITION_PUBLISH, "민원 " + c.getReceiptNo(), on ? "게시" : "내림");
+        }
+        ra.addFlashAttribute("message", problem != null ? problem : on ? "공개 상담에 게시했습니다." : "공개 상담에서 내렸습니다.");
+        return "redirect:/civil/" + id;
+    }
+
     @GetMapping("/{id:\\d+}")
     public String view(@AuthenticationPrincipal LoginUser me, @org.springframework.web.bind.annotation.PathVariable long id,
                        Model model) {
@@ -202,6 +218,7 @@ public class CivilController {
         model.addAttribute("history", process.history(id));
         model.addAttribute("files", civilFiles.list(id));
         model.addAttribute("canProcess", process.canProcess(c, me));
+        model.addAttribute("ep", ePetition.flags(id));
         model.addAttribute("staffList", process.staffList());
         model.addAttribute("reasons", egovframework.haengjeongnuli.civil.service.ExtendReason.values());
         model.addAttribute("resultTypes", egovframework.haengjeongnuli.civil.service.ResultType.values());
