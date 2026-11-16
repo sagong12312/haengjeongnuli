@@ -60,7 +60,9 @@ if ($secret -notmatch '^[0-9a-f]{64}$') {
 }
 
 # 행정누리: 이 PC에서만 열리게 (APP_ALLOWED_NETWORKS 를 주지 않으면 기본이 이 PC만)
-$nuriCmd = "`$host.UI.RawUI.WindowTitle = '행정누리 (끄려면 Ctrl+C)'; " +
+# 서버 글자는 UTF-8 로 나오므로 창도 UTF-8 로 맞춘다 (안 하면 한글이 깨져 보임)
+$utf8 = "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+$nuriCmd = $utf8 + "`$host.UI.RawUI.WindowTitle = '행정누리 (끄려면 Ctrl+C)'; " +
     "`$env:SERVER_PORT = '$NuriPort'; " +
     "`$env:APP_EPETITION_ENABLED = 'true'; " +
     "`$env:APP_EPETITION_SECRET = '$secret'; " +
@@ -75,7 +77,7 @@ if (-not (Test-Path (Join-Path $EPetitionDir 'node_modules')) -and (Test-Path (J
 } else {
     $install = ''
 }
-$epCmd = "`$host.UI.RawUI.WindowTitle = '행정누리 전자민원 (끄려면 Ctrl+C)'; " +
+$epCmd = $utf8 + "`$host.UI.RawUI.WindowTitle = '행정누리 전자민원 (끄려면 Ctrl+C)'; " +
     "`$env:NURI_BASE_URL = 'http://127.0.0.1:$NuriPort'; " +
     "`$env:EP_ALLOW_HTTP = 'true'; " +
     "`$env:EP_SECRET = '$secret'; " +
