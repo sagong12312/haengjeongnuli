@@ -194,6 +194,8 @@ public class CivilController {
 
     @org.springframework.beans.factory.annotation.Autowired
     private egovframework.haengjeongnuli.epetition.EPetitionService ePetition;
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.epetition.EPetitionPortalService ePetitionPortal;
 
     /** 전자민원 조회 비밀번호 재설정 (민원인 본인 확인 뒤). 새 비밀번호는 이번 화면에서 한 번만 보인다 */
     @PostMapping("/{id:\\d+}/lookup-password")
@@ -240,9 +242,10 @@ public class CivilController {
         model.addAttribute("files", civilFiles.list(id));
         model.addAttribute("canProcess", process.canProcess(c, me));
         model.addAttribute("ep", ePetition.flags(id));
+        model.addAttribute("satis", ePetitionPortal.satisfactionOf(id));
         model.addAttribute("staffList", process.staffList());
         model.addAttribute("reasons", egovframework.haengjeongnuli.civil.service.ExtendReason.values());
-        model.addAttribute("resultTypes", egovframework.haengjeongnuli.civil.service.ResultType.values());
+        model.addAttribute("resultTypes", egovframework.haengjeongnuli.civil.service.ResultType.staffChoices());
         model.addAttribute("notifyMethods", egovframework.haengjeongnuli.civil.service.CivilProcessService.NOTIFY_METHODS);
         return "civil/view";
     }

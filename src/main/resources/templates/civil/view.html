@@ -178,6 +178,11 @@
       </table>
     </div>
   </section>
+  <section class="panel" th:if="${satis != null and satis['score'] != null}" style="gap:6px;">
+    <h2>민원인 만족도</h2>
+    <p style="margin:0; font-size:20px;"><b th:text="${satis['score']} + '점'">5점</b> <span class="muted">(5점 만점, 처리 뒤 민원인이 전자민원에서 남김)</span></p>
+    <p th:if="${satis['comment']}" style="margin:0; white-space:pre-wrap;" th:text="${satis['comment']}">의견</p>
+  </section>
   <section class="panel" th:if="${ep != null and ep['online'] == 'Y'}" style="gap:10px;">
     <h2>전자민원 조회 비밀번호</h2>
     <p class="hint" style="margin:0;">인터넷(행정누리 전자민원)으로 접수한 민원입니다. 민원인이 조회 비밀번호를 잊었다고 하면,

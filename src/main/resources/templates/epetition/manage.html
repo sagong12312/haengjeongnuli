@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('전자민원 운영')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › 전자민원 운영</span><h1>전자민원 운영</h1></div>
+  <p class="hint">국민용 행정누리 전자민원에 보이는 공지사항과 자주 묻는 질문을 쓰고, 처리 만족도와 통계를 봅니다.
+    여기서 고치면 전자민원에 바로 반영됩니다.</p>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>최근 12개월 처리 통계</h2>
+      <span class="muted" th:text="${stats['from']} + ' ~ ' + ${stats['to']}">기간</span></div>
+    <div class="table-wrap"><table class="list">
+      <thead><tr><th scope="col">접수</th><th scope="col">처리 완료</th><th scope="col">취하</th><th scope="col">전자민원 접수</th>
+        <th scope="col">평균 처리일</th><th scope="col">기한 내 처리율</th><th scope="col">만족도 (응답 수)</th></tr></thead>
+      <tbody><tr>
+        <td th:text="${stats['received']} + '건'">0</td><td th:text="${stats['done']} + '건'">0</td>
+        <td th:text="${stats['withdrawn']} + '건'">0</td><td th:text="${stats['online']} + '건'">0</td>
+        <td th:text="${stats['avgDays']} != null ? ${stats['avgDays']} + '일' : '—'">—</td>
+        <td th:text="${stats['onTimeRate']} != null ? ${stats['onTimeRate']} + '%' : '—'">—</td>
+        <td th:text="${stats['satisfactionAvg']} != null ? ${stats['satisfactionAvg']} + '점 (' + ${stats['satisfactionCount']} + '명)' : '—'">—</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>공지사항</h2><a class="btn btn-primary btn-sm" th:href="@{/epetition/notices/new}">공지 쓰기</a></div>
+    <p th:if="${#lists.isEmpty(notices)}" class="hint" style="padding:18px 22px;">올린 공지사항이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(notices)}"><table class="list">
+      <thead><tr><th scope="col">제목</th><th scope="col">위에 고정</th><th scope="col">조회</th><th scope="col">올린 때</th><th scope="col">지우기</th></tr></thead>
+      <tbody><tr th:each="n : ${notices}">
+        <td><a th:href="@{/epetition/notices/{id}(id=${n['id']})}" th:text="${n['title']}">제목</a></td>
+        <td th:text="${n['pinned']} ? '고정' : ''"></td><td th:text="${n['views']}">0</td>
+        <td th:text="${#strings.replace(n['createdAt'], 'T', ' ')}">때</td>
+        <td><form th:action="@{/epetition/notices/{id}/delete(id=${n['id']})}" method="post" style="margin:0;" data-confirm="이 공지를 지울까요? 전자민원에서도 바로 사라집니다.">
+          <button type="submit" class="btn btn-plain btn-sm" th:attr="aria-label=${n['title']} + ' 지우기'">지우기</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>자주 묻는 질문</h2><a class="btn btn-primary btn-sm" th:href="@{/epetition/faqs/new}">질문 쓰기</a></div>
+    <p th:if="${#lists.isEmpty(faqs)}" class="hint" style="padding:18px 22px;">올린 질문이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(faqs)}"><table class="list">
+      <thead><tr><th scope="col">분류</th><th scope="col">질문</th><th scope="col">순서</th><th scope="col">보이기</th><th scope="col">지우기</th></tr></thead>
+      <tbody><tr th:each="f : ${faqs}">
+        <td th:text="${f['category']}">분류</td>
+        <td><a th:href="@{/epetition/faqs/{id}(id=${f['id']})}" th:text="${f['question']}">질문</a></td>
+        <td th:text="${f['sortOrder']}">0</td><td th:text="${f['useYn'] == 'Y'} ? '보임' : '숨김'">보임</td>
+        <td><form th:action="@{/epetition/faqs/{id}/delete(id=${f['id']})}" method="post" style="margin:0;" data-confirm="이 질문을 지울까요?">
+          <button type="submit" class="btn btn-plain btn-sm" th:attr="aria-label=${f['question']} + ' 지우기'">지우기</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>최근 만족도 응답</h2><span class="muted">처리 완료 뒤 민원인이 직접 남긴 점수 (최근 30건)</span></div>
+    <p th:if="${#lists.isEmpty(satisfaction)}" class="hint" style="padding:18px 22px;">아직 응답이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(satisfaction)}"><table class="list">
+      <thead><tr><th scope="col">접수번호</th><th scope="col">제목</th><th scope="col">부서</th><th scope="col">점수</th><th scope="col">의견</th></tr></thead>
+      <tbody><tr th:each="s : ${satisfaction}">
+        <td><a th:href="@{/civil/{id}(id=${s['id']})}" th:text="${s['receiptNo']}">번호</a></td>
+        <td th:text="${s['title']}">제목</td><td th:text="${s['dept']} ?: '—'">부서</td>
+        <td th:text="${s['score']} + '점'">5점</td><td th:text="${s['comment']} ?: '—'" style="white-space:pre-wrap;">의견</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

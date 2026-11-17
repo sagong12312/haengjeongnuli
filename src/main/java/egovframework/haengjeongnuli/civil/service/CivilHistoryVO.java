@@ -19,6 +19,8 @@ public class CivilHistoryVO {
             case "EXTEND" -> "처리기간 연장";
             case "PROGRESS" -> "진행상황 통지";
             case "DONE" -> "처리 완료";
+            case "ADDENDUM" -> "민원인 추가 의견";
+            case "WITHDRAW" -> "민원 취하";
             default -> action;
         };
     }

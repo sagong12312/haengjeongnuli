@@ -22,7 +22,7 @@ public interface EPetitionMapper {
     @Update("UPDATE CIVIL_COMPLAINT SET LOOKUP_FAILS = #{fails}, LOOKUP_LOCKED_UNTIL = #{lockedUntil, jdbcType=TIMESTAMP} WHERE COMPLAINT_ID = #{id}")
     int setFails(@Param("id") long id, @Param("fails") int fails, @Param("lockedUntil") LocalDateTime lockedUntil);
 
-    String PUBLIC_WHERE = "WHERE STATUS = 'DONE' AND PUBLIC_YN = 'Y' AND PUBLISHED_YN = 'Y' "
+    String PUBLIC_WHERE = "WHERE STATUS = 'DONE' AND PUBLIC_YN = 'Y' AND PUBLISHED_YN = 'Y' AND NVL(RESULT_TYPE, '-') &lt;&gt; 'WITHDRAWN' "
             + "<if test='q != null'>AND (TITLE LIKE #{q} ESCAPE '\\' OR CONTENT LIKE #{q} ESCAPE '\\') </if>";
 
     @Select("<script>SELECT COUNT(*) FROM CIVIL_COMPLAINT " + PUBLIC_WHERE + "</script>")
@@ -34,7 +34,8 @@ public interface EPetitionMapper {
             + "ORDER BY COMPLETED_AT DESC, COMPLAINT_ID DESC) X WHERE ROWNUM &lt;= #{endRow}) WHERE RN &gt; #{startRow}</script>")
     List<Map<String, Object>> selectPublic(@Param("q") String likeQuery, @Param("startRow") int startRow, @Param("endRow") int endRow);
 
-    @Select("SELECT COMPLAINT_ID FROM CIVIL_COMPLAINT WHERE COMPLAINT_ID = #{id} AND STATUS = 'DONE' AND PUBLIC_YN = 'Y' AND PUBLISHED_YN = 'Y'")
+    @Select("SELECT COMPLAINT_ID FROM CIVIL_COMPLAINT WHERE COMPLAINT_ID = #{id} AND STATUS = 'DONE' AND PUBLIC_YN = 'Y' AND PUBLISHED_YN = 'Y' "
+            + "AND NVL(RESULT_TYPE, '-') <> 'WITHDRAWN'")
     Long publicId(@Param("id") long id);
 
     /** 직원이 조회 비밀번호를 새로 정한다 (전자민원으로 접수한 민원만), 잠금도 푼다 */
@@ -42,7 +43,8 @@ public interface EPetitionMapper {
             + "WHERE COMPLAINT_ID = #{id} AND LOOKUP_PW_HASH IS NOT NULL")
     int resetLookup(@Param("id") long id, @Param("hash") String hash);
 
-    @Update("UPDATE CIVIL_COMPLAINT SET PUBLISHED_YN = #{yn} WHERE COMPLAINT_ID = #{id} AND STATUS = 'DONE' AND PUBLIC_YN = 'Y'")
+    @Update("UPDATE CIVIL_COMPLAINT SET PUBLISHED_YN = #{yn} WHERE COMPLAINT_ID = #{id} AND STATUS = 'DONE' AND PUBLIC_YN = 'Y' "
+            + "AND (#{yn} = 'N' OR NVL(RESULT_TYPE, '-') <> 'WITHDRAWN')")
     int setPublished(@Param("id") long id, @Param("yn") String yn);
 
     @Select("SELECT PUBLIC_YN AS \"publicYn\", PUBLISHED_YN AS \"publishedYn\", "

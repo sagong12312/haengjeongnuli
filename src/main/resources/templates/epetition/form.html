@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${kind == 'notice'} ? '전자민원 공지사항' : '자주 묻는 질문')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:if="${message}" class="alert alert-error" role="alert" th:text="${message}"></div>
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › <a th:href="@{/epetition}">전자민원 운영</a></span>
+    <h1 th:text="${kind == 'notice'} ? (${item} ? '공지사항 고치기' : '공지사항 쓰기') : (${item} ? '자주 묻는 질문 고치기' : '자주 묻는 질문 쓰기')">쓰기</h1></div>
+
+  <form th:if="${kind == 'notice'}" class="panel" th:action="@{/epetition/notices}" method="post" style="gap:12px;">
+    <input type="hidden" name="id" th:if="${item}" th:value="${item['id']}">
+    <div class="field"><label for="nt">제목 <span class="req">*</span></label>
+      <input id="nt" name="title" class="input" required maxlength="300" th:value="${item} ? ${item['title']} : ''"></div>
+    <div class="field"><label for="nc">내용 <span class="req">*</span></label>
+      <p class="hint" style="margin:0;">국민 누구나 봅니다. 개인정보를 적지 마세요. 글자로만 보이며 줄바꿈은 그대로 나옵니다.</p>
+      <textarea id="nc" name="content" class="input" rows="14" required maxlength="20000" th:text="${item} ? ${item['content']} : ''"></textarea></div>
+    <label class="check"><input type="checkbox" name="pinned" value="true" th:checked="${item != null and item['pinned'] == 'Y'}">목록 맨 위에 고정</label>
+    <div class="form-actions" style="justify-content:flex-end;"><a class="btn btn-outline" th:href="@{/epetition}">취소</a>
+      <button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+
+  <form th:if="${kind == 'faq'}" class="panel" th:action="@{/epetition/faqs}" method="post" style="gap:12px;">
+    <input type="hidden" name="id" th:if="${item}" th:value="${item['id']}">
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="fc">분류 <span class="req">*</span></label>
+        <input id="fc" name="category" class="input" required maxlength="50" placeholder="예: 민원 신청, 처리상황 조회, 회원" th:value="${item} ? ${item['category']} : ''"></div>
+      <div class="field"><label for="fs">순서 (작을수록 위)</label>
+        <input id="fs" name="sortOrder" type="number" min="0" max="9999" class="input" th:value="${item} ? ${item['sortOrder']} : 0"></div>
+    </div>
+    <div class="field"><label for="fq">질문 <span class="req">*</span></label>
+      <input id="fq" name="question" class="input" required maxlength="500" th:value="${item} ? ${item['question']} : ''"></div>
+    <div class="field"><label for="fa">답변 <span class="req">*</span></label>
+      <textarea id="fa" name="answer" class="input" rows="8" required maxlength="1300" th:text="${item} ? ${item['answer']} : ''"></textarea></div>
+    <label class="check"><input type="checkbox" name="use" value="true" th:checked="${item == null or item['useYn'] == 'Y'}">전자민원에 보이기</label>
+    <div class="form-actions" style="justify-content:flex-end;"><a class="btn btn-outline" th:href="@{/epetition}">취소</a>
+      <button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

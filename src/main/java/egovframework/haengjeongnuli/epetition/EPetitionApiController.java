@@ -29,6 +29,10 @@ public class EPetitionApiController {
     private final EPetitionService service;
     private final AuditService audit;
     private final egovframework.haengjeongnuli.hygiene.service.SanctionService sanctions;
+    @org.springframework.beans.factory.annotation.Autowired
+    private EPetitionPortalService portal;
+    @org.springframework.beans.factory.annotation.Autowired
+    private EPetitionMemberService members;
 
     public EPetitionApiController(EPetitionService service, AuditService audit,
                                   egovframework.haengjeongnuli.hygiene.service.SanctionService sanctions) {
@@ -93,15 +97,161 @@ public class EPetitionApiController {
         }
     }
 
+    /** 공개 상담 목록. kind: QUERY 등 (없으면 전체), sort: recent(기본)·views·likes */
     @GetMapping("/consultations")
     public ResponseEntity<Map<String, Object>> consultations(@RequestParam(defaultValue = "1") int page,
-                                                             @RequestParam(required = false) String q) {
-        return ok(service.publicList(page, q == null || q.length() > 100 ? null : q));
+                                                             @RequestParam(required = false) String q,
+                                                             @RequestParam(required = false) String kind,
+                                                             @RequestParam(required = false) String sort) {
+        return ok(portal.consultations(page, q, kind, sort));
     }
 
+    /** 공개 상담 한 건 + 조회수·공감·비슷한 상담 */
     @GetMapping("/consultations/{id:\\d+}")
-    public ResponseEntity<Map<String, Object>> consultation(@PathVariable long id) {
-        return ok(service.publicDetail(id));
+    public ResponseEntity<Map<String, Object>> consultation(@PathVariable long id,
+                                                            @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = new LinkedHashMap<>(service.publicDetail(id));
+        out.putAll(portal.consultationExtras(id, clientIp));
+        return ok(out);
+    }
+
+    @PostMapping("/consultations/{id:\\d+}/like")
+    public ResponseEntity<Map<String, Object>> like(@PathVariable long id,
+                                                    @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        return ok(portal.like(id, clientIp));
+    }
+
+    /* ---------------------------------------------------------------- 안내·통계·공지·자주 묻는 질문 */
+
+    @GetMapping("/info")
+    public ResponseEntity<Map<String, Object>> info() {
+        return ok(portal.info());
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> stats() {
+        return ok(portal.stats());
+    }
+
+    @GetMapping("/notices")
+    public ResponseEntity<Map<String, Object>> notices(@RequestParam(defaultValue = "1") int page,
+                                                       @RequestParam(required = false) String q) {
+        return ok(portal.notices(page, q));
+    }
+
+    @GetMapping("/notices/{id:\\d+}")
+    public ResponseEntity<Map<String, Object>> notice(@PathVariable long id,
+                                                      @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        return ok(portal.notice(id, clientIp));
+    }
+
+    @GetMapping("/faqs")
+    public ResponseEntity<Map<String, Object>> faqs() {
+        return ok(portal.faqs());
+    }
+
+    /* ---------------------------------------------------------------- 민원인이 하는 일 (조회 때 받은 actionToken) */
+
+    public record WithdrawRequest(String token, String reason) {}
+
+    public record AddendumRequest(String token, String text) {}
+
+    public record RateRequest(String token, Integer score, String comment) {}
+
+    @PostMapping("/complaints/withdraw")
+    public ResponseEntity<Map<String, Object>> withdraw(@RequestBody(required = false) WithdrawRequest req,
+                                                        @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = portal.withdraw(req == null ? null : req.token(), req == null ? null : req.reason());
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_WITHDRAW, "민원 " + out.get("receiptNo"), client(clientIp));
+        return ok(out);
+    }
+
+    @PostMapping("/complaints/addendum")
+    public ResponseEntity<Map<String, Object>> addendum(@RequestBody(required = false) AddendumRequest req,
+                                                        @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = portal.addendum(req == null ? null : req.token(), req == null ? null : req.text());
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_ADDENDUM, "민원 " + out.get("receiptNo"), client(clientIp));
+        return ok(out);
+    }
+
+    @PostMapping("/complaints/satisfaction")
+    public ResponseEntity<Map<String, Object>> satisfaction(@RequestBody(required = false) RateRequest req,
+                                                            @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = portal.rate(req == null ? null : req.token(), req == null ? null : req.score(),
+                req == null ? null : req.comment());
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_SATISFACTION, "민원 " + out.get("receiptNo"), client(clientIp));
+        return ok(out);
+    }
+
+    /* ---------------------------------------------------------------- 회원 (memberId 는 전자민원이 로그인 세션에서 알려 준다) */
+
+    @PostMapping("/members")
+    public ResponseEntity<Map<String, Object>> signup(@RequestBody(required = false) EPetitionMemberService.SignupRequest req,
+                                                      @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = members.signup(req);
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_MEMBER, "회원 " + out.get("loginId"), "가입 " + client(clientIp));
+        return ok(out);
+    }
+
+    @PostMapping("/members/login")
+    public ResponseEntity<Map<String, Object>> login(@RequestBody(required = false) EPetitionMemberService.LoginRequest req,
+                                                     @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        String id = req == null || req.loginId() == null ? "-" : req.loginId().replaceAll("[^a-z0-9_]", "");
+        id = id.length() > 30 ? id.substring(0, 30) : id;
+        try {
+            Map<String, Object> out = members.login(req);
+            audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_MEMBER, "회원 " + id, "로그인 " + client(clientIp));
+            return ok(out);
+        } catch (EPetitionService.Problem p) {
+            audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_MEMBER, "회원 " + id, "로그인 실패 " + p.code() + " " + client(clientIp));
+            throw p;
+        }
+    }
+
+    @GetMapping("/members/{id:\\d+}")
+    public ResponseEntity<Map<String, Object>> member(@PathVariable long id) {
+        return ok(members.get(id));
+    }
+
+    @PostMapping("/members/{id:\\d+}/profile")
+    public ResponseEntity<Map<String, Object>> profile(@PathVariable long id,
+                                                       @RequestBody(required = false) EPetitionMemberService.ProfileRequest req,
+                                                       @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = members.update(id, req);
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_MEMBER, "회원 " + out.get("loginId"), "정보 변경 " + client(clientIp));
+        return ok(out);
+    }
+
+    @PostMapping("/members/{id:\\d+}/password")
+    public ResponseEntity<Map<String, Object>> password(@PathVariable long id,
+                                                        @RequestBody(required = false) EPetitionMemberService.PasswordRequest req,
+                                                        @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = members.changePassword(id, req);
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_MEMBER, "회원번호 " + id, "비밀번호 변경 " + client(clientIp));
+        return ok(out);
+    }
+
+    public record DeleteRequest(String password) {}
+
+    @PostMapping("/members/{id:\\d+}/delete")
+    public ResponseEntity<Map<String, Object>> deleteMember(@PathVariable long id, @RequestBody(required = false) DeleteRequest req,
+                                                            @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = members.delete(id, req == null ? null : req.password());
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_MEMBER, "회원번호 " + id, "탈퇴 " + client(clientIp));
+        return ok(out);
+    }
+
+    @GetMapping("/members/{id:\\d+}/complaints")
+    public ResponseEntity<Map<String, Object>> memberComplaints(@PathVariable long id, @RequestParam(defaultValue = "1") int page) {
+        return ok(members.complaints(id, page));
+    }
+
+    @GetMapping("/members/{id:\\d+}/complaints/{receiptNo}")
+    public ResponseEntity<Map<String, Object>> memberComplaint(@PathVariable long id, @PathVariable String receiptNo,
+                                                               @RequestHeader(value = "X-EP-Client-IP", required = false) String clientIp) {
+        Map<String, Object> out = members.complaint(id, receiptNo);
+        audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_LOOKUP, "민원 " + out.get("receiptNo"), "회원 " + client(clientIp));
+        return ok(out);
     }
 
     @ExceptionHandler(EPetitionService.Problem.class)

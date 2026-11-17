@@ -50,6 +50,10 @@ public class EPetitionService {
     private final UserService users;
     @org.springframework.beans.factory.annotation.Autowired
     private egovframework.haengjeongnuli.civil.service.CivilFileService civilFiles;
+    @org.springframework.beans.factory.annotation.Autowired
+    private EPetitionPortalMapper portal;
+    @org.springframework.beans.factory.annotation.Autowired
+    private ActionTokens tokens;
     private final int maxFails;
     private final int lockMinutes;
     private final int ipMaxFails;
@@ -100,7 +104,9 @@ public class EPetitionService {
 
     public record ReceiveRequest(String kind, Boolean lawInterpretation, String name, String mobile, String homePhone, String email,
                                  String address, String fax, String notifyMethod, String title, String content, String password,
-                                 Boolean publicConsent, Boolean privacyConsent, List<Attachment> files) {}
+                                 Boolean publicConsent, Boolean privacyConsent, List<Attachment> files,
+                                 /** 로그인한 회원이 신청하면 전자민원이 알려 준다 (없으면 비회원) */
+                                 Long memberId) {}
 
     /** 전자민원 첨부: 파일 이름과 내용(Base64) */
     public record Attachment(String name, String contentBase64) {}
@@ -165,6 +171,15 @@ public class EPetitionService {
             throw new Problem(422, "invalid_kind", "민원 종류는 QUERY(질의)·SUGGESTION(건의)·OTHER(기타)·GRIEVANCE(고충) 가운데 하나입니다.");
         }
         String pw = r.password();
+        if (r.memberId() != null) {
+            if (portal.member(r.memberId()) == null) {
+                throw new Problem(404, "member_not_found", "회원 정보를 찾을 수 없습니다. 다시 로그인해 주세요.");
+            }
+            // 회원은 '내 민원'에서 보므로 조회 비밀번호를 정하지 않아도 된다 (정하면 비회원 조회도 된다)
+            if (pw == null || pw.isEmpty()) {
+                pw = randomPassword() + randomPassword();
+            }
+        }
         if (pw == null || pw.length() < 8 || pw.length() > 20 || !pw.matches(".*[A-Za-z].*") || !pw.matches(".*\\d.*")) {
             throw new Problem(422, "invalid_password", "조회 비밀번호는 영문과 숫자를 섞어 8~20자로 정하세요.");
         }
@@ -199,6 +214,9 @@ public class EPetitionService {
         List<org.springframework.web.multipart.MultipartFile> files = attachments(r.files());
         CivilComplaintVO c = civil.receive(f, REGISTER_ID);
         mapper.setLookup(c.getComplaintId(), encoder.encode(pw), Boolean.TRUE.equals(r.publicConsent()) ? "Y" : "N");
+        if (r.memberId() != null) {
+            portal.linkMember(c.getComplaintId(), r.memberId());
+        }
         if (!files.isEmpty()) {
             try {
                 civilFiles.save(c.getComplaintId(), files, REGISTER_ID);
@@ -380,7 +398,7 @@ public class EPetitionService {
         return mapper.flags(id);
     }
 
-    private Map<String, Object> detail(CivilComplaintVO c, boolean owner) {
+    Map<String, Object> detail(CivilComplaintVO c, boolean owner) {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("receiptNo", c.getReceiptNo());
         out.put("kindLabel", c.getKind() == null ? "" : c.getKind().getLabel());
@@ -401,6 +419,9 @@ public class EPetitionService {
             Map<String, Object> s = new LinkedHashMap<>();
             s.put("step", h.getActionLabel());
             s.put("at", time(h.getActedAt()));
+            if (owner && ("ADDENDUM".equals(h.getAction()) || "WITHDRAW".equals(h.getAction()))) {
+                s.put("text", h.getDetail()); // 민원인이 직접 쓴 글은 본인에게만 다시 보여 준다
+            }
             steps.add(s); // 담당 직원 이름·내부 메모는 보내지 않는다
         }
         out.put("steps", steps);
@@ -412,6 +433,23 @@ public class EPetitionService {
             res.put("completedAt", time(c.getCompletedAt()));
             res.put("notifiedBy", c.getResultNotify());
             out.put("result", res);
+        }
+        if (owner) {
+            boolean done = c.getStatus() == CivilStatus.DONE;
+            boolean withdrawn = "WITHDRAWN".equals(c.getResultType());
+            Map<String, Object> sat = portal.satisfaction(c.getComplaintId());
+            Object score = sat == null ? null : sat.get("score");
+            out.put("actionToken", tokens.issue(c.getComplaintId()));
+            out.put("canWithdraw", !done);
+            out.put("canAddendum", !done && portal.addendumCount(c.getComplaintId()) < EPetitionPortalService.MAX_ADDENDA);
+            out.put("canRate", done && !withdrawn && score == null);
+            if (score != null) {
+                Map<String, Object> s = new LinkedHashMap<>();
+                s.put("score", ((Number) score).intValue());
+                s.put("comment", sat.get("comment"));
+                s.put("at", time(sat.get("at")));
+                out.put("satisfaction", s);
+            }
         }
         return out;
     }
@@ -430,7 +468,7 @@ public class EPetitionService {
         return n.charAt(0) + "*".repeat(n.length() - 2) + n.charAt(n.length() - 1);
     }
 
-    private static String statusLabel(CivilStatus s) {
+    static String statusLabel(CivilStatus s) {
         if (s == null) {
             return "";
         }
@@ -441,7 +479,7 @@ public class EPetitionService {
         };
     }
 
-    private static String kindLabel(String k) {
+    static String kindLabel(String k) {
         try {
             return CivilKind.valueOf(k).getLabel();
         } catch (Exception e) {
@@ -449,7 +487,7 @@ public class EPetitionService {
         }
     }
 
-    private static String resultLabel(String t) {
+    static String resultLabel(String t) {
         try {
             return t == null ? "" : ResultType.valueOf(t).getLabel();
         } catch (IllegalArgumentException e) {
@@ -457,7 +495,7 @@ public class EPetitionService {
         }
     }
 
-    private static String time(Object o) {
+    static String time(Object o) {
         if (o == null) {
             return null;
         }

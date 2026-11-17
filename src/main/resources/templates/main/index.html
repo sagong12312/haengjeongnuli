@@ -40,6 +40,7 @@
         <a class="menu-card" th:href="@{/approval}"><b>문서·전자결재</b><span>기안, 결재, 접수, 문서함, <span th:remove="tag">기록물 등록대장</span></span></a>
         <a class="menu-card" th:href="@{/civil}"><b>민원</b><span>민원 접수·처리, 구비서류, 처리기한 관리</span></a>
         <a th:if="${loginUser.counterStaff or loginUser.admin}" class="menu-card" th:href="@{/civil/certs}"><b>증명 발급</b><span>등·초본·인감증명 발급대장, 수수료</span></a>
+        <a th:if="${loginUser.counterStaff or loginUser.admin}" class="menu-card" th:href="@{/epetition}"><b>전자민원 운영</b><span>국민용 공지사항·자주 묻는 질문, 만족도·처리 통계</span></a>
         <a class="menu-card" th:href="@{/finance(area='rev')}"><b>세입</b><span>세입예산, 수납 기록 (세입 담당)</span></a>
         <a class="menu-card" th:href="@{/finance(area='fin')}"><b>재정·회계</b><span>예산 편성·집행, 추경·이월, 지출결의</span></a>
         <a class="menu-card" th:href="@{/finance/purchases}"><b>구매·계약</b><span>견적 비교, 계약대장, 검수, 물품대장</span></a>
