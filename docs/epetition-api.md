@@ -194,10 +194,12 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 - `429 too_many_attempts`: 같은 국민 IP(`X-EP-Client-IP`)가 **10분 동안 10번** 틀리면(접수번호가 달라도) 그 IP의 조회를 잠시 막습니다. 여러 접수번호에 흔한 비밀번호를 넣어 보는 공격을 막기 위한 것입니다.
 - 전자민원 쪽에서도 국민 IP별 조회 횟수 제한과 자동입력 방지(CAPTCHA 등)를 꼭 두세요. 행정누리의 잠금은 접수번호 단위입니다.
 
-### 5-3. 공개 상담 목록 `GET /api/epetition/v1/consultations?page=1&q=검색어`
+### 5-3. 공개 상담 목록 `GET /api/epetition/v1/consultations?page=1&q=검색어&kind=QUERY&sort=likes`
 
 - 대상은 세 가지가 모두 맞는 민원입니다: 처리 완료, 민원인이 공개에 동의함, 담당 공무원이 게시함.
 - 한 쪽에 20건씩이고, `q`는 제목·내용에서 찾습니다(100자 이내).
+- `kind`(QUERY·SUGGESTION·GRIEVANCE·OTHER)로 종류를 거르고, `sort`는 `recent`(기본, 최근 처리순)·`views`·`likes`입니다.
+- 항목마다 `kind`, `views`(조회수), `likes`(공감 수)가 더 붙습니다. 취하한 민원은 나오지 않습니다.
 
 ```json
 {"ok":true,"data":{"total":42,"page":1,"totalPages":3,"items":[
@@ -209,7 +211,14 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 
 ### 5-4. 공개 상담 한 건 `GET /api/epetition/v1/consultations/{id}`
 
-5-2와 같은 꼴입니다. 이름은 가려져 있고, 게시되지 않은 건이면 `404 not_found`를 돌려줍니다.
+5-2와 같은 꼴입니다(단 `actionToken` 등 본인용 값은 없음). 이름은 가려져 있고, 게시되지 않은 건이면 `404 not_found`를 돌려줍니다.
+더 붙는 값: `views`, `likes`, `liked`(이 `X-EP-Client-IP`가 이미 공감했는지), `related`(같은 종류의 다른 공개 상담 5건 `{id,title,completedAt}`).
+조회수는 같은 `X-EP-Client-IP`가 같은 글을 하루에 여러 번 열어도 한 번만 셉니다.
+
+### 5-4-1. 공감 `POST /api/epetition/v1/consultations/{id}/like` (본문 `{}`)
+
+"도움이 됐어요". 같은 `X-EP-Client-IP`는 한 번만 셉니다. IP는 그대로 남기지 않고 서명 비밀값을 섞은 SHA-256 값으로만 저장합니다.
+응답 `{"added":true,"likes":3}` (이미 눌렀으면 `added:false`). 게시되지 않은 글이면 `404 not_found`.
 
 ### 5-5. 행정처분 공개 `GET /api/epetition/v1/dispositions?page=1&q=상호또는주소`
 
@@ -223,6 +232,54 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 ```
 
 `kind`는 시정명령, 영업정지, 일부 시설 사용중지, 영업소 폐쇄, 허가·등록 취소, 과징금, 과태료 가운데 하나입니다. 대표자 이름은 보내지 않습니다.
+
+### 5-6. 민원 안내·통계·공지·자주 묻는 질문 (읽기)
+
+| 요청 | 응답 `data` |
+|---|---|
+| `GET /info` | `kinds`: `[{kind,label,description,period,online}]` (online=false 는 법정민원), `maxAddenda` |
+| `GET /stats` | 최근 12개월: `received`, `done`, `withdrawn`, `online`, `avgDays`, `onTimeRate`(%), `satisfactionAvg`, `satisfactionCount`, `satisfactionDist`(1~5점 명수), `months[{month,received,done}]`, `kinds[{kind,label,received,done}]`. 숫자만, 개인정보 없음. 취하는 처리 건수·평균에서 뺌 |
+| `GET /notices?page=1&q=` | `{total,page,totalPages,items:[{id,title,pinned,views,createdAt}]}` (고정 먼저) |
+| `GET /notices/{id}` | `{id,title,content,pinned,views,createdAt,updatedAt}` (없으면 404). 조회수는 5-4와 같은 방식 |
+| `GET /faqs` | `{categories:[{category,items:[{id,question,answer}]}]}` (보이기로 한 것만) |
+
+공지사항·자주 묻는 질문은 민원 창구 직원·관리자가 행정누리 **업무 메뉴 › 전자민원 운영**(`/epetition`)에서 씁니다. 내용은 글자로만 보여 주세요.
+
+### 5-7. 민원인이 하는 일: 추가 의견·취하·만족도
+
+5-2 조회(또는 5-8 내 민원 한 건)에 성공하면 본인용 값이 더 붙습니다.
+
+```json
+{"actionToken":"(32자)","canWithdraw":true,"canAddendum":true,"canRate":false,
+ "satisfaction":{"score":5,"comment":"…","at":"…"}}
+```
+
+`actionToken`은 **20분** 동안만 쓰며 행정누리 메모리에만 있습니다(다시 켜면 없어짐). 비밀번호를 다시 보내지 않도록 이 값으로만 아래를 요청합니다.
+지나면 `401 token_expired` → 다시 조회하게 안내하세요. `steps`에는 `민원인 추가 의견`·`민원 취하`가 나오고, 본인 조회 때만 `text`(민원인이 쓴 글)가 붙습니다.
+
+| 요청 | 본문 | 조건·오류 |
+|---|---|---|
+| `POST /complaints/addendum` | `{"token","text"}` (1,000자) | 처리 완료 전, 5번까지. `409 already_done`·`409 too_many`·`422 invalid_input`. 처리 이력에 남고 담당자(없으면 창구 직원)에게 알림 |
+| `POST /complaints/withdraw` | `{"token","reason"}` (500자, 선택) | 처리 완료 전만(`409 already_done`). 처리 완료(결과 구분 `취하`)가 되며 공개 상담에 게시할 수 없음. 담당자에게 알림 |
+| `POST /complaints/satisfaction` | `{"token","score":1~5,"comment"}` (1,000자) | 처리 완료(취하 제외) 뒤 한 번만(`409 cannot_rate`). 직원 민원 상세와 전자민원 운영 화면에 보임 |
+
+### 5-8. 회원
+
+실명 확인(본인인증)은 하지 않는 아이디·비밀번호 회원입니다. `memberId`는 **전자민원이 자기 로그인 세션에서 꺼내 넣습니다**(국민이 보낸 값을 그대로 넣지 마세요). 이 API는 서명된 전자민원 서버만 부를 수 있으므로 행정누리는 `memberId`를 믿습니다.
+
+| 요청 | 본문 / 응답 | 오류 |
+|---|---|---|
+| `POST /members` | `{"loginId","password","name","mobile","email","address","termsConsent":true,"privacyConsent":true}` → 회원 정보 | `invalid_login_id`(영문 소문자로 시작, 소문자·숫자·`_` 5~20자), `invalid_password`(2종류 10자 이상 또는 3종류 8자 이상, 64자까지, 아이디 포함·같은 글자 4번 연속 안 됨), `login_id_taken`(409), `consent_required`, `invalid_input` |
+| `POST /members/login` | `{"loginId","password"}` → 회원 정보 + `previousLoginAt` | `not_matched`(401, 없는 아이디와 같음), 5번 틀리면 30분 `locked`(423) |
+| `GET /members/{id}` | 회원 정보 `{memberId,loginId,name,mobile,email,address,createdAt,pwChangedAt}` | `member_not_found`(404) → 로그아웃시키세요 |
+| `POST /members/{id}/profile` | `{"name","mobile","email","address"}` | `invalid_input` |
+| `POST /members/{id}/password` | `{"currentPassword","newPassword"}` | `wrong_password`, `invalid_password` |
+| `POST /members/{id}/delete` | `{"password"}` → `{deleted,complaints}` | 회원 정보는 바로 지우고, 낸 민원은 남기되 연결만 끊음 |
+| `GET /members/{id}/complaints?page=1` | `{total,page,totalPages,items:[{receiptNo,kindLabel,title,status,statusLabel,receivedAt,deadlineAt,completedAt}]}` | |
+| `GET /members/{id}/complaints/{receiptNo}` | 5-2와 같은 꼴 (본인용 값 포함) | 남의 민원이면 404 |
+
+5-1 접수에 `"memberId": 7`을 넣으면 회원 민원이 되며, 이때 `password`는 빼도 됩니다(넣으면 비회원 조회도 됨).
+비밀번호는 BCrypt로만 저장합니다. 가입·로그인·정보 변경·탈퇴는 행정누리 접속기록에 남습니다.
 
 ## 6. 전자민원 쪽에서 지켜야 할 것
 
@@ -238,5 +295,6 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 ## 7. 아직 없는 것 (필요하면 행정누리 쪽에 요청)
 
 - **법정민원 신청**: 구비서류와 수수료가 있어 정부24 연계 대상입니다.
-- **본인확인**(휴대폰·공동인증): 행정누리는 본인확인 결과를 받지 않습니다. 붙이게 되면 확인 결과(CI 등)를 넘길 필드를 협의해야 합니다.
+- **본인확인**(휴대폰·공동인증): 행정누리는 본인확인 결과를 받지 않습니다. 회원도 실명 확인 없이 가입합니다. 붙이게 되면 확인 결과(CI 등)를 넘길 필드를 협의해야 합니다.
+- **회원 아이디·비밀번호 찾기**: 본인확인 수단이 없어 인터넷으로는 못 합니다. 기관에 문의하게 안내합니다.
 - **조회 비밀번호 재설정**: 민원인이 기관에 연락하면, 직원이 행정누리 민원 상세에서 본인을 확인한 뒤 새 임시 비밀번호(영문 6 + 숫자 4)를 만들어 알려 줍니다(잠금도 풀림). 인터넷으로 스스로 재설정하는 기능은 없습니다(본인확인 수단이 없어서).
