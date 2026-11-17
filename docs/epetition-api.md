@@ -122,6 +122,7 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 ```json
 {
   "kind": "QUERY | SUGGESTION | OTHER | GRIEVANCE",
+  "category": "ROAD (민원 분야, 선택: 비우면 ETC)",
   "lawInterpretation": false,
   "name": "홍길동",
   "mobile": "010-1234-5678",
@@ -141,6 +142,7 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 
 | 항목 | 규칙 |
 |---|---|
+| `category` | 민원 분야. `ROAD`(도로·교통) `PARKING`(주차) `TRANSIT`(대중교통) `CLEAN`(환경·청소) `WATER`(상하수도) `PARK`(공원·녹지) `BUILDING`(주택·건축) `LAND`(도시계획·토지) `WELFARE`(복지) `HEALTH`(보건·위생) `TAX`(세무) `SAFETY`(안전·재난) `CULTURE`(문화·체육·관광) `ECONOMY`(경제·일자리) `ANIMAL`(동물) `ADMIN`(행정·민원 서비스) `ETC`(기타). 목록은 `GET /info`의 `categories`. 틀린 값은 `422 invalid_category`, 비우면 `ETC`. 민원 종류(`kind`)는 법이 정한 것이라 그대로이고, 분야는 담당 부서를 찾는 데 씁니다 |
 | `kind` | 질의(QUERY)·건의(SUGGESTION)·기타(OTHER)·고충(GRIEVANCE)만 받습니다. **법정민원(LEGAL)은 받지 않습니다.** 구비서류와 수수료가 있어 창구나 정부24로 안내하세요 |
 | `lawInterpretation` | 질의민원일 때 법령 해석 질의면 `true`(처리기간 14일), 제도·절차 질의면 `false`(7일) |
 | `name` | 필수, 100자 이내 |
@@ -194,12 +196,12 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 - `429 too_many_attempts`: 같은 국민 IP(`X-EP-Client-IP`)가 **10분 동안 10번** 틀리면(접수번호가 달라도) 그 IP의 조회를 잠시 막습니다. 여러 접수번호에 흔한 비밀번호를 넣어 보는 공격을 막기 위한 것입니다.
 - 전자민원 쪽에서도 국민 IP별 조회 횟수 제한과 자동입력 방지(CAPTCHA 등)를 꼭 두세요. 행정누리의 잠금은 접수번호 단위입니다.
 
-### 5-3. 공개 상담 목록 `GET /api/epetition/v1/consultations?page=1&q=검색어&kind=QUERY&sort=likes`
+### 5-3. 공개 상담 목록 `GET /api/epetition/v1/consultations?page=1&q=검색어&kind=QUERY&category=ROAD&sort=likes`
 
 - 대상은 세 가지가 모두 맞는 민원입니다: 처리 완료, 민원인이 공개에 동의함, 담당 공무원이 게시함.
 - 한 쪽에 20건씩이고, `q`는 제목·내용에서 찾습니다(100자 이내).
-- `kind`(QUERY·SUGGESTION·GRIEVANCE·OTHER)로 종류를 거르고, `sort`는 `recent`(기본, 최근 처리순)·`views`·`likes`입니다.
-- 항목마다 `kind`, `views`(조회수), `likes`(공감 수)가 더 붙습니다. 취하한 민원은 나오지 않습니다.
+- `kind`(QUERY·SUGGESTION·GRIEVANCE·OTHER)로 종류를, `category`로 분야를 거르고, `sort`는 `recent`(기본, 최근 처리순)·`views`·`likes`입니다.
+- 항목마다 `kind`, `category`·`categoryLabel`, `views`(조회수), `likes`(공감 수)가 더 붙습니다. 취하한 민원은 나오지 않습니다.
 
 ```json
 {"ok":true,"data":{"total":42,"page":1,"totalPages":3,"items":[
@@ -211,7 +213,7 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 
 ### 5-4. 공개 상담 한 건 `GET /api/epetition/v1/consultations/{id}`
 
-5-2와 같은 꼴입니다(단 `actionToken` 등 본인용 값은 없음). 이름은 가려져 있고, 게시되지 않은 건이면 `404 not_found`를 돌려줍니다.
+5-2와 같은 꼴입니다(`category`·`categoryLabel` 포함, 단 `actionToken` 등 본인용 값은 없음). 이름은 가려져 있고, 게시되지 않은 건이면 `404 not_found`를 돌려줍니다.
 더 붙는 값: `views`, `likes`, `liked`(이 `X-EP-Client-IP`가 이미 공감했는지), `related`(같은 종류의 다른 공개 상담 5건 `{id,title,completedAt}`).
 조회수는 같은 `X-EP-Client-IP`가 같은 글을 하루에 여러 번 열어도 한 번만 셉니다.
 
@@ -237,8 +239,8 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 
 | 요청 | 응답 `data` |
 |---|---|
-| `GET /info` | `kinds`: `[{kind,label,description,period,online}]` (online=false 는 법정민원), `maxAddenda` |
-| `GET /stats` | 최근 12개월: `received`, `done`, `withdrawn`, `online`, `avgDays`, `onTimeRate`(%), `satisfactionAvg`, `satisfactionCount`, `satisfactionDist`(1~5점 명수), `months[{month,received,done}]`, `kinds[{kind,label,received,done}]`. 숫자만, 개인정보 없음. 취하는 처리 건수·평균에서 뺌 |
+| `GET /info` | `kinds`: `[{kind,label,description,period,online}]` (online=false 는 법정민원), `categories`: `[{category,label,examples}]`, `maxAddenda` |
+| `GET /stats` | 최근 12개월: `received`, `done`, `withdrawn`, `online`, `avgDays`, `onTimeRate`(%), `satisfactionAvg`, `satisfactionCount`, `satisfactionDist`(1~5점 명수), `months[{month,received,done}]`, `kinds[{kind,label,received,done}]`, `categories[{category,label,received,done}]`(건수가 있는 분야만). 숫자만, 개인정보 없음. 취하는 처리 건수·평균에서 뺌 |
 | `GET /notices?page=1&q=` | `{total,page,totalPages,items:[{id,title,pinned,views,createdAt}]}` (고정 먼저) |
 | `GET /notices/{id}` | `{id,title,content,pinned,views,createdAt,updatedAt}` (없으면 404). 조회수는 5-4와 같은 방식 |
 | `GET /faqs` | `{categories:[{category,items:[{id,question,answer}]}]}` (보이기로 한 것만) |
