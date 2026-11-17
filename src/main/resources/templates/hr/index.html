@@ -84,6 +84,11 @@
           <a class="menu-card" th:href="@{/hr/duty/new(kind='TRIP')}"><b>출장 신청</b><span>출장 기간·출장지</span></a>
           <a class="menu-card" th:href="@{/hr/duty/new(kind='OVERTIME')}"><b>시간외근무</b><span>시간외근무 사전 신청</span></a>
           <a class="menu-card" th:href="@{/hr/duty}"><b>신청 내역</b><span>올해 복무 신청과 결재 상태</span></a>
+          <a class="menu-card" th:href="@{/hr/sheet}"><b>근무상황·시간외</b><span>지각·조퇴, 출퇴근으로 계산한 시간외근무와 수당</span></a>
+          <a class="menu-card" th:href="@{/hr/trips}"><b>출장 복명·정산</b><span>관내·관외 여비, 결과 보고</span></a>
+          <a class="menu-card" th:href="@{/hr/fix/new}"><b>근태 정정</b><span>출퇴근을 못 눌렀을 때 결재로 정정</span></a>
+          <a class="menu-card" th:href="@{/hr/team}"><b>부서 근태 현황</b><span>오늘 우리 부서 근무·휴가·출장</span></a>
+          <a th:if="${profile.admin}" class="menu-card" th:href="@{/hr/pay}"><b>수당·여비 설정</b><span>직급별 단가, 한도, 유연근무, 월 집계</span></a>
         </div>
       </section>
 

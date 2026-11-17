@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('수당·여비 설정')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('hr')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/hr}">인사</a> › 수당·여비 설정</span><h1>수당·여비 설정</h1></div>
+
+  <section class="panel flush" aria-labelledby="sum-title">
+    <div class="panel-head" style="flex-wrap:wrap; gap:8px;">
+      <h2 id="sum-title" th:text="${ym.year} + '년 ' + ${ym.monthValue} + '월 시간외근무 집계'">집계</h2>
+      <nav style="display:flex; gap:8px;" aria-label="달 바꾸기">
+        <a class="btn btn-plain btn-sm" th:href="@{/hr/pay(month=${prevMonth})}">‹ 이전 달</a>
+        <a th:if="${nextMonth}" class="btn btn-plain btn-sm" th:href="@{/hr/pay(month=${nextMonth})}">다음 달 ›</a>
+        <a class="btn btn-outline btn-sm" th:href="@{/hr/pay/summary.csv(month=${ym})}">CSV 내려받기</a>
+      </nav>
+    </div>
+    <div class="table-wrap"><table class="list" style="min-width:900px">
+      <thead><tr><th scope="col">이름</th><th scope="col">부서</th><th scope="col">직급</th><th scope="col">출근일</th><th scope="col">지각</th>
+        <th scope="col">조퇴</th><th scope="col">미기록</th><th scope="col">명령</th><th scope="col">인정</th><th scope="col">수당(어림)</th></tr></thead>
+      <tbody><tr th:each="r : ${summary}">
+        <td style="color:var(--text)" th:text="${r['name']}">이름</td><td th:text="${r['dept']}">부서</td><td th:text="${r['position']}">직급</td>
+        <td th:text="${r['daysWorked']}">0</td><td th:text="${r['late']}">0</td><td th:text="${r['early']}">0</td><td th:text="${r['missing']}">0</td>
+        <td th:text="${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(r['ordered'])} + '시간'">0</td>
+        <td th:text="${r['hours']} + '시간' + (${r['capped']} ? ' (상한)' : '')">0</td>
+        <td th:text="${r['pay']} != null ? ${#numbers.formatInteger(r['pay'], 0, 'COMMA')} + '원' : '단가 없음'">0</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <form class="panel" th:action="@{/hr/pay/settings}" method="post" style="gap:16px;">
+    <h2>기준 설정</h2>
+    <p class="hint" style="margin:0;">규정이 바뀌면 여기서 고칩니다. 기본값은 지방공무원 수당 등에 관한 규정 제15조(시간외근무 하루 4시간·월 57시간)와 공무원 여비 규정 별표 2(국내 여비)입니다.
+      기관 조례·지침이 다르면 그에 맞추세요.</p>
+    <h3 style="margin:0;">근무시간과 시간외근무</h3>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="field"><label for="s1">기본 출근 시각</label><input id="s1" name="s_work_start" type="time" class="input" th:value="${settings['work.start']}"></div>
+      <div class="field"><label for="s2">기본 퇴근 시각</label><input id="s2" name="s_work_end" type="time" class="input" th:value="${settings['work.end']}"></div>
+      <div class="field"><label for="s3">하루 상한 (시간)</label><input id="s3" name="s_ot_dailyCap" type="number" min="0" max="24" class="input" th:value="${settings['ot.dailyCap']}"></div>
+      <div class="field"><label for="s4">월 상한 (시간)</label><input id="s4" name="s_ot_monthlyCap" type="number" min="0" max="300" class="input" th:value="${settings['ot.monthlyCap']}"></div>
+      <div class="field"><label for="s5">월 정액분 (시간)</label><input id="s5" name="s_ot_fixedHours" type="number" min="0" max="100" class="input" th:value="${settings['ot.fixedHours']}">
+        <small class="muted">기관 지침에 정액분이 있으면 적습니다 (출근한 달에 더함)</small></div>
+    </div>
+    <h3 style="margin:0;">직급별 시간외근무 시간당 단가 (원)</h3>
+    <p class="hint" style="margin:0;">계정 관리의 직급 이름과 같게 적습니다. 단가는 해마다 보수 지침의 금액을 넣으세요. 비우면 그 직급 단가를 지웁니다.</p>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));">
+      <th:block th:each="p, st : ${positions}">
+        <div class="field"><label th:for="'r' + ${st.index}" th:text="${p}">직급</label>
+          <input type="hidden" th:name="'pos_' + ${st.index}" th:value="${p}">
+          <input th:id="'r' + ${st.index}" th:name="'rate_' + ${st.index}" type="number" min="0" class="input" th:value="${rates[p]}"></div>
+      </th:block>
+      <th:block th:each="k : ${rates.keySet()}" th:unless="${positions.contains(k)}">
+        <div class="field"><label th:for="'rx' + ${k.hashCode()}" th:text="${k} + ' (직원 없음)'">직급</label>
+          <input type="hidden" th:name="'pos_x' + ${k.hashCode()}" th:value="${k}">
+          <input th:id="'rx' + ${k.hashCode()}" th:name="'rate_x' + ${k.hashCode()}" type="number" min="0" class="input" th:value="${rates[k]}"></div>
+      </th:block>
+    </div>
+    <h3 style="margin:0;">국내 출장 여비 (원)</h3>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="field"><label for="t1">관내 4시간 이상</label><input id="t1" name="s_trip_inOver4h" type="number" min="0" class="input" th:value="${settings['trip.inOver4h']}"></div>
+      <div class="field"><label for="t2">관내 4시간 미만</label><input id="t2" name="s_trip_inUnder4h" type="number" min="0" class="input" th:value="${settings['trip.inUnder4h']}"></div>
+      <div class="field"><label for="t3">관내 공용차량 감액</label><input id="t3" name="s_trip_inCarCut" type="number" min="0" class="input" th:value="${settings['trip.inCarCut']}"></div>
+      <div class="field"><label for="t4">관외 일비 (하루)</label><input id="t4" name="s_trip_perDiem" type="number" min="0" class="input" th:value="${settings['trip.perDiem']}"></div>
+      <div class="field"><label for="t5">관외 식비 (하루)</label><input id="t5" name="s_trip_meal" type="number" min="0" class="input" th:value="${settings['trip.meal']}"></div>
+      <div class="field"><label for="t6">숙박 상한 서울</label><input id="t6" name="s_trip_lodging_SEOUL" type="number" min="0" class="input" th:value="${settings['trip.lodging.SEOUL']}"></div>
+      <div class="field"><label for="t7">숙박 상한 광역시</label><input id="t7" name="s_trip_lodging_METRO" type="number" min="0" class="input" th:value="${settings['trip.lodging.METRO']}"></div>
+      <div class="field"><label for="t8">숙박 상한 그 밖</label><input id="t8" name="s_trip_lodging_OTHER" type="number" min="0" class="input" th:value="${settings['trip.lodging.OTHER']}"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">설정 저장</button></div>
+  </form>
+
+  <section class="panel" id="schedule" style="gap:14px;">
+    <h2>유연근무 (시차출퇴근)</h2>
+    <p class="hint" style="margin:0;">승인된 유연근무자의 출근 시각을 정하면 퇴근 시각은 9시간 뒤(점심 1시간 포함)로 정해지고, 지각·조퇴와 시간외근무를 그 시각으로 계산합니다.</p>
+    <form th:action="@{/hr/pay/schedule}" method="post" class="search-bar" style="margin:0;">
+      <label for="ss" class="sr-only">직원</label>
+      <select id="ss" name="loginId" class="select" required><option value="">직원 선택</option>
+        <option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + ' · ' + ${u.dept()}">직원</option></select>
+      <label for="st" class="sr-only">출근 시각</label>
+      <select id="st" name="start" class="select"><option value="">기본 근무시간으로</option>
+        <option th:each="h : ${ {'07:00','07:30','08:00','08:30','09:00','09:30','10:00'} }" th:value="${h}" th:text="${h} + ' 출근'">08:00</option></select>
+      <button type="submit" class="btn btn-outline">정하기</button>
+    </form>
+    <p th:if="${#lists.isEmpty(schedules)}" class="hint" style="margin:0;">정해 둔 유연근무자가 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(schedules)}"><table class="list">
+      <thead><tr><th scope="col">아이디</th><th scope="col">근무시간</th><th scope="col">정한 사람</th></tr></thead>
+      <tbody><tr th:each="s : ${schedules}"><td th:text="${s['loginId']}">id</td><td th:text="${s['start']} + '~' + ${s['end']}">시간</td><td th:text="${s['by']}">관리자</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

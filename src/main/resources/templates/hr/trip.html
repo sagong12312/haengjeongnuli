@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('출장 복명·정산')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('hr')}"></header>
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/hr}">인사</a> › <a th:href="@{/hr/trips}">출장 복명·정산</a></span>
+    <h1 th:text="${t.destination} + ' 출장'">출장</h1></div>
+  <section class="panel">
+    <dl class="kv" style="margin:0; display:grid; grid-template-columns:140px 1fr; gap:10px;">
+      <dt class="muted">출장자</dt><dd style="margin:0" th:text="${t.userName} + (${t.deptName} ? ' · ' + ${t.deptName} : '')">이름</dd>
+      <dt class="muted">기간</dt><dd style="margin:0" th:text="${t.periodText}">기간</dd>
+      <dt class="muted">구분</dt><dd style="margin:0" th:text="${t.tripAreaLabel} + (${t.officialCar == 'Y'} ? ' · 공용차량' : '') + (${t.tripHours} ? ' · 하루 ' + ${t.tripHours} + '시간' : '') + (${t.lodgingNights} ? ' · 숙박 ' + ${t.lodgingNights} + '박' : '')">구분</dd>
+      <dt class="muted">결재</dt><dd style="margin:0"><a th:href="@{/approval/{id}(id=${t.docId})}"><span th:class="'badge ' + ${t.statusBadge}" th:text="${t.statusLabel}">승인</span></a></dd>
+      <dt class="muted">어림 여비</dt><dd style="margin:0" th:text="${t.estAmount} != null ? ${#numbers.formatInteger(t.estAmount, 0, 'COMMA')} + '원' : '—'">0원</dd>
+      <dt class="muted">사유</dt><dd style="margin:0; white-space:pre-wrap" th:text="${t.reason}">사유</dd>
+    </dl>
+  </section>
+
+  <section class="panel" th:if="${report}" style="gap:10px;">
+    <h2>복명·정산 결과</h2>
+    <p style="margin:0; font-size:24px; font-weight:800;" th:text="${#numbers.formatInteger(report['amount'], 0, 'COMMA')} + '원'">0원</p>
+    <p class="muted" style="margin:0;" th:text="${report['detail']}">계산</p>
+    <h3 style="margin:8px 0 0;">출장 결과</h3>
+    <p style="margin:0; white-space:pre-wrap;" th:text="${report['report']}">복명</p>
+  </section>
+
+  <form class="panel" th:if="${report == null and mine and t.docStatus == 'DONE' and !t.endDate.isAfter(today)}"
+        th:action="@{/hr/trips/{id}/settle(id=${t.reqId})}" method="post" style="gap:14px;">
+    <h2>복명·정산</h2>
+    <div class="field"><label for="trep">출장 결과 (복명) <span class="req">*</span></label>
+      <textarea id="trep" name="report" class="textarea" rows="6" maxlength="1300" required placeholder="1. 출장 목적&#10;2. 주요 내용&#10;3. 조치·건의 사항"></textarea></div>
+    <div class="grid-fields" th:if="${t.tripArea == 'OUT'}">
+      <div class="field"><label for="tfare">운임 (실비, 원)</label>
+        <input id="tfare" name="fare" type="number" class="input" min="0" step="100" value="0"></div>
+      <div class="field" th:if="${t.lodgingNights != null and t.lodgingNights > 0}"><label for="tlodge">숙박비 (실비 합계, 원)</label>
+        <input id="tlodge" name="lodgingPaid" type="number" class="input" min="0" step="100" value="0">
+        <small class="muted" th:text="'1박 상한 ' + ${#numbers.formatInteger(rates.lodgingCap(T(egovframework.haengjeongnuli.hr.service.WorkPayService).region(t.lodgingRegion)), 0, 'COMMA')} + '원, 넘는 금액은 주지 않습니다'">상한</small></div>
+    </div>
+    <p class="hint" style="margin:0;" th:if="${t.tripArea == 'IN'}">관내 출장은 정액(4시간 기준)이라 운임·숙박비를 따로 적지 않습니다.</p>
+    <p class="hint" style="margin:0;">영수증 등 증빙은 지출결의 때 첨부하세요.</p>
+    <div class="form-actions"><button type="submit" class="btn btn-primary btn-lg">복명·정산 저장</button></div>
+  </form>
+  <p th:if="${report == null and t.docStatus == 'DONE' and t.endDate.isAfter(today)}" class="hint">출장이 끝난 뒤에 복명·정산할 수 있습니다.</p>
+  <p th:if="${report == null and t.docStatus != 'DONE'}" class="hint">결재가 끝난(승인된) 출장만 정산할 수 있습니다.</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

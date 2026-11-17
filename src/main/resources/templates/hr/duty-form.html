@@ -44,6 +44,27 @@
       <div class="field" th:if="${kind.name() == 'TRIP'}"><label for="ddest">출장지 <span class="req">*</span></label>
         <input id="ddest" name="destination" class="input" maxlength="200" required placeholder="예: 세종 정부청사"></div>
     </div>
+    <fieldset th:if="${kind.name() == 'TRIP'}" class="panel" style="gap:12px; margin:0;">
+      <legend style="font-weight:800;">출장 구분과 여비</legend>
+      <div class="grid-fields">
+        <div class="field"><label for="tarea">구분 <span class="req">*</span></label>
+          <select id="tarea" name="tripArea" class="select" required>
+            <option value="IN">관내 (근무지 내: 같은 시·군 안)</option>
+            <option value="OUT" selected>관외 (근무지 밖)</option>
+          </select></div>
+        <div class="field"><label for="thours">관내: 하루 출장 시간</label>
+          <input id="thours" name="tripHours" type="number" class="input" min="0.5" max="24" step="0.5" placeholder="예: 3.5"></div>
+        <div class="field"><label for="tnights">관외: 숙박 (밤)</label>
+          <input id="tnights" name="nights" type="number" class="input" min="0" max="365" value="0"></div>
+        <div class="field"><label for="tregion">관외: 숙박 지역</label>
+          <select id="tregion" name="region" class="select">
+            <option value="SEOUL">서울특별시</option><option value="METRO">광역시</option><option value="OTHER" selected>그 밖의 지역</option>
+          </select></div>
+      </div>
+      <label class="check"><input type="checkbox" name="officialCar" value="true">공용차량(관용차)으로 갑니다</label>
+      <p class="hint" style="margin:0;"
+         th:text="'관내: 4시간 이상 ' + ${#numbers.formatInteger(tripRates.inOver4h(), 0, 'COMMA')} + '원, 4시간 미만 ' + ${#numbers.formatInteger(tripRates.inUnder4h(), 0, 'COMMA')} + '원 (공용차량이면 ' + ${#numbers.formatInteger(tripRates.inCarCut(), 0, 'COMMA')} + '원 감액). 관외: 일비·식비 하루 ' + ${#numbers.formatInteger(tripRates.perDiem(), 0, 'COMMA')} + '원·' + ${#numbers.formatInteger(tripRates.meal(), 0, 'COMMA')} + '원 (공용차량이면 일비 절반), 숙박비 1박 상한 서울 ' + ${#numbers.formatInteger(tripRates.lodgingSeoul(), 0, 'COMMA')} + '원·광역시 ' + ${#numbers.formatInteger(tripRates.lodgingMetro(), 0, 'COMMA')} + '원·그 밖 ' + ${#numbers.formatInteger(tripRates.lodgingOther(), 0, 'COMMA')} + '원, 운임은 다녀와서 정산. 공무원 여비 규정 기준'">여비 안내</p>
+    </fieldset>
     <div class="field"><label for="dreason">사유 <span class="req">*</span></label>
       <textarea id="dreason" name="reason" class="textarea" rows="3" maxlength="1000" required></textarea></div>
     <div class="field"><label for="dappr">결재권자 <span class="req">*</span></label>
@@ -54,6 +75,8 @@
     <p class="hint" style="margin:0;" th:switch="${kind.name()}">
       <span th:case="'ANNUAL'">휴가 일수는 토요일·일요일·공휴일을 빼고 셉니다. 남은 연가를 넘겨 신청할 수 없습니다.</span>
       <span th:case="'SICK'">병가는 연 60일 범위이며, 연 6일을 넘으면 의사의 진단서를 첨부해야 합니다(지방공무원 복무규정 제7조의5). 진단서는 결재 문서에서 첨부하세요.</span>
+      <span th:case="'OVERTIME'" th:text="'시간외근무 명령은 하루 ' + ${otDailyCap} + '시간, 한 달 ' + ${otMonthlyCap} + '시간을 넘을 수 없습니다. 승인된 명령 시간 안에서 실제 출퇴근 기록으로 인정 시간을 계산합니다 (평일은 1시간 공제, 1시간 미만은 인정하지 않음).'">안내</span>
+      <span th:case="'TRIP'">승인되면 출장을 다녀와서 <a th:href="@{/hr/trips}">출장 복명·정산</a>에서 결과를 적고 운임·숙박비로 여비를 정산합니다.</span>
       <span th:case="'OFFICIAL'">공가는 병역 소집, 투표, 건강검진, 헌혈 등 복무규정 제7조의6의 사유에 해당할 때 신청합니다.</span>
       <span th:case="*">신청하면 전자결재로 올라가고, 결재 결과가 신청 결과가 됩니다.</span>
     </p>

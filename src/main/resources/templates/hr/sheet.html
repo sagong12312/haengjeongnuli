@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('근무상황·시간외근무')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('hr')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/hr}">인사</a> › 근무상황·시간외근무</span>
+    <h1 th:text="${sheet.ym.year} + '년 ' + ${sheet.ym.monthValue} + '월 근무상황'">근무상황</h1></div>
+
+  <nav aria-label="달 바꾸기" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+    <a class="btn btn-plain btn-sm" th:href="@{/hr/sheet(month=${prevMonth})}">‹ 이전 달</a>
+    <a th:if="${nextMonth}" class="btn btn-plain btn-sm" th:href="@{/hr/sheet(month=${nextMonth})}">다음 달 ›</a>
+    <a class="btn btn-outline btn-sm" th:href="@{/hr/sheet.csv(month=${sheet.ym})}">CSV 내려받기</a>
+    <a class="btn btn-outline btn-sm" th:href="@{/hr/fix/new}">근태 정정 신청</a>
+    <span class="muted" th:text="'정해진 근무시간 ' + ${sheet.start} + '~' + ${sheet.end} + (${sheet.flexible} ? ' (유연근무)' : '')">09:00~18:00</span>
+  </nav>
+
+  <div class="stat-grid" style="grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));">
+    <div class="stat"><small>출근일</small><strong th:text="${sheet.daysWorked} + '일'">0일</strong></div>
+    <div class="stat"><small>지각</small><strong th:text="${sheet.late} + '번'">0번</strong></div>
+    <div class="stat"><small>조퇴</small><strong th:text="${sheet.early} + '번'">0번</strong></div>
+    <div class="stat"><small>퇴근 미기록</small><strong th:text="${sheet.missingOut} + '번'">0번</strong></div>
+    <div class="stat"><small>시간외 명령 (신청·승인)</small><strong th:text="${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(sheet.orderedHours)} + '시간'">0시간</strong></div>
+    <div class="stat blue"><small style="color:#1D3A5F">시간외 인정</small>
+      <strong th:text="${sheet.overtime.recognizedHours} + '시간'">0시간</strong>
+      <small th:if="${sheet.overtime.capped}" th:text="'월 ' + ${sheet.overtime.capHours} + '시간 상한 적용'">상한</small></div>
+    <div class="stat"><small>시간외근무수당 (어림)</small>
+      <strong th:text="${sheet.overtimePay} != null ? ${#numbers.formatInteger(sheet.overtimePay, 0, 'COMMA')} + '원' : '단가 미설정'">0원</strong>
+      <small th:if="${sheet.hourlyRate}" th:text="${#numbers.formatInteger(sheet.hourlyRate, 0, 'COMMA')} + '원 × (' + ${sheet.overtime.recognizedHours} + (${sheet.fixedHours} > 0 ? ' + 정액 ' + ${sheet.fixedHours} : '') + ')시간'">단가</small></div>
+  </div>
+
+  <section class="panel flush" aria-labelledby="sheet-title">
+    <div class="panel-head"><h2 id="sheet-title">날짜별 기록</h2><span class="muted">오늘까지</span></div>
+    <p th:if="${#lists.isEmpty(sheet.rows)}" class="hint" style="padding:18px 22px;">이 달에는 기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(sheet.rows)}">
+      <table class="list" style="min-width:980px">
+        <thead><tr><th scope="col">날짜</th><th scope="col">출근</th><th scope="col">퇴근</th><th scope="col">휴가·출장</th><th scope="col">근태</th>
+          <th scope="col">실제 시간외</th><th scope="col">명령 시간</th><th scope="col">인정</th><th scope="col">명령 밖</th><th scope="col">비고</th></tr></thead>
+        <tbody>
+          <tr th:each="r : ${sheet.rows}">
+            <td style="color:var(--text)"><span th:text="${#temporals.format(r.date, 'MM-dd')} + ' (' + ${r.weekday} + ')'">날짜</span>
+              <small th:if="${r.holiday}" class="muted" style="display:block" th:text="${r.holidayName}">휴일</small></td>
+            <td th:text="${r.inText()}">09:00</td>
+            <td th:text="${r.outText()}">18:00</td>
+            <td th:text="${r.duty} ?: ''"></td>
+            <td>
+              <span th:if="${!r.holiday and r.in == null and r.duty == null and r.date.isBefore(T(java.time.LocalDate).now())}" class="badge badge-gray">출근 기록 없음</span>
+              <span th:if="${r.late}" class="badge badge-orange">지각</span>
+              <span th:if="${r.early}" class="badge badge-orange">조퇴</span>
+              <span th:if="${r.missingOut}" class="badge badge-red">퇴근 미기록</span>
+              <span th:if="${r.fixState}" class="badge badge-blue" th:text="${r.fixState}">정정</span>
+              <a th:if="${(r.late or r.early or r.missingOut or (!r.holiday and r.in == null and r.duty == null)) and r.fixState == null}" th:href="@{/hr/fix/new(date=${r.date})}" style="font-size:15px;">정정</a>
+            </td>
+            <td th:text="${r.overtime.actualText()}">—</td>
+            <td th:text="${T(egovframework.haengjeongnuli.hr.service.OvertimeCalculator).hm(r.overtime.orderedMinutes)}">—</td>
+            <td style="font-weight:800; color:var(--text)" th:text="${r.overtime.recognizedText()}">—</td>
+            <td th:text="${r.overtime.unorderedText()}">—</td>
+            <td class="muted" th:text="${r.overtime.note}"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" style="gap:8px;">
+    <h2>시간외근무 인정 방법</h2>
+    <ul style="margin:0; padding-left:20px; line-height:1.8;">
+      <li>출근·퇴근 버튼을 누른 시각에서 정해진 근무시간 밖에 일한 시간을 셉니다. 토요일·일요일·공휴일은 출근~퇴근 전부입니다.</li>
+      <li>그 가운데 <b>결재가 끝난 시간외근무 명령(신청) 시간 안</b>에 든 부분만 인정합니다. 명령 없이 더 일한 시간은 "명령 밖"에 따로 보입니다.</li>
+      <li>하루 인정 시간이 1시간이 안 되면 0이고, 평일은 1시간을 뺍니다. 하루·한 달 상한을 넘으면 상한까지만 인정합니다.</li>
+      <li>한 달 합계는 분 단위로 더한 뒤 1시간 미만을 버립니다 (지방공무원 수당 등에 관한 규정 제15조).</li>
+      <li>수당 금액은 관리자가 정한 직급별 시간당 단가로 어림한 값입니다. 실제 지급액은 보수 담당이 확정합니다.</li>
+    </ul>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

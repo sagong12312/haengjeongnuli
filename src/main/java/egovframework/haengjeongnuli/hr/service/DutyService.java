@@ -38,6 +38,12 @@ public class DutyService {
     private final ApprovalService approvalService;
     private final HolidayService holidays;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private WorkPayService workPay;
+
+    /** 출장 신청에 더 받는 값: 관내·관외, 하루 여행시간, 공용차량, 숙박 밤 수·지역 */
+    public record TripInput(String area, Double hours, boolean officialCar, Integer nights, String region) {}
+
     public DutyService(DutyMapper mapper, ApprovalService approvalService, HolidayService holidays) {
         this.mapper = mapper;
         this.approvalService = approvalService;
@@ -73,6 +79,12 @@ public class DutyService {
     @Transactional
     public Result apply(DutyKind kind, LocalDate start, LocalDate end, String halfDay, String startTime, String endTime,
                         String destination, String reason, String approverId, LoginUser me) throws IOException {
+        return apply(kind, start, end, halfDay, startTime, endTime, destination, reason, approverId, null, me);
+    }
+
+    @Transactional
+    public Result apply(DutyKind kind, LocalDate start, LocalDate end, String halfDay, String startTime, String endTime,
+                        String destination, String reason, String approverId, TripInput trip, LoginUser me) throws IOException {
         if (kind == null) {
             return fail("신청 종류를 고르세요.");
         }
@@ -139,6 +151,27 @@ public class DutyService {
             }
             v.setDestination(dest);
             v.setDays((double) (ChronoUnit.DAYS.between(start, end) + 1));
+            // 여비: 관내(근무지 내)·관외(근무지 외)
+            TripInput t = trip == null ? new TripInput("OUT", null, false, null, null) : trip;
+            TripExpenseCalculator.Area area = "IN".equals(t.area()) ? TripExpenseCalculator.Area.IN : TripExpenseCalculator.Area.OUT;
+            double hrs = t.hours() == null ? 0 : t.hours();
+            int nights = t.nights() == null ? 0 : t.nights();
+            if (area == TripExpenseCalculator.Area.IN) {
+                if (hrs <= 0 || hrs > 24) {
+                    return fail("관내 출장은 하루 출장 여행시간(예: 3.5)을 적으세요. 4시간 이상이면 여비가 다릅니다.");
+                }
+                nights = 0;
+            } else if (nights < 0 || nights > ChronoUnit.DAYS.between(start, end)) {
+                return fail("숙박 밤 수는 0부터 출장 일수-1까지입니다.");
+            }
+            TripExpenseCalculator.Region region = WorkPayService.region(t.region());
+            TripExpenseCalculator.Result est = workPay.estimateTrip(area, start, end, hrs, t.officialCar(), nights, region);
+            v.setTripArea(area.name());
+            v.setTripHours(area == TripExpenseCalculator.Area.IN ? hrs : null);
+            v.setOfficialCar(t.officialCar() ? "Y" : "N");
+            v.setLodgingNights(nights);
+            v.setLodgingRegion(nights > 0 ? region.name() : null);
+            v.setEstAmount(est.total());
         } else {
             LocalTime from;
             LocalTime to;
@@ -152,8 +185,15 @@ public class DutyService {
                 return fail("끝 시각이 시작 시각보다 늦어야 합니다.");
             }
             double hours = Math.round(ChronoUnit.MINUTES.between(from, to) / 6.0) / 10.0;
-            if (hours > 12) {
-                return fail("시간외근무는 하루 12시간을 넘겨 신청할 수 없습니다.");
+            int dayCap = workPay.dailyCap();
+            int monthCap = workPay.monthlyCap();
+            if (hours > dayCap) {
+                return fail("시간외근무 명령은 하루 " + dayCap + "시간을 넘을 수 없습니다 (지방공무원 수당 등에 관한 규정 제15조).");
+            }
+            java.time.YearMonth ym = java.time.YearMonth.from(start);
+            double already = workPay.orderedHoursOf(me.getLoginId(), ym);
+            if (already + hours > monthCap) {
+                return fail(String.format("이달 시간외근무 명령이 %s시간이라 더하면 월 %d시간을 넘습니다.", fmt(already), monthCap));
             }
             if (mapper.countOverlap(me.getLoginId(), start, end, true) > 0) {
                 return fail("그날 시간외근무를 이미 신청했습니다.");
@@ -173,7 +213,12 @@ public class DutyService {
         f.setBody("1. 신청자: " + me.getUserName() + " " + me.position() + " (" + me.dept() + ")\n"
                 + "2. 종류: " + kind.getLabel() + "\n"
                 + "3. 기간: " + v.getPeriodText() + "\n"
-                + (v.getDestination() != null ? "4. 출장지: " + v.getDestination() + "\n5. 사유: " : "4. 사유: ") + r);
+                + (v.getDestination() != null ? "4. 출장지: " + v.getDestination() + " (" + v.getTripAreaLabel() + ")\n"
+                        + "5. 어림 여비: " + String.format("%,d원", v.getEstAmount()) + " — "
+                        + workPay.estimateTrip("IN".equals(v.getTripArea()) ? TripExpenseCalculator.Area.IN : TripExpenseCalculator.Area.OUT,
+                                start, end, v.getTripHours() == null ? 0 : v.getTripHours(), "Y".equals(v.getOfficialCar()),
+                                v.getLodgingNights() == null ? 0 : v.getLodgingNights(), WorkPayService.region(v.getLodgingRegion())).detail()
+                        + "\n6. 사유: " : "4. 사유: ") + r);
         f.setFinalApprover(approverId);
         Map<String, String> errors = approvalService.validate(f, true, me, null);
         if (!errors.isEmpty()) {

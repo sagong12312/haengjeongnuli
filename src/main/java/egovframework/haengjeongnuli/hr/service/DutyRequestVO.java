@@ -22,6 +22,14 @@ public class DutyRequestVO {
     private Long docId;
     private LocalDateTime createdAt;
     private String docStatus;
+    /** 출장: IN(관내)·OUT(관외), 하루 여행시간, 공용차량, 숙박, 어림 여비, 정산 금액 */
+    private String tripArea;
+    private Double tripHours;
+    private String officialCar;
+    private Integer lodgingNights;
+    private String lodgingRegion;
+    private Long estAmount;
+    private Long settledAmount;
 
     public String getStatusLabel() {
         if (docStatus == null) {
@@ -101,4 +109,23 @@ public class DutyRequestVO {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public String getDocStatus() { return docStatus; }
     public void setDocStatus(String docStatus) { this.docStatus = docStatus; }
+
+    public String getTripArea() { return tripArea; }
+    public void setTripArea(String tripArea) { this.tripArea = tripArea; }
+    public Double getTripHours() { return tripHours; }
+    public void setTripHours(Double tripHours) { this.tripHours = tripHours; }
+    public String getOfficialCar() { return officialCar; }
+    public void setOfficialCar(String officialCar) { this.officialCar = officialCar; }
+    public Integer getLodgingNights() { return lodgingNights; }
+    public void setLodgingNights(Integer lodgingNights) { this.lodgingNights = lodgingNights; }
+    public String getLodgingRegion() { return lodgingRegion; }
+    public void setLodgingRegion(String lodgingRegion) { this.lodgingRegion = lodgingRegion; }
+    public Long getEstAmount() { return estAmount; }
+    public void setEstAmount(Long estAmount) { this.estAmount = estAmount; }
+    public Long getSettledAmount() { return settledAmount; }
+    public void setSettledAmount(Long settledAmount) { this.settledAmount = settledAmount; }
+
+    public String getTripAreaLabel() {
+        return "IN".equals(tripArea) ? "관내" : "OUT".equals(tripArea) ? "관외" : "—";
+    }
 }

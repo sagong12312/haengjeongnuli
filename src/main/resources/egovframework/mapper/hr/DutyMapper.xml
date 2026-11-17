@@ -7,16 +7,20 @@
 
     <insert id="insert" parameterType="egovframework.haengjeongnuli.hr.service.DutyRequestVO">
         INSERT INTO DUTY_REQUEST (REQ_ID, LOGIN_ID, USER_NAME, DEPT_NAME, KIND, START_DATE, END_DATE, HALF_DAY,
-                                  START_TIME, END_TIME, DAYS, HOURS, DESTINATION, REASON, DOC_ID, CREATED_AT)
+                                  START_TIME, END_TIME, DAYS, HOURS, DESTINATION, REASON, DOC_ID, CREATED_AT,
+                                  TRIP_AREA, TRIP_HOURS, OFFICIAL_CAR, LODGING_NIGHTS, LODGING_REGION, EST_AMOUNT)
         VALUES (#{reqId}, #{loginId}, #{userName}, #{deptName}, #{kind}, #{startDate, jdbcType=DATE}, #{endDate, jdbcType=DATE},
                 #{halfDay}, #{startTime}, #{endTime}, #{days, jdbcType=NUMERIC}, #{hours, jdbcType=NUMERIC},
-                #{destination}, #{reason}, #{docId}, #{createdAt})
+                #{destination}, #{reason}, #{docId}, #{createdAt},
+                #{tripArea, jdbcType=VARCHAR}, #{tripHours, jdbcType=NUMERIC}, #{officialCar, jdbcType=CHAR},
+                #{lodgingNights, jdbcType=NUMERIC}, #{lodgingRegion, jdbcType=VARCHAR}, #{estAmount, jdbcType=NUMERIC})
     </insert>
 
     <select id="selectByUser" resultType="egovframework.haengjeongnuli.hr.service.DutyRequestVO">
         SELECT * FROM (
             SELECT R.REQ_ID, R.LOGIN_ID, R.USER_NAME, R.DEPT_NAME, R.KIND, R.START_DATE, R.END_DATE, R.HALF_DAY,
                    R.START_TIME, R.END_TIME, R.DAYS, R.HOURS, R.DESTINATION, R.REASON, R.DOC_ID, R.CREATED_AT,
+                   R.TRIP_AREA, R.TRIP_HOURS, R.OFFICIAL_CAR, R.LODGING_NIGHTS, R.LODGING_REGION, R.EST_AMOUNT,
                    D.STATUS AS DOC_STATUS
               FROM DUTY_REQUEST R JOIN APPROVAL_DOC D ON D.DOC_ID = R.DOC_ID
              WHERE R.LOGIN_ID = #{loginId} AND D.DELETED_YN = 'N'

@@ -19,6 +19,8 @@ import egovframework.haengjeongnuli.hr.service.AttendanceVO;
 public class HrController {
 
     private final AttendanceService attendanceService;
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.hr.service.WorkPayService workPay;
     private final egovframework.haengjeongnuli.hr.service.DutyService dutyService;
     private final egovframework.haengjeongnuli.user.service.UserService userService;
     private final egovframework.haengjeongnuli.approval.service.ApprovalService approvalService;
@@ -94,6 +96,9 @@ public class HrController {
         model.addAttribute("sickUsed", dutyService.sickUsed(profile, YearMonth.now().getYear()));
         model.addAttribute("approvers", approvalService.approverCandidates(me));
         model.addAttribute("today", java.time.LocalDate.now());
+        model.addAttribute("tripRates", workPay.tripRates());
+        model.addAttribute("otDailyCap", workPay.dailyCap());
+        model.addAttribute("otMonthlyCap", workPay.monthlyCap());
         return "hr/duty-form";
     }
 
@@ -105,9 +110,13 @@ public class HrController {
                         @RequestParam(required = false) String halfDay, @RequestParam(required = false) String startTime,
                         @RequestParam(required = false) String endTime, @RequestParam(required = false) String destination,
                         @RequestParam(required = false) String reason, @RequestParam(required = false) String approver,
+                        @RequestParam(required = false) String tripArea, @RequestParam(required = false) Double tripHours,
+                        @RequestParam(defaultValue = "false") boolean officialCar, @RequestParam(required = false) Integer nights,
+                        @RequestParam(required = false) String region,
                         org.springframework.web.servlet.mvc.support.RedirectAttributes ra) throws java.io.IOException {
         egovframework.haengjeongnuli.hr.service.DutyService.Result r = dutyService.apply(kind, start, end, halfDay, startTime,
-                endTime, destination, reason, approver, fresh(me));
+                endTime, destination, reason, approver,
+                new egovframework.haengjeongnuli.hr.service.DutyService.TripInput(tripArea, tripHours, officialCar, nights, region), fresh(me));
         ra.addFlashAttribute("message", r.message());
         if (!r.ok()) {
             return "redirect:/hr/duty/new" + (kind == null ? "" : "?kind=" + kind);

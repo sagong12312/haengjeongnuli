@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('부서 근태 현황')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('hr')}"></header>
+<main class="page">
+  <div><span class="crumb"><a th:href="@{/hr}">인사</a> › 부서 근태 현황</span>
+    <h1 th:text="${dept} + ' 오늘 근태'">부서 근태</h1></div>
+  <form th:if="${admin}" class="search-bar" th:action="@{/hr/team}" method="get">
+    <label for="tdept" class="sr-only">부서</label>
+    <select id="tdept" name="dept" class="select"><option th:each="d : ${depts}" th:value="${d}" th:text="${d}" th:selected="${d == dept}">부서</option></select>
+    <button type="submit" class="btn btn-outline">보기</button>
+  </form>
+  <p class="hint" th:text="${today} + ' 기준. ' + (${admin} ? '출퇴근 시각은 관리자에게만 보입니다.' : '개인정보 보호를 위해 시각은 보이지 않고 근무 상태만 보입니다.')">안내</p>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">부서에 등록된 직원이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rows)}">
+      <table class="list">
+        <thead><tr><th scope="col">이름</th><th scope="col">직급</th><th scope="col">상태</th><th scope="col">휴가·출장</th>
+          <th th:if="${admin}" scope="col">출근</th><th th:if="${admin}" scope="col">퇴근</th></tr></thead>
+        <tbody>
+          <tr th:each="r : ${rows}">
+            <td style="color:var(--text)" th:text="${r['name']}">이름</td><td th:text="${r['position']}">직급</td>
+            <td><span th:class="'badge ' + (${r['state'] == '근무 중'} ? 'badge-green' : (${r['state'] == '출근 기록 없음'} ? 'badge-orange' : 'badge-gray'))" th:text="${r['state']}">상태</span></td>
+            <td th:text="${r['duty']} ?: ''"></td>
+            <td th:if="${admin}" th:text="${r['in']} ?: '—'">—</td><td th:if="${admin}" th:text="${r['out']} ?: '—'">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
