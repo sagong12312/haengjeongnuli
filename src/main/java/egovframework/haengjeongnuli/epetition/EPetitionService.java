@@ -106,7 +106,9 @@ public class EPetitionService {
                                  String address, String fax, String notifyMethod, String title, String content, String password,
                                  Boolean publicConsent, Boolean privacyConsent, List<Attachment> files,
                                  /** 로그인한 회원이 신청하면 전자민원이 알려 준다 (없으면 비회원) */
-                                 Long memberId) {}
+                                 Long memberId,
+                                 /** 민원 분야 (CivilCategory 이름, 비우면 기타) */
+                                 String category) {}
 
     /** 전자민원 첨부: 파일 이름과 내용(Base64) */
     public record Attachment(String name, String contentBase64) {}
@@ -170,6 +172,13 @@ public class EPetitionService {
         if (kind == null || !ONLINE_KINDS.contains(kind)) {
             throw new Problem(422, "invalid_kind", "민원 종류는 QUERY(질의)·SUGGESTION(건의)·OTHER(기타)·GRIEVANCE(고충) 가운데 하나입니다.");
         }
+        egovframework.haengjeongnuli.civil.service.CivilCategory category = null;
+        if (r.category() != null && !r.category().isBlank()) {
+            category = egovframework.haengjeongnuli.civil.service.CivilCategory.of(r.category());
+            if (category == null) {
+                throw new Problem(422, "invalid_category", "민원 분야를 다시 골라 주세요.");
+            }
+        }
         String pw = r.password();
         if (r.memberId() != null) {
             if (portal.member(r.memberId()) == null) {
@@ -188,6 +197,7 @@ public class EPetitionService {
         }
         CivilForm f = new CivilForm();
         f.setKind(kind);
+        f.setCategory(category);
         f.setLawInterpretation(Boolean.TRUE.equals(r.lawInterpretation()));
         f.setRoute("인터넷");
         f.setName(r.name());
@@ -402,6 +412,8 @@ public class EPetitionService {
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("receiptNo", c.getReceiptNo());
         out.put("kindLabel", c.getKind() == null ? "" : c.getKind().getLabel());
+        out.put("category", c.getCategory() == null ? "ETC" : c.getCategory().name());
+        out.put("categoryLabel", c.getCategoryLabel());
         out.put("title", c.getTitle());
         out.put("content", c.getContent());
         out.put("name", owner ? c.getApplicantName() : mask(c.getApplicantName()));

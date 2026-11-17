@@ -66,6 +66,7 @@ public class CivilController {
         search.applyViewer(me);
         model.addAttribute("seeAll", search.isViewerAll());
         model.addAttribute("kinds", CivilKind.values());
+        model.addAttribute("categories", egovframework.haengjeongnuli.civil.service.CivilCategory.values());
         model.addAttribute("statuses", CivilStatus.values());
         model.addAttribute("kind", search.getKind());
         model.addAttribute("summary", civilService.summary(me));
@@ -124,6 +125,7 @@ public class CivilController {
 
     private void addFormOptions(Model model) {
         model.addAttribute("kinds", CivilKind.values());
+        model.addAttribute("categories", egovframework.haengjeongnuli.civil.service.CivilCategory.values());
         Map<String, java.util.List<LegalAffair>> groups = Arrays.stream(LegalAffair.values())
                 .collect(Collectors.groupingBy(LegalAffair::getGroup, LinkedHashMap::new, Collectors.toList()));
         model.addAttribute("affairGroups", groups);

@@ -9,11 +9,11 @@
 
     <insert id="insertComplaint" parameterType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
         INSERT INTO CIVIL_COMPLAINT (
-            COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE,
+            COMPLAINT_ID, RECEIPT_NO, KIND, CATEGORY, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE,
             APPLICANT_NAME, MOBILE, HOME_PHONE, EMAIL, ADDRESS, NOTIFY_METHOD,
             TITLE, CONTENT, DEPT, ASSIGNEE, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, REGISTER_ID, ASSIGNEE_ID, PERIOD_DAYS, EXTEND_COUNT, FAX_NO
         ) VALUES (
-            #{complaintId}, #{receiptNo}, #{kind}, #{lawInterpretYn}, #{legalAffair}, #{route},
+            #{complaintId}, #{receiptNo}, #{kind}, #{category}, #{lawInterpretYn}, #{legalAffair}, #{route},
             #{applicantName}, #{mobile}, #{homePhone}, #{email}, #{address}, #{notifyMethod},
             #{title}, #{content, jdbcType=CLOB}, #{dept}, #{assignee}, #{status}, #{receivedAt}, #{deadline}, #{deadlineAt, jdbcType=TIMESTAMP}, #{registerId}, #{assigneeId}, #{periodDays, jdbcType=NUMERIC}, 0, #{faxNo}
         )
@@ -22,6 +22,7 @@
     <sql id="searchWhere">
         <where>
             <if test="kind != null">AND KIND = #{kind}</if>
+            <if test="category != null">AND NVL(CATEGORY, 'ETC') = #{category}</if>
             <if test="status != null">AND STATUS = #{status}</if>
             <if test="openOnly">AND STATUS &lt;&gt; 'DONE'</if>
             <!-- 접근통제: 창구 직원·관리자가 아니면 내가 담당·접수했거나 우리 부서가 처리하는 민원만 -->
@@ -43,7 +44,7 @@
     <select id="selectComplaintList" parameterType="egovframework.haengjeongnuli.civil.service.CivilSearchVO"
             resultType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
         SELECT * FROM (
-            SELECT COMPLAINT_ID, RECEIPT_NO, KIND, LEGAL_AFFAIR, APPLICANT_NAME, TITLE,
+            SELECT COMPLAINT_ID, RECEIPT_NO, KIND, CATEGORY, LEGAL_AFFAIR, APPLICANT_NAME, TITLE,
                    DEPT, ASSIGNEE, ASSIGNEE_ID, STATUS, RECEIVED_AT, DEADLINE, DEADLINE_AT, COMPLETED_AT
               FROM CIVIL_COMPLAINT
             <include refid="searchWhere"/>
@@ -59,7 +60,7 @@
     </select>
 
     <select id="selectComplaint" resultType="egovframework.haengjeongnuli.civil.service.CivilComplaintVO">
-        SELECT COMPLAINT_ID, RECEIPT_NO, KIND, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE, APPLICANT_NAME, MOBILE, HOME_PHONE,
+        SELECT COMPLAINT_ID, RECEIPT_NO, KIND, CATEGORY, LAW_INTERPRET_YN, LEGAL_AFFAIR, ROUTE, APPLICANT_NAME, MOBILE, HOME_PHONE,
                EMAIL, ADDRESS, NOTIFY_METHOD, TITLE, CONTENT, DEPT, ASSIGNEE, ASSIGNEE_ID, STATUS, RECEIVED_AT,
                DEADLINE, DEADLINE_AT, COMPLETED_AT, REGISTER_ID, PERIOD_DAYS, NVL(EXTEND_COUNT, 0) AS EXTEND_COUNT,
                RESULT_TYPE, RESULT_TEXT, REJECT_REMEDY, RESULT_NOTIFY, COMPLETED_BY, FAX_NO, RESULT_FAX_NO

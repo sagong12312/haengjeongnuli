@@ -102,8 +102,9 @@ public class EPetitionApiController {
     public ResponseEntity<Map<String, Object>> consultations(@RequestParam(defaultValue = "1") int page,
                                                              @RequestParam(required = false) String q,
                                                              @RequestParam(required = false) String kind,
+                                                             @RequestParam(required = false) String category,
                                                              @RequestParam(required = false) String sort) {
-        return ok(portal.consultations(page, q, kind, sort));
+        return ok(portal.consultations(page, q, kind, category, sort));
     }
 
     /** 공개 상담 한 건 + 조회수·공감·비슷한 상담 */

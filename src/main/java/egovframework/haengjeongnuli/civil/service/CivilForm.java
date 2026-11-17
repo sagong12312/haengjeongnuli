@@ -11,6 +11,8 @@ public class CivilForm {
 
     @NotNull(message = "민원 종류를 고르세요.")
     private CivilKind kind;
+    /** 민원 분야 (비우면 기타) */
+    private CivilCategory category;
     private boolean lawInterpretation = true;
     private LegalAffair affair;
     @NotBlank
@@ -109,6 +111,8 @@ public class CivilForm {
 
     public CivilKind getKind() { return kind; }
     public void setKind(CivilKind kind) { this.kind = kind; }
+    public CivilCategory getCategory() { return category; }
+    public void setCategory(CivilCategory category) { this.category = category; }
     public boolean isLawInterpretation() { return lawInterpretation; }
     public void setLawInterpretation(boolean lawInterpretation) { this.lawInterpretation = lawInterpretation; }
     public LegalAffair getAffair() { return affair; }

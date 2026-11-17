@@ -4,6 +4,7 @@ package egovframework.haengjeongnuli.civil.service;
 public class CivilSearchVO {
 
     private CivilKind kind;
+    private CivilCategory category;
     private CivilStatus status;
     private String q;
     private int limit = 50;
@@ -41,6 +42,8 @@ public class CivilSearchVO {
 
     public CivilKind getKind() { return kind; }
     public void setKind(CivilKind kind) { this.kind = kind; }
+    public CivilCategory getCategory() { return category; }
+    public void setCategory(CivilCategory category) { this.category = category; }
     public CivilStatus getStatus() { return status; }
     public void setStatus(CivilStatus status) { this.status = status; }
     public String getQ() { return q; }

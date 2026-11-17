@@ -49,6 +49,7 @@ public class CivilServiceImpl implements CivilService {
         vo.setComplaintId(id);
         vo.setReceiptNo(String.format("%d-%06d", now.getYear(), id));
         vo.setKind(form.getKind());
+        vo.setCategory(form.getCategory() == null ? egovframework.haengjeongnuli.civil.service.CivilCategory.ETC : form.getCategory());
         vo.setLawInterpretYn(form.getKind() == CivilKind.QUERY && form.isLawInterpretation() ? "Y" : "N");
         vo.setLegalAffair(form.getKind() == CivilKind.LEGAL ? form.getAffair() : null);
         vo.setRoute(form.getRoute());

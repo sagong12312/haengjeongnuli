@@ -191,6 +191,33 @@ class EPetitionPortalApiTest {
     }
 
     @Test
+    void 민원_분야로_접수하고_공개_상담을_분야로_거른다() throws Exception {
+        assertThat(apiGet("/info", 200).get("data").get("categories").toString()).contains("도로·교통").contains("ANIMAL");
+        String tag = UUID.randomUUID().toString().substring(0, 6);
+        assertThat(apiPost("/complaints", ("{\"kind\":\"OTHER\",\"category\":\"NOPE\",\"name\":\"김\",\"mobile\":\"01012345678\","
+                + "\"title\":\"t\",\"content\":\"c\",\"password\":\"abc12345\",\"privacyConsent\":true}"), 422).get("error").asText())
+                .isEqualTo("invalid_category");
+        String road = receive("포트홀 " + tag, ",\"category\":\"ROAD\"");
+        String none = receive("분야 없음 " + tag, "");
+        assertThat(process.get(idOf(road)).getCategoryLabel()).isEqualTo("도로·교통");
+        assertThat(process.get(idOf(none)).getCategoryLabel()).isEqualTo("기타");
+        assertThat(lookup(road).get("categoryLabel").asText()).isEqualTo("도로·교통");
+        MockMvc admin = TestUsers.mvcAs(ctx, TestUsers.admin());
+        for (String no : new String[] {road, none}) {
+            assertThat(process.complete(idOf(no), ResultType.ANSWER, "답변", null, "문자", TestUsers.admin()).ok()).isTrue();
+            admin.perform(post("/civil/" + idOf(no) + "/publish").param("on", "true"));
+        }
+        JsonNode l = apiGet("/consultations?page=1&category=ROAD&q=" + tag, 200).get("data");
+        assertThat(l.get("total").asInt()).isEqualTo(1);
+        assertThat(l.get("items").get(0).get("categoryLabel").asText()).isEqualTo("도로·교통");
+        assertThat(apiGet("/stats", 200).get("data").get("categories").toString()).contains("도로·교통");
+        // 직원 목록도 분야로 거른다
+        String html = admin.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/civil").param("category", "ROAD").param("q", tag))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(html).contains("포트홀 " + tag).doesNotContain("분야 없음 " + tag);
+    }
+
+    @Test
     void 회원_가입_로그인_내_민원_정보_변경_탈퇴() throws Exception {
         String id = "user" + UUID.randomUUID().toString().substring(0, 8).replaceAll("[^a-z0-9]", "a");
         String base = "{\"loginId\":\"%s\",\"password\":\"%s\",\"name\":\"이회원\",\"mobile\":\"01098765432\",\"email\":\"lee@example.com\","

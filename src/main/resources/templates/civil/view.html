@@ -28,6 +28,7 @@
     <dl class="kv">
       <div><dt>접수번호</dt><dd th:text="${c.receiptNo}">번호</dd></div>
       <div><dt>종류</dt><dd th:text="${c.kind.label} + (${c.legalAffair} ? ' · ' + ${c.legalAffair.label} : '') + (${c.lawInterpretYn == 'Y'} ? ' · 법령 해석' : '')">종류</dd></div>
+      <div><dt>분야</dt><dd th:text="${c.categoryLabel}">도로·교통</dd></div>
       <div><dt>접수</dt><dd th:text="${#temporals.format(c.receivedAt, 'yyyy-MM-dd HH:mm')} + ' · ' + ${c.route}">접수</dd></div>
       <div><dt>처리기한</dt><dd>
         <b th:text="${#temporals.format(c.deadlineAt, 'yyyy-MM-dd HH:mm')}">기한</b>

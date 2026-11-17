@@ -9,6 +9,7 @@ public class CivilComplaintVO {
     private Long complaintId;
     private String receiptNo;
     private CivilKind kind;
+    private CivilCategory category;
     private String lawInterpretYn = "N";
     private LegalAffair legalAffair;
     private String route;
@@ -144,4 +145,9 @@ public class CivilComplaintVO {
     public void setRegisterId(String registerId) { this.registerId = registerId; }
     public boolean isImminent() { return imminent; }
     public void setImminent(boolean imminent) { this.imminent = imminent; }
+
+    public CivilCategory getCategory() { return category; }
+    public void setCategory(CivilCategory category) { this.category = category; }
+    /** 분야 이름 (예전 민원은 비어 있어 '기타') */
+    public String getCategoryLabel() { return category == null ? CivilCategory.ETC.getLabel() : category.getLabel(); }
 }

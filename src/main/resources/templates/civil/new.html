@@ -29,6 +29,12 @@
             <option th:each="k : ${kinds}" th:value="${k}" th:text="${k.label}">법정민원</option>
           </select>
         </div>
+        <div class="field">
+          <label for="ccat">민원 분야</label>
+          <select id="ccat" th:field="*{category}" class="select">
+            <option th:each="g : ${categories}" th:value="${g}" th:text="${g.label}" th:title="${g.examples}">도로·교통</option>
+          </select>
+        </div>
         <div class="field" id="qtype-field" hidden>
           <label for="cqtype">질의 내용</label>
           <select id="cqtype" th:field="*{lawInterpretation}" class="select">

@@ -83,19 +83,21 @@ public interface EPetitionPortalMapper {
     String PUBLIC = "STATUS = 'DONE' AND PUBLIC_YN = 'Y' AND PUBLISHED_YN = 'Y' AND NVL(RESULT_TYPE, '-') &lt;&gt; 'WITHDRAWN' ";
     String CONSULT_WHERE = "WHERE " + PUBLIC
             + "<if test='q != null'>AND (TITLE LIKE #{q} ESCAPE '\\' OR CONTENT LIKE #{q} ESCAPE '\\') </if>"
-            + "<if test='kind != null'>AND KIND = #{kind} </if>";
+            + "<if test='kind != null'>AND KIND = #{kind} </if>"
+            + "<if test='category != null'>AND NVL(CATEGORY, 'ETC') = #{category} </if>";
 
     @Select("<script>SELECT COUNT(*) FROM CIVIL_COMPLAINT " + CONSULT_WHERE + "</script>")
-    int countConsultations(@Param("q") String like, @Param("kind") String kind);
+    int countConsultations(@Param("q") String like, @Param("kind") String kind, @Param("category") String category);
 
     @Select("<script>SELECT * FROM (SELECT X.*, ROWNUM AS RN FROM (SELECT COMPLAINT_ID AS \"id\", RECEIPT_NO AS \"receiptNo\", "
-            + "KIND AS \"kind\", TITLE AS \"title\", APPLICANT_NAME AS \"name\", RECEIVED_AT AS \"receivedAt\", "
+            + "KIND AS \"kind\", NVL(CATEGORY, 'ETC') AS \"category\", TITLE AS \"title\", APPLICANT_NAME AS \"name\", RECEIVED_AT AS \"receivedAt\", "
             + "COMPLETED_AT AS \"completedAt\", DEPT AS \"dept\", NVL(VIEW_COUNT, 0) AS \"views\", NVL(LIKE_COUNT, 0) AS \"likes\" "
             + "FROM CIVIL_COMPLAINT " + CONSULT_WHERE
             + "ORDER BY <choose><when test=\"sort == 'views'\">NVL(VIEW_COUNT, 0) DESC, </when>"
             + "<when test=\"sort == 'likes'\">NVL(LIKE_COUNT, 0) DESC, </when></choose>COMPLETED_AT DESC, COMPLAINT_ID DESC"
             + ") X WHERE ROWNUM &lt;= #{endRow}) WHERE RN &gt; #{startRow}</script>")
-    List<Map<String, Object>> selectConsultations(@Param("q") String like, @Param("kind") String kind, @Param("sort") String sort,
+    List<Map<String, Object>> selectConsultations(@Param("q") String like, @Param("kind") String kind,
+                                                  @Param("category") String category, @Param("sort") String sort,
                                                   @Param("startRow") int startRow, @Param("endRow") int endRow);
 
     @Select("<script>SELECT NVL(VIEW_COUNT, 0) AS \"views\", NVL(LIKE_COUNT, 0) AS \"likes\", KIND AS \"kind\" "
@@ -121,7 +123,7 @@ public interface EPetitionPortalMapper {
 
     /* ------------------------------------------------------------ 처리 통계 (최근 12개월) */
 
-    @Select("SELECT KIND AS \"kind\", ROUTE AS \"route\", STATUS AS \"status\", RECEIVED_AT AS \"receivedAt\", "
+    @Select("SELECT KIND AS \"kind\", NVL(CATEGORY, 'ETC') AS \"category\", ROUTE AS \"route\", STATUS AS \"status\", RECEIVED_AT AS \"receivedAt\", "
             + "COMPLETED_AT AS \"completedAt\", DEADLINE AS \"deadline\", DEADLINE_AT AS \"deadlineAt\", RESULT_TYPE AS \"resultType\", "
             + "SATIS_SCORE AS \"satis\", CASE WHEN LOOKUP_PW_HASH IS NULL THEN 'N' ELSE 'Y' END AS \"online\" "
             + "FROM CIVIL_COMPLAINT WHERE RECEIVED_AT >= #{from} OR COMPLETED_AT >= #{from}")

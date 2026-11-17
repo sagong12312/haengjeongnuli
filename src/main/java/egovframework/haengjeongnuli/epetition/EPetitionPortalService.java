@@ -258,18 +258,26 @@ public class EPetitionPortalService {
     /* ================================================================ 공개 상담 */
 
     public Map<String, Object> consultations(int page, String q, String kind, String sort) {
+        return consultations(page, q, kind, null, sort);
+    }
+
+    public Map<String, Object> consultations(int page, String q, String kind, String category, String sort) {
+        egovframework.haengjeongnuli.civil.service.CivilCategory cat = egovframework.haengjeongnuli.civil.service.CivilCategory.of(category);
+        String g = cat == null ? null : cat.name();
         String l = like(q);
         String k = kind != null && EPetitionService.ONLINE_KINDS.stream().anyMatch(x -> x.name().equals(kind)) ? kind : null;
         String so = "views".equals(sort) || "likes".equals(sort) ? sort : "recent";
-        int total = mapper.countConsultations(l, k);
+        int total = mapper.countConsultations(l, k, g);
         int p = clampPage(page, total);
         List<Map<String, Object>> items = new ArrayList<>();
-        for (Map<String, Object> m : mapper.selectConsultations(l, k, so, (p - 1) * PAGE_SIZE, p * PAGE_SIZE)) {
+        for (Map<String, Object> m : mapper.selectConsultations(l, k, g, so, (p - 1) * PAGE_SIZE, p * PAGE_SIZE)) {
             Map<String, Object> it = new LinkedHashMap<>();
             it.put("id", ((Number) m.get("id")).longValue());
             it.put("receiptNo", m.get("receiptNo"));
             it.put("kind", m.get("kind"));
             it.put("kindLabel", EPetitionService.kindLabel((String) m.get("kind")));
+            it.put("category", m.get("category"));
+            it.put("categoryLabel", categoryLabel((String) m.get("category")));
             it.put("title", m.get("title"));
             it.put("name", EPetitionService.mask((String) m.get("name")));
             it.put("receivedAt", EPetitionService.time(m.get("receivedAt")));
@@ -281,6 +289,7 @@ public class EPetitionPortalService {
         }
         Map<String, Object> out = page(total, p, items);
         out.put("kind", k);
+        out.put("category", g);
         out.put("sort", so);
         return out;
     }
@@ -362,8 +371,17 @@ public class EPetitionPortalService {
             it.put("online", EPetitionService.ONLINE_KINDS.contains(k));
             kinds.add(it);
         }
+        List<Map<String, Object>> cats = new ArrayList<>();
+        for (egovframework.haengjeongnuli.civil.service.CivilCategory g : egovframework.haengjeongnuli.civil.service.CivilCategory.values()) {
+            Map<String, Object> it = new LinkedHashMap<>();
+            it.put("category", g.name());
+            it.put("label", g.getLabel());
+            it.put("examples", g.getExamples());
+            cats.add(it);
+        }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("kinds", kinds);
+        out.put("categories", cats);
         out.put("maxAddenda", MAX_ADDENDA);
         return out;
     }
@@ -380,6 +398,10 @@ public class EPetitionPortalService {
         Map<String, int[]> kinds = new LinkedHashMap<>();
         for (CivilKind k : CivilKind.values()) {
             kinds.put(k.name(), new int[2]);
+        }
+        Map<String, int[]> cats = new LinkedHashMap<>();
+        for (egovframework.haengjeongnuli.civil.service.CivilCategory g : egovframework.haengjeongnuli.civil.service.CivilCategory.values()) {
+            cats.put(g.name(), new int[2]);
         }
         int received = 0, done = 0, onTime = 0, online = 0, satisCount = 0, satisSum = 0, withdrawn = 0;
         long daysSum = 0;
@@ -398,6 +420,10 @@ public class EPetitionPortalService {
                 if (k != null) {
                     k[0]++;
                 }
+                int[] g = cats.get(String.valueOf(r.get("category")));
+                if (g != null) {
+                    g[0]++;
+                }
                 if ("Y".equals(r.get("online"))) {
                     online++;
                 }
@@ -415,6 +441,10 @@ public class EPetitionPortalService {
                 int[] k = kinds.get(String.valueOf(r.get("kind")));
                 if (k != null) {
                     k[1]++;
+                }
+                int[] g = cats.get(String.valueOf(r.get("category")));
+                if (g != null) {
+                    g[1]++;
                 }
                 if (rec != null) {
                     daysSum += Math.max(0, ChronoUnit.DAYS.between(rec.toLocalDate(), comp.toLocalDate()));
@@ -467,6 +497,19 @@ public class EPetitionPortalService {
         out.put("satisfactionDist", dist);
         out.put("months", monthList);
         out.put("kinds", kindList);
+        List<Map<String, Object>> catList = new ArrayList<>();
+        cats.forEach((g, v) -> {
+            if (v[0] == 0 && v[1] == 0) {
+                return; // 없는 분야는 빼서 짧게
+            }
+            Map<String, Object> it = new LinkedHashMap<>();
+            it.put("category", g);
+            it.put("label", categoryLabel(g));
+            it.put("received", v[0]);
+            it.put("done", v[1]);
+            catList.add(it);
+        });
+        out.put("categories", catList);
         return out;
     }
 
@@ -594,6 +637,11 @@ public class EPetitionPortalService {
     }
 
     /* ================================================================ 도움 */
+
+    static String categoryLabel(String name) {
+        egovframework.haengjeongnuli.civil.service.CivilCategory g = egovframework.haengjeongnuli.civil.service.CivilCategory.of(name);
+        return (g == null ? egovframework.haengjeongnuli.civil.service.CivilCategory.ETC : g).getLabel();
+    }
 
     static String clob(Object o) {
         if (o == null) {
