@@ -92,7 +92,13 @@ class SiteBlockTest {
             assertThat(new byte[] {b[0], b[1], b[2]}).containsExactly((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);
             assertThat(new String(b, StandardCharsets.UTF_8)).contains("행정누리 유해사이트 차단")
                     .contains("$noticeBase = 'http://localhost'").contains("Naver Whale").contains("WebsiteFilter")
-                    .contains("127.0.0.1 $d").contains("Register-ScheduledTask").contains("\r\n'@\r\n");
+                    .contains("127.0.0.1 $d").contains("Register-ScheduledTask").contains("\r\n'@\r\n")
+                    .contains("[실패]").contains("Read-Host").doesNotContain("\n\n\r");
+            String text = new String(b, StandardCharsets.UTF_8);
+            // 브라우저 차단 정책이 DNS 바꾸기보다 먼저 (DNS 에서 실패해도 정책은 들어가게)
+            assertThat(text.indexOf("Step '크롬·엣지·웨일 차단 정책'")).isLessThan(text.indexOf("Step ('거르는 DNS"));
+            // 줄바꿈은 모두 윈도우 식
+            assertThat(text.replace("\r\n", "")).doesNotContain("\n");
             assertThat(staff.perform(get("/security-apps")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
                     .contains("유해사이트 차단").contains("/security-apps/site-block.ps1");
             staff.perform(post("/security-apps/" + appId + "/ack"));
