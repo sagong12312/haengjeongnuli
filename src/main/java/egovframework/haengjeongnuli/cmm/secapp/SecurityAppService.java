@@ -89,7 +89,8 @@ public class SecurityAppService {
         if (g != null && g.length() > 1300) {
             return "설치 방법은 1,300자 이내로 입력하세요.";
         }
-        if (u != null && !safeUrl(u)) {
+        // 행정누리가 직접 내려주는 파일(예: /security-apps/site-block.ps1)도 받는다
+        if (u != null && !safeUrl(u) && !u.matches("/security-apps/[a-z0-9.-]{1,60}")) {
             return "내려받는 곳은 http:// 또는 https:// 로 시작하는 500자 이내 주소로 입력하세요.";
         }
         if (sortNo != null && (sortNo < 0 || sortNo > 9999)) {

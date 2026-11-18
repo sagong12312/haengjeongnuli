@@ -30,10 +30,10 @@ public class SecurityAppGate implements HandlerInterceptor {
     }
 
     static boolean open(String p, LoginUser u) {
-        return p.startsWith("/security-apps") || p.equals("/logout") || p.startsWith("/login") || p.equals("/mypage/password")
+        return p.startsWith("/security-apps") || p.startsWith("/site-blocked") || p.equals("/logout") || p.startsWith("/login") || p.equals("/mypage/password")
                 || p.equals("/session/ping") || p.startsWith("/error") || p.startsWith("/css/") || p.startsWith("/js/")
                 || p.startsWith("/fonts/") || p.equals("/favicon.ico") || p.equals("/reauth")
-                || (u.isAdmin() && (p.startsWith("/admin/security-apps") || p.startsWith("/admin/users")));
+                || (u.isAdmin() && (p.startsWith("/admin/security-apps") || p.startsWith("/admin/site-block") || p.startsWith("/admin/users")));
     }
 
     @Override

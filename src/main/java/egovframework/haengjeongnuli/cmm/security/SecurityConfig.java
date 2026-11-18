@@ -98,7 +98,7 @@ public class SecurityConfig {
             .addFilterBefore(new SessionRevalidationFilter(userService, auditService, orgService),
                     org.springframework.security.web.access.intercept.AuthorizationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/password-help", "/blocked", "/blocked/**", "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/error").permitAll()
+                .requestMatchers("/login", "/password-help", "/blocked", "/blocked/**", "/site-blocked", "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/error").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers(h2).hasRole("ADMIN")
                 .anyRequest().authenticated())

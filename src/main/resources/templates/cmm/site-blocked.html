@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('접속이 차단된 사이트')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <h1>접속이 차단된 사이트입니다</h1>
+  <section class="panel" style="gap:8px;">
+    <p style="margin:0; font-size:20px;" th:if="${site}"><b th:text="${site}">사이트</b></p>
+    <p style="margin:0;" th:text="${reason} ? '차단 분류: ' + ${reason} : '기관이 정한 유해사이트 차단 정책에 따라 막힌 사이트입니다.'">분류</p>
+    <p class="hint" style="margin:0;">업무용 PC에서는 악성코드·도박·성인 사이트 등에 접속할 수 없습니다. 업무상 꼭 필요하면 아래에서 차단 해제를 신청하세요.</p>
+  </section>
+  <form th:if="${me != null and site != null}" class="panel" th:action="@{/site-blocked/appeal}" method="post" style="gap:10px;">
+    <h2>차단 해제(항의) 신청</h2>
+    <input type="hidden" name="site" th:value="${site}">
+    <div class="field"><label for="ar">업무상 필요한 이유</label>
+      <textarea id="ar" name="reason" class="textarea" rows="4" minlength="5" maxlength="1000" required placeholder="예: ○○ 사업 관련 업체 누리집 확인이 필요합니다."></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">신청</button></div>
+  </form>
+  <p th:if="${me == null}" class="hint">차단 해제를 신청하려면 <a th:href="@{/login}">행정누리에 로그인</a>한 뒤 이 화면을 다시 여세요.</p>
+  <section th:unless="${#lists.isEmpty(mine)}" class="panel flush">
+    <div class="panel-head"><h2>내 신청</h2></div>
+    <div class="table-wrap"><table class="list stack">
+      <thead><tr><th scope="col">사이트</th><th scope="col">상태</th><th scope="col" style="text-align:left">답변</th></tr></thead>
+      <tbody><tr th:each="a : ${mine}">
+        <td data-label="사이트" th:text="${a['domain']}">사이트</td>
+        <td data-label="상태"><span th:class="'badge ' + (${a['status'] == 'OK'} ? 'badge-green' : (${a['status'] == 'NO'} ? 'badge-red' : 'badge-orange'))"
+              th:text="${a['status'] == 'OK'} ? '해제' : (${a['status'] == 'NO'} ? '거절' : '검토 중')">상태</span></td>
+        <td class="left" data-label="답변" th:text="${a['answer']} ?: '—'">답변</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

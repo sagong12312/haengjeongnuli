@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('유해사이트 차단')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/admin/users}">시스템 관리</a> › <a th:href="@{/admin/security-apps}">보안 프로그램 안내</a> › 유해사이트 차단</span>
+    <h1>유해사이트 차단 (직원 업무용 PC)</h1></div>
+  <p class="hint">행정누리 화면은 브라우저가 다른 사이트에 가는 것을 직접 막을 수 없습니다. 그래서 여기서 정한 목록으로 <b>차단 스크립트</b>를 만들어 직원 PC에 깝니다.
+    스크립트는 ① 거르는 DNS로 바꾸고(악성코드·성인 사이트), ② Chrome·Edge 정책으로 아래 목록의 사이트(하위 주소 포함)를 막고 DNS-over-HTTPS를 끄며, ③ hosts 파일에도 목록을 넣습니다.
+    <b>강제 보안 프로그램으로 등록</b>하면 스크립트를 설치하지 않은 직원은 행정누리를 쓰지 못합니다.
+    기관 방화벽·DNS에서 함께 거르면 더 확실합니다 (PC 관리자 권한이 있는 직원은 스스로 풀 수 있음).</p>
+
+  <section class="panel" style="gap:12px;">
+    <h2>차단 스크립트</h2>
+    <p style="margin:0;" th:text="'지금 판 ' + ${conf['version']} + ' · 막는 도메인 ' + ${#lists.size(rules)} + '개 · DNS ' + (${#lists.isEmpty(dnsServers)} ? '바꾸지 않음' : ${#strings.listJoin(dnsServers, ', ')})">상태</p>
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      <a class="btn btn-outline" th:href="@{/security-apps/site-block.ps1}">스크립트 내려받기 (확인용)</a>
+      <form th:action="@{/admin/site-block/register}" method="post" style="margin:0;"><button type="submit" class="btn btn-primary">강제 보안 프로그램으로 등록</button></form>
+      <form th:action="@{/admin/site-block/reinstall}" method="post" style="margin:0;" data-confirm="모든 직원이 차단 스크립트를 다시 설치해야 행정누리를 쓸 수 있습니다. 요청할까요?">
+        <button type="submit" class="btn btn-outline">목록을 바꿨으니 다시 설치 요청</button></form>
+    </div>
+  </section>
+
+  <form class="panel" th:action="@{/admin/site-block/dns}" method="post" style="gap:12px;">
+    <h2>거르는 DNS</h2>
+    <fieldset style="border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;">
+      <legend class="sr-only">DNS 방식</legend>
+      <label class="check"><input type="radio" name="mode" value="ADULT" th:checked="${conf['dnsMode'] == 'ADULT'}">악성코드 + 성인 사이트 거르기 (1.1.1.1 for Families: 1.1.1.3, 1.0.0.3)</label>
+      <label class="check"><input type="radio" name="mode" value="MALWARE" th:checked="${conf['dnsMode'] == 'MALWARE'}">악성코드만 거르기 (1.1.1.2, 1.0.0.2)</label>
+      <label class="check"><input type="radio" name="mode" value="CUSTOM" th:checked="${conf['dnsMode'] == 'CUSTOM'}">기관 DNS 쓰기 (아래에 주소)</label>
+      <label class="check"><input type="radio" name="mode" value="OFF" th:checked="${conf['dnsMode'] == 'OFF'}">DNS 는 바꾸지 않음 (목록만 막기)</label>
+    </fieldset>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="d1">기관 DNS 1</label><input id="d1" name="dns1" class="input" maxlength="15" inputmode="decimal" th:value="${conf['dns1']}" placeholder="예: 10.0.0.53"></div>
+      <div class="field"><label for="d2">기관 DNS 2 (선택)</label><input id="d2" name="dns2" class="input" maxlength="15" inputmode="decimal" th:value="${conf['dns2']}"></div>
+    </div>
+    <p class="hint" style="margin:0;">거르는 DNS 는 도박 사이트까지 다 막지는 못합니다. 도박 사이트는 아래 목록에 직접 넣으세요. 기관 내부망 이름을 쓰는 곳은 기관 DNS 를 쓰세요 (공용 DNS 는 내부 이름을 모름).</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+
+  <form class="panel" th:action="@{/admin/site-block/rules}" method="post" style="gap:12px;">
+    <h2>막을 사이트 더하기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="bc">분류</label><select id="bc" name="category" class="select">
+        <option th:each="c : ${categories}" th:value="${c.key}" th:text="${c.value}" th:selected="${c.key == 'GAMBLING'}">도박</option></select></div>
+      <div class="field"><label for="bm">메모 (선택)</label><input id="bm" name="memo" class="input" maxlength="200" placeholder="예: 방송통신심의위원회 차단 목록"></div>
+    </div>
+    <div class="field"><label for="bd">도메인 (한 줄에 하나, 주소를 붙여 넣어도 됨)</label>
+      <textarea id="bd" name="domains" class="textarea" rows="5" required placeholder="bad-casino.example&#10;https://www.adult.example/page"></textarea></div>
+    <p class="hint" style="margin:0;">적은 도메인의 하위 주소(www. 등)도 함께 막습니다. 3,000개까지.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">더하기</button></div>
+  </form>
+
+  <section class="panel flush" id="appeals">
+    <div class="panel-head"><h2>차단 해제(항의) 신청</h2><span class="muted" th:text="${#lists.size(appeals)} + '건'">0건</span></div>
+    <p th:if="${#lists.isEmpty(appeals)}" class="hint" style="padding:0 24px 20px;">신청이 없습니다.</p>
+    <div th:each="a : ${appeals}" style="padding:14px 24px; border-top:1px solid var(--line-2); display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"><b th:text="${a['domain']}">사이트</b>
+        <span th:text="${a['userName']} + (${a['dept']} ? ' · ' + ${a['dept']} : '')">신청자</span>
+        <span th:class="'badge ' + (${a['status'] == 'OK'} ? 'badge-green' : (${a['status'] == 'NO'} ? 'badge-red' : 'badge-orange'))"
+              th:text="${a['status'] == 'OK'} ? '해제' : (${a['status'] == 'NO'} ? '거절' : '검토 중')">상태</span></div>
+      <div style="white-space:pre-wrap;" th:text="${a['reason']}">이유</div>
+      <div th:if="${a['answer']}" class="hint" style="margin:0;" th:text="'답변: ' + ${a['answer']}">답변</div>
+      <form th:if="${a['status'] == 'WAIT'}" method="post" th:action="@{/admin/site-block/appeals/{id}/accept(id=${a['id']})}" style="display:flex; flex-wrap:wrap; gap:8px; margin:0;">
+        <label class="sr-only" th:for="'ans' + ${a['id']}">답변</label>
+        <input th:id="'ans' + ${a['id']}" name="answer" class="input" maxlength="500" placeholder="답변 (거절할 때는 꼭)" style="flex:1; min-width:200px;">
+        <button type="submit" class="btn btn-primary btn-sm">해제 (목록에서 빼기)</button>
+        <button type="submit" class="btn btn-outline btn-sm" th:formaction="@{/admin/site-block/appeals/{id}/reject(id=${a['id']})}">거절</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>막는 사이트</h2><span class="muted" th:text="${#lists.size(rules)} + '개'">0개</span></div>
+    <p th:if="${#lists.isEmpty(rules)}" class="hint" style="padding:0 24px 20px;">아직 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(rules)}"><table class="list stack">
+      <thead><tr><th scope="col" style="text-align:left">도메인</th><th scope="col">분류</th><th scope="col">메모</th><th scope="col">더한 사람</th><th scope="col">빼기</th></tr></thead>
+      <tbody><tr th:each="r : ${rules}">
+        <td class="left" data-label="도메인" th:text="${r['domain']}">도메인</td>
+        <td data-label="분류" th:text="${categories[r['category']]} ?: ${r['category']}">분류</td>
+        <td data-label="메모" th:text="${r['memo']} ?: '—'">메모</td>
+        <td data-label="더한 사람" th:text="${r['addedBy']}">관리자</td>
+        <td data-label="빼기"><form th:action="@{/admin/site-block/rules/delete}" method="post" style="margin:0;">
+          <input type="hidden" name="domain" th:value="${r['domain']}">
+          <button type="submit" class="btn btn-plain btn-sm" th:attr="aria-label=${r['domain']} + ' 빼기'">빼기</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

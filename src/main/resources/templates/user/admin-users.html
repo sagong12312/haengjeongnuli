@@ -10,7 +10,7 @@
     <span class="crumb"><a th:href="@{/}">홈</a> › 시스템 관리</span>
     <h1>직원 계정 관리</h1>
   </div>
-  <div style="display:flex; flex-wrap:wrap; gap:10px;"><a class="btn btn-outline" th:href="@{/admin/audit}">접속·작업 기록 보기</a><a class="btn btn-outline" th:href="@{/admin/holidays}">공휴일 관리</a><a class="btn btn-outline" th:href="@{/admin/depts}">부서 관리</a><a class="btn btn-outline" th:href="@{/admin/org}">기관 정보·관인</a><a class="btn btn-outline" th:href="@{/admin/files}">첨부파일 점검</a><a class="btn btn-outline" th:href="@{/admin/blocks}">접속 차단</a><a class="btn btn-outline" th:href="@{/admin/audit/review}">접속기록 점검</a><a class="btn btn-outline" th:href="@{/admin/security-apps}">보안 프로그램 안내</a><a class="btn btn-outline" th:href="@{/admin/forms}">한글 서식</a></div>
+  <div style="display:flex; flex-wrap:wrap; gap:10px;"><a class="btn btn-outline" th:href="@{/admin/audit}">접속·작업 기록 보기</a><a class="btn btn-outline" th:href="@{/admin/holidays}">공휴일 관리</a><a class="btn btn-outline" th:href="@{/admin/depts}">부서 관리</a><a class="btn btn-outline" th:href="@{/admin/org}">기관 정보·관인</a><a class="btn btn-outline" th:href="@{/admin/files}">첨부파일 점검</a><a class="btn btn-outline" th:href="@{/admin/blocks}">접속 차단</a><a class="btn btn-outline" th:href="@{/admin/audit/review}">접속기록 점검</a><a class="btn btn-outline" th:href="@{/admin/security-apps}">보안 프로그램 안내</a><a class="btn btn-outline" th:href="@{/admin/site-block}">유해사이트 차단</a><a class="btn btn-outline" th:href="@{/admin/forms}">한글 서식</a></div>
 
   <div th:if="${activeAdmins < 2}" class="alert" role="alert" style="background:var(--red-bg); border:1px solid #E8B4B4; color:var(--red-fg);">
     사용 중인 시스템 관리자가 한 명뿐입니다. 이 계정이 잠기거나 비밀번호를 잊으면 아무도 풀 수 없으니, 관리자를 두 명 이상 두세요.
