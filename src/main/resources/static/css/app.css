@@ -30,7 +30,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'MDotum', 'Malgun Gothic', system-ui, sans-serif;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   font-size: 18px;
 }
 a { color: var(--brand); }
@@ -185,7 +185,17 @@ table.list td a { color: var(--text); text-decoration: none; }
 .hwp-view td p { margin:0; }
 
 /* 화면·출력물 워터마크 (누가 언제 본 화면인지). 클릭·읽기에 방해되지 않게 */
-.watermark { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; background-repeat: repeat; }
+.watermark { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; background-repeat: repeat;
+  /* 스크롤할 때 다시 그리지 않게 한 겹으로 떼어 둔다 (저사양 휴대폰에서 버벅임 방지) */
+  contain: strict; transform: translateZ(0); }
+/* 기관 글꼴(MDotum, 수 MB)은 PC 에서만 받는다. 휴대폰은 기기 기본 글꼴로 (데이터·로딩 시간 절약) */
+@media (min-width: 721px) {
+  body { font-family: 'MDotum', 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif; }
+}
+/* 움직임 줄이기를 켠 기기, 저사양 기기에서는 애니메이션·부드러운 스크롤을 끈다 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
 @media print { .watermark { position: fixed; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 
 /* 내 업무 */

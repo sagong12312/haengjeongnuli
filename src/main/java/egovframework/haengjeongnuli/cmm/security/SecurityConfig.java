@@ -65,6 +65,7 @@ public class SecurityConfig {
     @org.springframework.core.annotation.Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
             @Value("${app.access.allowed-networks}") String allowedNetworks,
+            @Value("${app.require-https:true}") boolean requireHttps,
             egovframework.haengjeongnuli.user.service.UserService userService,
             egovframework.haengjeongnuli.cmm.audit.AuditService auditService,
             egovframework.haengjeongnuli.cmm.org.OrgService orgService,
@@ -73,6 +74,8 @@ public class SecurityConfig {
         http
             // 허용한 네트워크(기본: 이 PC + 집 내부망)가 아니면 로그인 화면조차 보여주지 않는다
             .addFilterBefore(new AllowedNetworkFilter(allowedNetworks), DisableEncodeUrlFilter.class)
+            // 다른 기기에서 http 로 오면 https 로 돌려보낸다 (오가는 비밀번호·개인정보를 가로채지 못하게)
+            .addFilterAfter(new HttpsGuardFilter(requireHttps), AllowedNetworkFilter.class)
             // 이상한 요청을 보낸 주소는 잠시 막고 차단 안내(이의 신청) 화면으로 보낸다
             .addFilterBefore(new AbuseFilter(abuseGuard), org.springframework.security.web.csrf.CsrfFilter.class)
             // 같은 주소에서 로그인을 너무 많이 틀리면 잠시 막는다

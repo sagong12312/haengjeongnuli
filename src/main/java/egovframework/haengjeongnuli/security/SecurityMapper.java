@@ -15,8 +15,8 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface SecurityMapper {
 
-    @Select("SELECT LOGIN_ID AS \"loginId\", SECRET AS \"secret\", ENABLED_YN AS \"enabled\", LAST_STEP AS \"lastStep\" "
-            + "FROM USER_OTP WHERE LOGIN_ID = #{loginId}")
+    @Select("SELECT LOGIN_ID AS \"loginId\", SECRET AS \"secret\", ENABLED_YN AS \"enabled\", LAST_STEP AS \"lastStep\", "
+            + "FAILS AS \"fails\", LOCKED_UNTIL AS \"lockedUntil\" FROM USER_OTP WHERE LOGIN_ID = #{loginId}")
     Map<String, Object> otp(@Param("loginId") String loginId);
 
     @Delete("DELETE FROM USER_OTP WHERE LOGIN_ID = #{loginId}")
@@ -28,8 +28,15 @@ public interface SecurityMapper {
     @Update("UPDATE USER_OTP SET ENABLED_YN = 'Y', LAST_STEP = #{step} WHERE LOGIN_ID = #{loginId}")
     int enableOtp(@Param("loginId") String loginId, @Param("step") long step);
 
+    @Update("UPDATE USER_OTP SET SECRET = #{secret} WHERE LOGIN_ID = #{loginId}")
+    int setSecret(@Param("loginId") String loginId, @Param("secret") String secret);
+
+    /** 연속 실패 횟수 (세션을 바꿔도 이어진다). 다 차면 잠근다 */
+    @Update("UPDATE USER_OTP SET FAILS = #{fails}, LOCKED_UNTIL = #{lockedUntil, jdbcType=TIMESTAMP} WHERE LOGIN_ID = #{loginId}")
+    int setFails(@Param("loginId") String loginId, @Param("fails") int fails, @Param("lockedUntil") LocalDateTime lockedUntil);
+
     /** 쓴 시간 칸을 적는다. 더 앞선 칸으로만 바뀌어 같은 번호를 두 번 쓰지 못한다 */
-    @Update("UPDATE USER_OTP SET LAST_STEP = #{step} WHERE LOGIN_ID = #{loginId} AND LAST_STEP < #{step}")
+    @Update("UPDATE USER_OTP SET LAST_STEP = #{step}, FAILS = 0, LOCKED_UNTIL = NULL WHERE LOGIN_ID = #{loginId} AND LAST_STEP < #{step}")
     int useStep(@Param("loginId") String loginId, @Param("step") long step);
 
     @Insert("INSERT INTO PW_HISTORY (LOGIN_ID, PW_HASH, CHANGED_AT) VALUES (#{loginId}, #{hash}, #{at})")

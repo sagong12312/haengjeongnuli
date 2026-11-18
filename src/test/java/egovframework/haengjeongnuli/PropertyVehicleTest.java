@@ -110,6 +110,6 @@ class PropertyVehicleTest {
         assertThat(page).contains("85km").contains("60,000원").contains("○○주유소");
         String list = admin.perform(get("/vehicles")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(list).contains(plate).contains("35.5");
-        assertThat(admin.perform(get(url + "/logs.csv")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).contains("도청");
+        assertThat(admin.perform(get(url + "/logs.csv?reason=test")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).contains("도청");
     }
 }

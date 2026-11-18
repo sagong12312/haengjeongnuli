@@ -85,17 +85,39 @@
       });
   }
   box.addEventListener('click', extend);
+  var shown = '';
   function tick() {
     var remain = total - (now() - lastActivity());
     if (remain <= 0) { location.href = box.getAttribute('data-expired'); return; }
     var s = Math.ceil(remain / 1000);
-    left.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
-    box.classList.toggle('soon', s <= 60);
-    if (s <= 60 && !warned) { warned = true; warn(true); }
-    if (s > 60 && warned) { warned = false; warn(false); }
+    // 5분이 넘게 남았으면 분 단위로만 고쳐 그린다 (저사양 휴대폰에서 매초 다시 그리지 않게)
+    var text = s > 300 ? Math.ceil(s / 60) + '분' : Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+    if (text !== shown) { left.textContent = text; shown = text; }
+    var soon = s <= 60;
+    if (soon !== box.classList.contains('soon')) box.classList.toggle('soon', soon);
+    if (soon && !warned) { warned = true; warn(true); }
+    if (!soon && warned) { warned = false; warn(false); }
   }
-  tick();
-  setInterval(tick, 1000);
+  // 글을 쓰는 동안(화면 요청 없이 입력만 할 때)에도 로그인을 이어 준다: 5분에 한 번만 서버에 알린다
+  var lastPing = now();
+  function busy() {
+    if (now() - lastPing < 5 * 60 * 1000 || warned) return;
+    lastPing = now();
+    fetch(box.getAttribute('data-ping'), { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { if (r.ok) { last = now(); mark(); } })
+      .catch(function () { /* 연결이 잠깐 끊겨도 다음 입력 때 다시 */ });
+  }
+  document.addEventListener('input', busy, { passive: true });
+  document.addEventListener('keydown', busy, { passive: true });
+  var timer = null;
+  function run() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (document.hidden) return; // 다른 앱으로 가 있는 동안은 멈춘다 (배터리·CPU 절약)
+    tick();
+    timer = setInterval(tick, 1000);
+  }
+  document.addEventListener('visibilitychange', run);
+  run();
 })();
 
 // 민원 처리: 추천 담당자 누르면 담당자 칸을 고르고, 답변 문구를 고르면 결과 칸 끝에 넣는다

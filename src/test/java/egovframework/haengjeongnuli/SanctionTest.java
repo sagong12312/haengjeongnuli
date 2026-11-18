@@ -99,7 +99,7 @@ class SanctionTest {
                 .message()).contains("폐업으로 바꿨습니다");
         assertThat(hygiene.get(food).isOpen()).isFalse();
         assertThat(sanctions.byBusiness(food).get(0).getBasis()).isEqualTo("식품위생법 제75조");
-        assertThat(admin.perform(get("/hygiene/sanctions.csv")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
+        assertThat(admin.perform(get("/hygiene/sanctions.csv?reason=test")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
                 .contains("폐쇄식당" + tag);
     }
 }

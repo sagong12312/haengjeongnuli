@@ -91,7 +91,7 @@ class SecurityExtraTest {
         MockMvc m = mvc();
         MvcResult login = m.perform(formLogin("/login").user("loginId", u.getLoginId()).password("password", PW)).andReturn();
         MockHttpSession s = (MockHttpSession) login.getRequest().getSession(false);
-        assertThat(s.getAttribute(SecurityWeb.OTP_PENDING)).isEqualTo(Boolean.TRUE);
+        assertThat(s.getAttribute(SecurityWeb.OTP_PENDING)).isInstanceOf(Instant.class);
         m.perform(get("/approval").session(s)).andExpect(redirectedUrl("/login/otp"));
         m.perform(post("/login/otp").session(s).with(csrf()).param("code", "123456")).andExpect(status().isOk());
         // 방금 켤 때 쓴 번호는 다시 못 쓴다 → 다음 칸 번호로
@@ -216,5 +216,118 @@ class SecurityExtraTest {
         String html = r.getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(html).contains("class=\"watermark\"").contains("data:image/svg+xml");
         assertThat(SecurityService.watermarkSvg("<b>&")).doesNotContain("<b>").contains("%26amp%3B");
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    MockHttpSession loginSession(MockMvc m, LoginUser u) throws Exception {
+        MvcResult l = m.perform(formLogin("/login").user("loginId", u.getLoginId()).password("password", PW)).andReturn();
+        return (MockHttpSession) l.getRequest().getSession(false);
+    }
+
+    @Test
+    void 보강_OTP_실패는_세션을_바꿔도_이어지고_비밀_키는_암호화해_둔다() throws Exception {
+        LoginUser u = staff("오티피잠금");
+        String secret = security.startOtp(u);
+        String stored = jdbc.queryForObject("SELECT SECRET FROM USER_OTP WHERE LOGIN_ID = ?", String.class, u.getLoginId());
+        assertThat(stored).startsWith("enc1:").doesNotContain(secret);
+        assertThat(security.pendingSecret(u)).isEqualTo(secret);
+        long step = Totp.step(System.currentTimeMillis() / 1000);
+        assertThat(security.enableOtp(u, Totp.code(secret, step)).ok()).isTrue();
+
+        // 세션마다 4번씩 틀려도(로그아웃 전) 계정에 쌓여 10번째에 잠긴다
+        MockMvc m = mvc();
+        int total = 0;
+        String last = null;
+        while (total < 10) {
+            MockHttpSession s = loginSession(m, u);
+            for (int i = 0; i < 4 && total < 10; i++, total++) {
+                last = m.perform(post("/login/otp").session(s).with(csrf()).param("code", "000000")).andReturn().getResponse().getRedirectedUrl();
+            }
+        }
+        assertThat(last).isEqualTo("/login?error=otp_locked");
+        assertThat(notifications.recent(u.getLoginId(), 5)).anyMatch(n -> n.getMessage().contains("잠갔습니다"));
+        // 잠긴 동안에는 맞는 번호도 받지 않는다
+        assertThat(security.checkOtp(u.getLoginId(), Totp.code(secret, step + 1))).isEqualTo(SecurityService.OtpCheck.LOCKED);
+        jdbc.update("UPDATE USER_OTP SET LOCKED_UNTIL = ? WHERE LOGIN_ID = ?", java.sql.Timestamp.valueOf(LocalDateTime.now().minusMinutes(1)), u.getLoginId());
+        assertThat(security.checkOtp(u.getLoginId(), Totp.code(secret, step + 1))).isEqualTo(SecurityService.OtpCheck.OK);
+
+        // 끄려면 비밀번호와 인증 앱 번호가 모두 맞아야 한다
+        assertThat(security.disableOtp(u, PW, "000000").ok()).isFalse();
+        assertThat(security.otpEnabled(u.getLoginId())).isTrue();
+        // 자기 OTP 를 관리자 초기화로 끄지 못한다
+        assertThat(security.resetOtp(TestUsers.admin().getLoginId(), TestUsers.admin()).ok()).isFalse();
+    }
+
+    @Test
+    void 보강_OTP_대기는_5분을_넘기면_로그아웃하고_통과하면_세션_번호를_바꾼다() throws Exception {
+        LoginUser u = staff("오티피대기");
+        String secret = security.startOtp(u);
+        long step = Totp.step(System.currentTimeMillis() / 1000);
+        security.enableOtp(u, Totp.code(secret, step));
+        MockMvc m = mvc();
+        MockHttpSession s = loginSession(m, u);
+        s.setAttribute(SecurityWeb.OTP_PENDING, Instant.now().minusSeconds(301));
+        m.perform(get("/approval").session(s)).andExpect(redirectedUrl("/login?error=otp_timeout"));
+
+        MockHttpSession s2 = loginSession(m, u);
+        String before = s2.getId();
+        MvcResult ok = m.perform(post("/login/otp").session(s2).with(csrf()).param("code", Totp.code(secret, step + 1))).andReturn();
+        assertThat(ok.getResponse().getRedirectedUrl()).isEqualTo("/");
+        assertThat(ok.getRequest().getSession(false).getId()).isNotEqualTo(before);
+    }
+
+    @Test
+    void 보강_비밀번호_재확인을_거듭_틀리면_로그아웃하고_계정_실패로_센다() throws Exception {
+        LoginUser u = staff("재확인");
+        MockMvc m = mvc();
+        MockHttpSession s = loginSession(m, u);
+        m.perform(post("/reauth").session(s).with(csrf()).param("password", "nope-1")).andExpect(status().isOk());
+        m.perform(post("/reauth").session(s).with(csrf()).param("password", "nope-2")).andExpect(status().isOk());
+        m.perform(post("/reauth").session(s).with(csrf()).param("password", "nope-3")).andExpect(redirectedUrl("/login?error=reauth"));
+        assertThat(users.findByLoginId(u.getLoginId()).getFailedCount()).isGreaterThanOrEqualTo(3);
+    }
+
+    @Test
+    void 보강_대표자_이름이_든_행정처분대장과_운행일지도_사유가_있어야_내려받는다() throws Exception {
+        MockMvc admin = TestUsers.mvcAs(ctx, TestUsers.admin());
+        admin.perform(get("/hygiene/sanctions.csv")).andExpect(status().isBadRequest());
+        admin.perform(get("/hygiene/sanctions.csv").param("reason", "분기 보고")).andExpect(status().isOk());
+        admin.perform(get("/vehicles/1/logs.csv")).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 보강_다른_기기에서_암호화되지_않은_http_로_오면_https_로_돌려보내고_로그인은_받지_않는다() throws Exception {
+        egovframework.haengjeongnuli.cmm.security.HttpsGuardFilter f = new egovframework.haengjeongnuli.cmm.security.HttpsGuardFilter(true);
+        MockHttpServletRequest get = new MockHttpServletRequest("GET", "/civil");
+        get.setRemoteAddr("192.168.0.20");
+        get.setServerName("192.168.0.5");
+        get.setQueryString("status=DONE");
+        MockHttpServletResponse r1 = new MockHttpServletResponse();
+        org.springframework.mock.web.MockFilterChain c1 = new org.springframework.mock.web.MockFilterChain();
+        f.doFilter(get, r1, c1);
+        assertThat(r1.getStatus()).isEqualTo(308);
+        assertThat(r1.getHeader("Location")).isEqualTo("https://192.168.0.5/civil?status=DONE");
+        assertThat(c1.getRequest()).isNull();
+
+        MockHttpServletRequest login = new MockHttpServletRequest("POST", "/login");
+        login.setRemoteAddr("192.168.0.20");
+        MockHttpServletResponse r2 = new MockHttpServletResponse();
+        f.doFilter(login, r2, new org.springframework.mock.web.MockFilterChain());
+        assertThat(r2.getStatus()).isEqualTo(403);
+        assertThat(r2.getContentAsString()).contains("암호화된 연결");
+
+        // https 로 온 것, 이 PC 에서 온 것은 그대로 통과
+        MockHttpServletRequest secure = new MockHttpServletRequest("POST", "/login");
+        secure.setRemoteAddr("192.168.0.20");
+        secure.setSecure(true);
+        org.springframework.mock.web.MockFilterChain c3 = new org.springframework.mock.web.MockFilterChain();
+        f.doFilter(secure, new MockHttpServletResponse(), c3);
+        assertThat(c3.getRequest()).isNotNull();
+        MockHttpServletRequest local = new MockHttpServletRequest("POST", "/login");
+        local.setRemoteAddr("127.0.0.1");
+        org.springframework.mock.web.MockFilterChain c4 = new org.springframework.mock.web.MockFilterChain();
+        f.doFilter(local, new MockHttpServletResponse(), c4);
+        assertThat(c4.getRequest()).isNotNull();
     }
 }

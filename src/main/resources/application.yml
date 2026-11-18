@@ -1,5 +1,17 @@
 server:
   port: 8080
+  # 휴대폰이 받는 양을 줄인다: 화면·스타일·스크립트를 gzip 으로 보낸다
+  compression:
+    enabled: true
+    mime-types: text/html,text/css,application/javascript,text/javascript,application/json,image/svg+xml,text/csv
+    min-response-size: 1KB
+  # HTTPS: 인증서(.p12)를 주면 이 서버가 직접 암호화한다. 앞단 프록시가 TLS 를 끝내면 끄고 APP_FORWARD_HEADERS=native
+  ssl:
+    enabled: ${APP_SSL_ENABLED:false}
+    key-store: ${APP_SSL_KEYSTORE:}
+    key-store-password: ${APP_SSL_KEYSTORE_PASSWORD:}
+    key-store-type: PKCS12
+    enabled-protocols: TLSv1.2,TLSv1.3
   # 오류 화면에 내부 정보(스택 트레이스, 예외 이름·메시지, 검증 오류)를 내보내지 않는다
   error:
     include-stacktrace: never
@@ -16,7 +28,7 @@ server:
         http-only: true
         same-site: lax
         # HTTPS 로 운영하면 APP_COOKIE_SECURE=true 로 켠다 (HTTP 에서 켜면 로그인이 안 된다)
-        secure: ${APP_COOKIE_SECURE:false}
+        secure: ${APP_COOKIE_SECURE:${APP_SSL_ENABLED:false}}
     encoding:
       charset: UTF-8
       force: true
@@ -28,6 +40,18 @@ spring:
   #   PC에서 gradlew bootRun 으로 실행하면 local 로 정해진다 (build.gradle).
   thymeleaf:
     cache: false
+  # 스타일·스크립트 주소에 내용 지문을 붙이고(app-1a2b….css) 1년 동안 다시 받지 않게 한다. 파일이 바뀌면 주소가 바뀐다
+  web:
+    resources:
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /css/**,/js/**
+      cache:
+        cachecontrol:
+          max-age: 365d
+          cache-public: true
   servlet:
     multipart:
       max-file-size: 20MB
@@ -40,6 +64,9 @@ mybatis:
     jdbc-type-for-null: VARCHAR
 
 app:
+  # 암호화되지 않은(http) 연결은 이 PC(127.0.0.1)에서 온 것만 받는다. 다른 PC·휴대폰은 https 로만.
+  # 앞단 프록시가 TLS 를 끝내면 APP_FORWARD_HEADERS=native 로 X-Forwarded-Proto 를 믿게 한다.
+  require-https: ${APP_REQUIRE_HTTPS:true}
   # 행정누리 전자민원(국민용, 별도 서버) 연동 API. 기본은 꺼짐.
   # 켜려면 APP_EPETITION_ENABLED=true, 서명 비밀값 APP_EPETITION_SECRET(32자 이상), 전자민원 서버 주소 APP_EPETITION_NETWORKS 를 정한다.
   epetition:

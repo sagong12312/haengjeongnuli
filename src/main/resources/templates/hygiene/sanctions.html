@@ -15,8 +15,11 @@
       <option value="식품위생법" th:selected="${law == '식품위생법'}">식품위생법</option>
       <option value="공중위생관리법" th:selected="${law == '공중위생관리법'}">공중위생관리법</option></select>
     <button type="submit" class="btn btn-outline">보기</button>
-    <a class="btn btn-plain" th:href="@{/hygiene/sanctions.csv(year=${year}, law=${law})}">CSV 내려받기</a>
   </form>
+  <form th:action="@{/hygiene/sanctions.csv}" method="get" class="search-bar" style="margin:0;">
+    <input type="hidden" name="year" th:value="${year}"><input type="hidden" name="law" th:value="${law}">
+    <label class="sr-only" for="sr">내려받는 사유</label><input id="sr" name="reason" class="input" required minlength="2" maxlength="200" placeholder="내려받는 사유 (대표자 이름이 들어 있습니다)" style="max-width:320px;">
+    <button type="submit" class="btn btn-plain">CSV 내려받기</button></form>
   <section class="panel flush">
     <div class="panel-head"><h2>처분</h2><span class="muted" th:text="${#lists.size(rows)} + '건'">0건</span></div>
     <p th:if="${#lists.isEmpty(rows)}" class="hint" style="padding:18px 22px;">처분 기록이 없습니다.</p>

@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpSession;
 public class SecurityController {
 
     static final int OTP_MAX_FAILS = 5;
+    static final int REAUTH_MAX_FAILS = 3;
 
     private final SecurityService service;
     private final UserService users;
@@ -48,20 +49,26 @@ public class SecurityController {
     }
 
     @PostMapping("/login/otp")
-    public String otp(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String code, HttpSession session,
+    public String otp(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String code, HttpServletRequest request,
                       Model model) {
+        HttpSession session = request.getSession();
         if (session.getAttribute(SecurityWeb.OTP_PENDING) == null) {
             return "redirect:/";
         }
-        if (service.checkOtp(me.getLoginId(), code)) {
+        SecurityService.OtpCheck r = service.checkOtp(me.getLoginId(), code);
+        if (r == SecurityService.OtpCheck.OK) {
             session.removeAttribute(SecurityWeb.OTP_PENDING);
             session.removeAttribute(SecurityWeb.OTP_FAILS);
+            request.changeSessionId(); // 두 번째 단계를 마친 세션은 새 번호로 (세션 고정 공격 막기)
             return "redirect:/";
+        }
+        if (r == SecurityService.OtpCheck.LOCKED) {
+            SecurityWeb.logout(request);
+            return "redirect:/login?error=otp_locked";
         }
         int fails = session.getAttribute(SecurityWeb.OTP_FAILS) instanceof Integer i ? i + 1 : 1;
         if (fails >= OTP_MAX_FAILS) {
-            session.invalidate();
-            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+            SecurityWeb.logout(request);
             return "redirect:/login?error=otp";
         }
         session.setAttribute(SecurityWeb.OTP_FAILS, fails);
@@ -101,8 +108,9 @@ public class SecurityController {
     }
 
     @PostMapping("/mypage/otp/disable")
-    public String disable(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String password, RedirectAttributes ra) {
-        ra.addFlashAttribute("message", service.disableOtp(me, password).message());
+    public String disable(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String password,
+                          @RequestParam(required = false) String code, RedirectAttributes ra) {
+        ra.addFlashAttribute("message", service.disableOtp(me, password, code).message());
         return "redirect:/mypage/security#otp";
     }
 
@@ -122,15 +130,22 @@ public class SecurityController {
     @PostMapping("/reauth")
     public String reauth(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String password,
                          @RequestParam(required = false) String next, HttpServletRequest request, Model model, RedirectAttributes ra) {
-        LoginUser db = users.findByLoginId(me.getLoginId());
-        if (db == null || password == null || !encoder.matches(password, db.getPasswordHash())) {
+        HttpSession session = request.getSession(true);
+        if (!service.passwordMatches(me, password)) {
             audit.record(AuditAction.REAUTH, me.getLoginId(), "실패");
-            model.addAttribute("error", "비밀번호가 맞지 않습니다.");
+            int fails = session.getAttribute(SecurityWeb.REAUTH_FAILS) instanceof Integer i ? i + 1 : 1;
+            if (fails >= REAUTH_MAX_FAILS) {
+                SecurityWeb.logout(request);
+                return "redirect:/login?error=reauth";
+            }
+            session.setAttribute(SecurityWeb.REAUTH_FAILS, fails);
+            model.addAttribute("error", "비밀번호가 맞지 않습니다. (" + (REAUTH_MAX_FAILS - fails) + "번 더 틀리면 로그아웃)");
             model.addAttribute("next", safeNext(next));
             model.addAttribute("minutes", reauth.minutes());
             return "user/reauth";
         }
-        request.getSession(true).setAttribute(SecurityWeb.REAUTH_AT, Instant.now());
+        session.removeAttribute(SecurityWeb.REAUTH_FAILS);
+        session.setAttribute(SecurityWeb.REAUTH_AT, Instant.now());
         audit.record(AuditAction.REAUTH, me.getLoginId(), "성공");
         ra.addFlashAttribute("message", "확인했습니다. " + reauth.minutes() + "분 동안 관리 작업을 할 수 있습니다. 하려던 작업을 다시 눌러 주세요.");
         return "redirect:" + safeNext(next);

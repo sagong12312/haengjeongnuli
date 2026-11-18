@@ -42,7 +42,10 @@
     <div class="panel-head"><h2 th:text="${ym} + ' 운행일지 (' + ${#numbers.formatInteger(km, 1, 'COMMA')} + 'km)'">운행일지</h2>
       <span><form th:action="@{/vehicles/{id}(id=${v.vehicleId})}" method="get" style="display:inline-flex; gap:6px; margin:0;"><label for="vm" class="sr-only">월</label>
         <input id="vm" name="month" type="month" class="input" th:value="${ym}" style="height:38px;"><button type="submit" class="btn btn-plain btn-sm">보기</button></form>
-        <a th:href="@{/vehicles/{id}/logs.csv(id=${v.vehicleId}, month=${ym})}">CSV</a></span></div>
+        <form th:action="@{/vehicles/{id}/logs.csv(id=${v.vehicleId})}" method="get" style="display:inline-flex; gap:6px; margin:0;">
+          <input type="hidden" name="month" th:value="${ym}"><label for="vr" class="sr-only">내려받는 사유</label>
+          <input id="vr" name="reason" class="input" required minlength="2" maxlength="200" placeholder="내려받는 사유" style="height:38px; max-width:160px;">
+          <button type="submit" class="btn btn-plain btn-sm">CSV</button></form></span></div>
     <p th:if="${#lists.isEmpty(logs)}" class="hint" style="padding:18px 22px;">이 달 운행 기록이 없습니다.</p>
     <div class="table-wrap" th:unless="${#lists.isEmpty(logs)}"><table class="list" style="min-width:820px">
       <thead><tr><th scope="col">출발·도착</th><th scope="col">운전자</th><th scope="col" style="text-align:left">목적·행선지</th><th scope="col">km</th></tr></thead>

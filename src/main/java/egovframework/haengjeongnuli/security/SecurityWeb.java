@@ -27,6 +27,18 @@ public final class SecurityWeb {
     public static final String OTP_PENDING = "otp.pending";
     public static final String OTP_FAILS = "otp.fails";
     public static final String REAUTH_AT = "reauth.at";
+    public static final String REAUTH_FAILS = "reauth.fails";
+    /** 비밀번호를 넣고 나서 OTP 번호를 넣기까지 기다리는 시간 */
+    static final long OTP_PENDING_SECONDS = 300;
+
+    /** 세션을 끝내고 로그인 화면으로 */
+    static void logout(HttpServletRequest request) {
+        HttpSession s = request.getSession(false);
+        if (s != null) {
+            s.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+    }
 
     static LoginUser me() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
@@ -54,7 +66,7 @@ public final class SecurityWeb {
             ServletRequestAttributes attrs = RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes s ? s : null;
             HttpServletRequest req = attrs == null ? null : attrs.getRequest();
             if (req != null && service.otpEnabled(u.getLoginId())) {
-                req.getSession(true).setAttribute(OTP_PENDING, Boolean.TRUE);
+                req.getSession(true).setAttribute(OTP_PENDING, Instant.now());
             }
             if (req != null) {
                 service.alertIfNewIp(u, req.getRemoteAddr());
@@ -65,14 +77,36 @@ public final class SecurityWeb {
     /** 두 번째 단계(OTP)를 마치기 전에는 다른 화면을 못 쓰게 한다 */
     @Component
     public static class OtpGate implements HandlerInterceptor {
+        private final SecurityService service;
+
+        public OtpGate(SecurityService service) {
+            this.service = service;
+        }
+
         @Override
         public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
             HttpSession s = request.getSession(false);
             if (s == null || s.getAttribute(OTP_PENDING) == null) {
+                // 기관이 관리자에게 2단계 인증을 의무로 했으면, 켜기 전에는 시스템 관리 화면을 못 쓴다
+                String p = request.getRequestURI().substring(request.getContextPath().length());
+                LoginUser u = me();
+                if (u != null && p.startsWith("/admin/") && service.otpRequiredButMissing(u)) {
+                    response.sendRedirect(request.getContextPath() + "/mypage/security?required=1#otp");
+                    return false;
+                }
                 return true;
             }
             String p = request.getRequestURI().substring(request.getContextPath().length());
-            if (p.equals("/login/otp") || p.equals("/logout") || staticPath(p)) {
+            if (staticPath(p)) {
+                return true;
+            }
+            // 비밀번호만 맞힌 반쯤 로그인한 세션을 오래 두지 않는다
+            if (!(s.getAttribute(OTP_PENDING) instanceof Instant at) || at.isBefore(Instant.now().minusSeconds(OTP_PENDING_SECONDS))) {
+                logout(request);
+                response.sendRedirect(request.getContextPath() + "/login?error=otp_timeout");
+                return false;
+            }
+            if (p.equals("/login/otp") || p.equals("/logout")) {
                 return true;
             }
             response.sendRedirect(request.getContextPath() + "/login/otp");

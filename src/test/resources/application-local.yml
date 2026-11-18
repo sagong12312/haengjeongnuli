@@ -16,6 +16,8 @@ spring:
       path: /h2-console
 
 app:
+  # 여러 시험이 다른 주소에서 오는 http 요청을 흉내 낸다. https 강제는 HttpsGuardFilter 시험에서 따로 본다
+  require-https: false
   file:
     upload-dir: build/test-uploads
   init-admin:

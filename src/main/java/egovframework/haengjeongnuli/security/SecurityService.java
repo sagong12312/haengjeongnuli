@@ -28,6 +28,13 @@ public class SecurityService {
 
     public record Result(boolean ok, String message) {}
 
+    /** 로그인 두 번째 단계 결과 */
+    public enum OtpCheck { OK, WRONG, LOCKED }
+
+    /** 여러 세션에 걸쳐 연속으로 이만큼 틀리면 잠시 잠근다 (번호 맞히기 공격 막기) */
+    static final int OTP_ACCOUNT_MAX_FAILS = 10;
+    static final int OTP_LOCK_MINUTES = 15;
+
     private final SecurityMapper mapper;
     private final UserService users;
     private final PasswordEncoder encoder;
@@ -36,9 +43,10 @@ public class SecurityService {
     private final int pwHistory;
     private final int dormantDays;
     private final boolean otpRequiredForAdmin;
+    private final SecretBox box;
 
     public SecurityService(SecurityMapper mapper, UserService users, PasswordEncoder encoder, AuditService audit,
-                           NotificationService notifications,
+                           NotificationService notifications, SecretBox box,
                            @Value("${app.security.password-history:3}") int pwHistory,
                            @Value("${app.security.dormant-days:90}") int dormantDays,
                            @Value("${app.security.otp-required-for-admin:false}") boolean otpRequiredForAdmin) {
@@ -50,6 +58,17 @@ public class SecurityService {
         this.pwHistory = pwHistory;
         this.dormantDays = dormantDays;
         this.otpRequiredForAdmin = otpRequiredForAdmin;
+        this.box = box;
+    }
+
+    /** DB 에 든 비밀 키를 풀어 준다. 암호화 전 값이면 이참에 암호화해 둔다 */
+    private String secretOf(String loginId, Map<String, Object> o) {
+        String stored = (String) o.get("secret");
+        String plain = box.open(stored);
+        if (plain != null && !SecretBox.sealed(stored)) {
+            mapper.setSecret(loginId, box.seal(plain));
+        }
+        return plain;
     }
 
     /* ================================================================ 2단계 인증 (OTP) */
@@ -72,13 +91,13 @@ public class SecurityService {
         }
         String secret = Totp.newSecret();
         mapper.deleteOtp(me.getLoginId());
-        mapper.insertOtp(me.getLoginId(), secret, LocalDateTime.now());
+        mapper.insertOtp(me.getLoginId(), box.seal(secret), LocalDateTime.now());
         return secret;
     }
 
     public String pendingSecret(LoginUser me) {
         Map<String, Object> o = mapper.otp(me.getLoginId());
-        return o == null || "Y".equals(o.get("enabled")) ? null : (String) o.get("secret");
+        return o == null || "Y".equals(o.get("enabled")) ? null : secretOf(me.getLoginId(), o);
     }
 
     /** 앱에 나온 번호가 맞으면 켠다 */
@@ -88,7 +107,8 @@ public class SecurityService {
         if (o == null || "Y".equals(o.get("enabled"))) {
             return new Result(false, "먼저 '2단계 인증 설정 시작'을 누르세요.");
         }
-        long step = Totp.verify((String) o.get("secret"), code == null ? null : code.trim(), Totp.step(nowSec()), 0);
+        String secret = secretOf(me.getLoginId(), o);
+        long step = secret == null ? -1 : Totp.verify(secret, code == null ? null : code.trim(), Totp.step(nowSec()), 0);
         if (step < 0) {
             return new Result(false, "번호가 맞지 않습니다. 휴대폰 시계가 맞는지 확인하고 새 번호를 넣으세요.");
         }
@@ -97,19 +117,35 @@ public class SecurityService {
         return new Result(true, "2단계 인증을 켰습니다. 다음 로그인부터 인증 앱의 번호도 넣습니다.");
     }
 
-    /** 끄기: 비밀번호를 다시 확인한다 (관리자에게 의무면 끌 수 없음) */
+    /** 끄기: 비밀번호와 지금 인증 앱 번호를 모두 확인한다 (세션만 가로챈 사람이 끄지 못하게). 관리자에게 의무면 끌 수 없음 */
     @Transactional
-    public Result disableOtp(LoginUser me, String password) {
-        LoginUser db = users.findByLoginId(me.getLoginId());
-        if (db == null || password == null || !encoder.matches(password, db.getPasswordHash())) {
+    public Result disableOtp(LoginUser me, String password, String code) {
+        if (!passwordMatches(me, password)) {
             return new Result(false, "비밀번호가 맞지 않습니다.");
         }
+        LoginUser db = users.findByLoginId(me.getLoginId());
         if (otpRequiredForAdmin && db.isAdmin()) {
             return new Result(false, "시스템 관리자는 2단계 인증을 끌 수 없습니다 (기관 설정).");
+        }
+        if (checkOtp(me.getLoginId(), code) != OtpCheck.OK) {
+            return new Result(false, "인증 앱 번호가 맞지 않습니다. 지금 나온 6자리를 넣으세요.");
         }
         mapper.deleteOtp(me.getLoginId());
         audit.record(AuditAction.OTP_DISABLE, me.getLoginId(), null);
         return new Result(true, "2단계 인증을 껐습니다.");
+    }
+
+    /**
+     * 로그인한 상태에서 비밀번호를 다시 확인한다 (관리 작업 전, 2단계 인증 끄기).
+     * 틀리면 로그인 실패와 똑같이 세어 계정 잠금에 반영한다 — 자리 비운 PC 에서 비밀번호를 맞혀 보지 못하게.
+     */
+    public boolean passwordMatches(LoginUser me, String password) {
+        LoginUser db = users.findByLoginId(me.getLoginId());
+        boolean ok = db != null && password != null && db.getPasswordHash() != null && encoder.matches(password, db.getPasswordHash());
+        if (!ok && db != null) {
+            users.recordFailure(db.getLoginId());
+        }
+        return ok;
     }
 
     /** 관리자: 휴대폰을 잃어버린 직원의 OTP 를 지운다 (본인 확인 뒤) */
@@ -118,24 +154,51 @@ public class SecurityService {
         if (admin == null || !admin.isAdmin()) {
             return new Result(false, "시스템 관리자만 할 수 있습니다.");
         }
+        if (admin.getLoginId().equals(loginId)) {
+            return new Result(false, "자기 2단계 인증은 초기화할 수 없습니다. 내 보안 화면에서 끄거나 다른 관리자에게 부탁하세요.");
+        }
         mapper.deleteOtp(loginId);
         audit.record(AuditAction.OTP_DISABLE, loginId, "관리자 초기화");
         notifications.notify(loginId, "관리자가 2단계 인증을 초기화했습니다. 다시 설정하세요.", "/mypage/security");
         return new Result(true, "2단계 인증을 초기화했습니다. 본인이 다시 설정해야 합니다.");
     }
 
-    /** 로그인 두 번째 단계: 맞으면 true. 같은 번호를 두 번 쓰지 못한다 */
+    /**
+     * 로그인 두 번째 단계. 같은 번호를 두 번 쓰지 못한다.
+     * 실패는 계정에 쌓여(세션을 새로 열어도 이어짐) 10번 연속 틀리면 15분 동안 잠그고 본인에게 알린다.
+     */
     @Transactional
-    public boolean checkOtp(String loginId, String code) {
+    public OtpCheck checkOtp(String loginId, String code) {
         Map<String, Object> o = mapper.otp(loginId);
         if (o == null || !"Y".equals(o.get("enabled"))) {
-            return false;
+            return OtpCheck.WRONG;
         }
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lockedUntil = toTime(o.get("lockedUntil"));
+        if (lockedUntil != null && lockedUntil.isAfter(now)) {
+            audit.recordAs(loginId, AuditAction.OTP_FAIL, null, "잠김");
+            return OtpCheck.LOCKED;
+        }
+        String secret = secretOf(loginId, o);
         long last = ((Number) o.get("lastStep")).longValue();
-        long step = Totp.verify((String) o.get("secret"), code == null ? null : code.trim(), Totp.step(nowSec()), last);
-        boolean ok = step >= 0 && mapper.useStep(loginId, step) == 1;
-        audit.recordAs(loginId, ok ? AuditAction.OTP_SUCCESS : AuditAction.OTP_FAIL, null, null);
-        return ok;
+        long step = secret == null ? -1 : Totp.verify(secret, code == null ? null : code.trim(), Totp.step(nowSec()), last);
+        if (step >= 0 && mapper.useStep(loginId, step) == 1) {
+            audit.recordAs(loginId, AuditAction.OTP_SUCCESS, null, null);
+            return OtpCheck.OK;
+        }
+        int fails = (lockedUntil != null ? 0 : ((Number) o.get("fails")).intValue()) + 1;
+        boolean lock = fails >= OTP_ACCOUNT_MAX_FAILS;
+        mapper.setFails(loginId, lock ? 0 : fails, lock ? now.plusMinutes(OTP_LOCK_MINUTES) : null);
+        audit.recordAs(loginId, AuditAction.OTP_FAIL, null, lock ? "연속 " + fails + "번 실패로 잠금" : null);
+        if (lock) {
+            notifications.notify(loginId, "2단계 인증 번호가 연속 " + fails + "번 틀려 " + OTP_LOCK_MINUTES
+                    + "분 동안 잠갔습니다. 비밀번호가 새어 나갔을 수 있으니 바로 바꾸세요.", "/mypage/password");
+        }
+        return lock ? OtpCheck.LOCKED : OtpCheck.WRONG;
+    }
+
+    private static LocalDateTime toTime(Object v) {
+        return v instanceof java.sql.Timestamp t ? t.toLocalDateTime() : v instanceof LocalDateTime l ? l : null;
     }
 
     static long nowSec() {

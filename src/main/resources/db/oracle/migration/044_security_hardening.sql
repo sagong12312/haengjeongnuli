@@ -1,0 +1,4 @@
+-- 보안 보강 (한 번만 실행)
+-- 2단계 인증: 세션을 바꿔도 이어지는 연속 실패 횟수와 잠금, 비밀 키 암호화 저장(길이 늘림)
+ALTER TABLE USER_OTP MODIFY (SECRET VARCHAR2(200 CHAR));
+ALTER TABLE USER_OTP ADD (FAILS NUMBER(5) DEFAULT 0 NOT NULL, LOCKED_UNTIL TIMESTAMP);
