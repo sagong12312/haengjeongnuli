@@ -41,6 +41,12 @@
     <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
   </form>
 
+  <section class="panel" style="gap:8px;">
+    <h2>기본 차단 목록</h2>
+    <p class="hint" style="margin:0;">성인·음란, 북한·이적 표현물, 불법 의약품, 잔혹 사이트 등 널리 알려진 유해 사이트 도메인을 한꺼번에 넣습니다. 도메인을 자주 바꾸는 불법 복제 사이트는 바뀐 주소를 아래에서 직접 더하세요.</p>
+    <form th:action="@{/admin/site-block/preset}" method="post" style="margin:0;"><button type="submit" class="btn btn-outline">기본 차단 목록 넣기</button></form>
+  </section>
+
   <form class="panel" th:action="@{/admin/site-block/rules}" method="post" style="gap:12px;">
     <h2>막을 사이트 더하기</h2>
     <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">

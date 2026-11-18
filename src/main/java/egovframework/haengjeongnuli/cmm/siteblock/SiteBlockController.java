@@ -66,9 +66,13 @@ public class SiteBlockController {
         return done(service.setDns(mode, dns1, dns2, me.getLoginId()), "DNS " + mode, ra);
     }
 
-    @PostMapping("/admin/site-block/{action:register|reinstall}")
+    @PostMapping("/admin/site-block/{action:register|reinstall|preset}")
     public String app(@AuthenticationPrincipal LoginUser me, @PathVariable String action, RedirectAttributes ra) {
-        return done("register".equals(action) ? service.registerApp(me.getLoginId()) : service.requestReinstall(me.getLoginId()), action, ra);
+        return done(switch (action) {
+            case "register" -> service.registerApp(me.getLoginId());
+            case "preset" -> service.loadPreset(me.getLoginId());
+            default -> service.requestReinstall(me.getLoginId());
+        }, action, ra);
     }
 
     /* ---------------------------------------------------------------- 차단 안내 · 항의(이의) 신청 */

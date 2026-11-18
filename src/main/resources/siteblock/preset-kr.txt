@@ -1,0 +1,50 @@
+# 기본 차단 목록 (나무위키 '유해 사이트/목록' 문서의 사이트를 도메인으로 옮김)
+# 형식: 분류 도메인  # 이름
+# 도메인이 자주 바뀌는 불법 복제 사이트(뉴토끼·누누티비 등)는 바뀐 주소를 관리자가 더해야 합니다.
+
+# 사생활 침해
+ADULT insecam.org  # Insecam (보안 카메라 무단 공개)
+
+# 불법 성매매·음란
+ADULT xvideos.com  # Xvideos
+ADULT pornhub.com  # Pornhub
+ADULT xhamster.com  # xHamster
+ADULT e-hentai.org  # E-Hentai
+ADULT exhentai.org  # E-Hentai (회원용)
+ADULT e621.net  # e621
+ADULT donmai.us  # Danbooru
+ADULT dmm.co.jp  # DMM R18
+ADULT gelbooru.com  # Gelbooru
+ADULT luscious.net  # Luscious
+ADULT nhentai.net  # nhentai
+ADULT rule34.xxx  # Rule 34
+ADULT rule34.paheal.net  # Rule 34 (paheal)
+ADULT sankakucomplex.com  # Sankaku Complex
+ADULT thumbzilla.com  # Thumbzilla
+ADULT tsumino.com  # Tsumino
+ADULT hellven.net  # 헬븐넷
+ADULT 4chan.org  # 4chan
+ADULT 4channel.org  # 4chan
+ADULT soranet.net  # 소라넷 (폐쇄)
+
+# 북한·이적 표현물
+NK minjok.com  # 민족통신
+NK naenara.com.kp  # 내나라
+NK uriminzokkiri.com  # 우리민족끼리 (폐쇄)
+NK rodong.rep.kp  # 로동신문
+NK chongryon.com  # 재일본조선인총연합회
+NK chosonsinbo.com  # 조선신보
+NK kcna.kp  # 조선중앙통신
+NK dprktoday.com  # 조선의 오늘
+NK korea-dpr.com  # 조선우호협회
+NK ryongnamsan.edu.kp  # 김일성종합대학
+
+# 불법 식품·의약품
+DRUG womenonweb.org  # Women on Web
+
+# 잔혹·기타 (폐쇄되었거나 해금된 사이트 포함)
+ETC bestgore.com  # 베스트 고어
+ETC ogrish.com  # 오그리쉬 닷컴
+ETC ashleymadison.com  # 애슐리 매디슨
+ETC grooveshark.com  # 그루브샤크 (폐쇄)
+PIRACY lezhin.com  # 레진코믹스 (해금된 정상 서비스: 업무에 필요하면 빼세요)

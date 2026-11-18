@@ -32,7 +32,8 @@ public class SiteBlockService {
     public static final String MODE_ADULT = "ADULT";
     public static final String MODE_CUSTOM = "CUSTOM";
 
-    public static final Map<String, String> CATEGORIES = Map.of("GAMBLING", "도박", "ADULT", "성인", "MALWARE", "악성·피싱", "ETC", "기타");
+    public static final Map<String, String> CATEGORIES = Map.of("GAMBLING", "도박", "ADULT", "성인·음란", "MALWARE", "악성·피싱",
+            "NK", "북한·이적 표현물", "PIRACY", "불법 복제·위조", "DRUG", "불법 식품·의약품", "ETC", "기타");
     static final int MAX_RULES = 3000;
 
     private final SiteBlockMapper mapper;
@@ -286,6 +287,32 @@ public class SiteBlockService {
         }
         return new Result(added > 0, added + "개를 더했습니다." + (wanted.size() > added ? " (이미 있는 " + (wanted.size() - added) + "개는 건너뜀)" : "")
                 + (bad.isEmpty() ? "" : " 알아볼 수 없는 줄: " + String.join(", ", bad)));
+    }
+
+    /** 기본 차단 목록(resources/siteblock/preset-kr.txt)을 한꺼번에 넣는다. 이미 있는 것은 건너뛴다 */
+    @Transactional
+    public Result loadPreset(String by) {
+        Map<String, StringBuilder> byCat = new java.util.LinkedHashMap<>();
+        try (var in = getClass().getResourceAsStream("/siteblock/preset-kr.txt")) {
+            if (in == null) {
+                return new Result(false, "기본 목록 파일을 찾을 수 없습니다.");
+            }
+            for (String line : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).split("\\R")) {
+                String t = line.contains("#") ? line.substring(0, line.indexOf('#')).trim() : line.trim();
+                String[] parts = t.split("\\s+");
+                if (parts.length == 2 && CATEGORIES.containsKey(parts[0])) {
+                    byCat.computeIfAbsent(parts[0], k -> new StringBuilder()).append(parts[1]).append('\n');
+                }
+            }
+        } catch (java.io.IOException e) {
+            return new Result(false, "기본 목록 파일을 읽지 못했습니다.");
+        }
+        int before = mapper.countRules();
+        for (var e : byCat.entrySet()) {
+            add(e.getValue().toString(), e.getKey(), "기본 목록", by);
+        }
+        int added = mapper.countRules() - before;
+        return new Result(true, "기본 차단 목록에서 " + added + "개를 더했습니다 (이미 있던 것은 건너뜀). '다시 설치 요청'을 누르면 모든 PC 에 반영됩니다.");
     }
 
     @Transactional

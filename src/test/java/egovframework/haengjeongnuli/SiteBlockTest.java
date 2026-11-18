@@ -133,4 +133,15 @@ class SiteBlockTest {
         assertThat(service.reasonFor(site)).isNull();
         assertThat(service.decide(appealId, true, null, "admin").ok()).isFalse();
     }
+
+    @Test
+    void 기본_차단_목록을_한꺼번에_넣는다() {
+        SiteBlockService.Result r = service.loadPreset("admin");
+        assertThat(r.ok()).as(r.message()).isTrue();
+        assertThat(service.rules()).extracting(m -> m.get("domain")).contains("pornhub.com", "kcna.kp", "insecam.org", "donmai.us", "womenonweb.org");
+        assertThat(service.reasonFor("danbooru.donmai.us")).isEqualTo("성인·음란");
+        assertThat(service.reasonFor("rodong.rep.kp")).isEqualTo("북한·이적 표현물");
+        assertThat(service.loadPreset("admin").message()).contains("0개를 더했습니다");
+        assertThat(service.script()).contains("'pornhub.com'").contains("'naenara.com.kp'");
+    }
 }
