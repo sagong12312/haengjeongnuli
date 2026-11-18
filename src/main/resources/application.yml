@@ -67,6 +67,8 @@ app:
   # 암호화되지 않은(http) 연결은 이 PC(127.0.0.1)에서 온 것만 받는다. 다른 PC·휴대폰은 https 로만.
   # 앞단 프록시가 TLS 를 끝내면 APP_FORWARD_HEADERS=native 로 X-Forwarded-Proto 를 믿게 한다.
   require-https: ${APP_REQUIRE_HTTPS:true}
+  # HTTPS 로 켰을 때 이 http 포트로 오면 https 포트(server.port)로 넘겨 준다 (0 이면 끔)
+  http-redirect-port: ${APP_HTTP_REDIRECT_PORT:0}
   # 행정누리 전자민원(국민용, 별도 서버) 연동 API. 기본은 꺼짐.
   # 켜려면 APP_EPETITION_ENABLED=true, 서명 비밀값 APP_EPETITION_SECRET(32자 이상), 전자민원 서버 주소 APP_EPETITION_NETWORKS 를 정한다.
   epetition:

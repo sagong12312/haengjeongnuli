@@ -12,7 +12,9 @@
 param(
     # 전자민원 폴더 (기본: 행정누리 폴더 옆의 haengjeongnuli-e-Petition)
     [string]$EPetitionDir = '',
-    [int]$NuriPort = 8080,
+    # 행정누리는 https 포트(8443). 예전 주소 http://localhost:8080 은 https 로 넘겨 준다
+    [int]$NuriPort = 8443,
+    [int]$NuriHttpPort = 8080,
     [int]$EPetitionPort = 3000,
     [string]$OrgName = '시험시'
 )
@@ -148,6 +150,7 @@ $tlsPass = ([System.IO.File]::ReadAllText($passFile)).Trim()
 # 행정누리: 이 PC에서만 열리게 (APP_ALLOWED_NETWORKS 를 주지 않으면 기본이 이 PC만), HTTPS 로
 $env:SERVER_PORT = "$NuriPort"
 $env:APP_SSL_ENABLED = 'true'
+$env:APP_HTTP_REDIRECT_PORT = "$NuriHttpPort"
 $env:APP_SSL_KEYSTORE = 'file:' + ($p12 -replace '\\', '/')
 $env:APP_SSL_KEYSTORE_PASSWORD = $tlsPass
 $env:APP_EPETITION_ENABLED = 'true'
@@ -179,8 +182,8 @@ Start-Process -FilePath 'cmd.exe' -WorkingDirectory $EPetitionDir -ArgumentList 
 Write-Host ''
 Write-Host '두 창이 떴습니다. 행정누리 창에 글자가 올라가다 멈추면 (1분쯤) 다 켜진 것입니다.' -ForegroundColor Green
 Write-Host ''
-Write-Host "  행정누리 (이 PC에서만)     : https://localhost:$NuriPort"
-Write-Host "  전자민원 (이 PC)           : https://localhost:$EPetitionPort"
+Write-Host "  행정누리 (이 PC에서만)     : https://localhost:$NuriPort   (http://localhost:$NuriHttpPort 로 넣어도 넘어갑니다)"
+Write-Host "  전자민원 (이 PC)           : https://localhost:$EPetitionPort   (http:// 로 넣어도 https 로 넘어갑니다)"
 foreach ($a in $addrs) {
     Write-Host "  전자민원 (휴대폰·노트북)   : https://${a}:$EPetitionPort"
 }
