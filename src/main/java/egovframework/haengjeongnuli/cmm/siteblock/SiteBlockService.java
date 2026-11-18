@@ -21,7 +21,7 @@ import egovframework.haengjeongnuli.cmm.secapp.SecurityAppVO;
  * 웹 화면은 브라우저가 다른 사이트에 가는 것을 막을 수 없으므로, 관리자가 정한 목록으로 PC 에 까는 차단 스크립트를 만든다.
  *  1) 거르는 DNS: 악성코드(·성인) 사이트 주소를 알려 주지 않는 DNS 로 바꾼다 (기본: 1.1.1.1 for Families 1.1.1.3)
  *  2) Chrome·Edge 정책: 관리자가 적은 도메인(도박 등)과 그 하위 주소를 막고, DNS-over-HTTPS 를 꺼서 1)을 우회하지 못하게
- *  3) hosts 파일: 다른 브라우저·프로그램에서도 그 도메인을 0.0.0.0 으로
+ *  3) hosts 파일: 다른 브라우저·프로그램에서도 그 도메인을 이 PC(127.0.0.1)로 돌리고, PC 의 작은 안내 프로그램이 http 접속을 행정누리 차단 안내 화면으로 넘긴다
  * 스크립트는 '유해사이트 차단' 강제 보안 프로그램으로 등록해, 설치하지 않은 직원은 행정누리를 쓰지 못하게 한다.
  */
 @Service
@@ -384,18 +384,24 @@ public class SiteBlockService {
      * PC 에 까는 PowerShell 스크립트. 도메인·DNS 는 위에서 형식을 확인한 값만 들어간다.
      * 관리자 권한이 없으면 스스로 관리자 권한으로 다시 실행한다.
      */
-    /** 안내 프로그램이 넘길 행정누리 주소를 받는 판 (지금은 차단만 하고, 안내 넘기기는 다음 판에서) */
-    public String script(String base) {
-        return script();
+    public String script() {
+        return script("https://localhost:8443");
     }
 
-    public String script() {
+    /** 안내 프로그램이 넘길 행정누리 주소로 쓸 수 있는가 (스크립트에 그대로 들어가므로 글자를 좁게) */
+    static boolean safeBase(String base) {
+        return base != null && base.length() <= 200 && base.matches("https?://[A-Za-z0-9.\\-]+(:\\d{1,5})?(/[A-Za-z0-9._\\-/]*)?");
+    }
+
+    /** base: 직원이 스크립트를 받은 행정누리 주소 (차단 안내 화면으로 넘길 곳) */
+    public String script(String base) {
+        String noticeBase = safeBase(base) ? base.replaceAll("/+$", "") : "https://localhost:8443";
         Map<String, Object> c = conf();
         List<String> domains = rules().stream().map(r -> (String) r.get("domain")).filter(d -> normalize(d) != null).toList();
         List<String> dns = dnsServers(c);
         StringBuilder sb = new StringBuilder();
         sb.append("# 행정누리 유해사이트 차단 (판 ").append(c.get("version")).append(", ").append(LocalDateTime.now().format(TS)).append(" 만듦)\r\n");
-        sb.append("# 하는 일: 1) 거르는 DNS 로 바꾸기  2) Chrome·Edge 에서 목록의 사이트 막기, DNS-over-HTTPS 끄기  3) hosts 파일에 목록 넣기\r\n");
+        sb.append("# 하는 일: 1) 거르는 DNS 로 바꾸기  2) Chrome·Edge·Whale·Firefox 에서 목록의 사이트 막기, DNS-over-HTTPS 끄기  3) hosts 파일  4) 차단 안내 프로그램\r\n");
         sb.append("# 되돌리기: 이 파일을 -Remove 를 붙여 실행  (powershell -ExecutionPolicy Bypass -File site-block.ps1 -Remove)\r\n");
         sb.append("param([switch]$Remove)\r\n");
         sb.append("$ErrorActionPreference = 'Stop'\r\n");
@@ -407,11 +413,40 @@ public class SiteBlockService {
         sb.append("    exit\r\n}\r\n");
         sb.append("$domains = @(").append(String.join(", ", domains.stream().map(d -> "'" + d + "'").toList())).append(")\r\n");
         sb.append("$dns = @(").append(String.join(", ", dns.stream().map(d -> "'" + d + "'").toList())).append(")\r\n");
+        sb.append("$noticeBase = '").append(noticeBase).append("'\r\n");
         sb.append("""
                 $begin = '# >>> haengjeongnuli site-block'
                 $end = '# <<< haengjeongnuli site-block'
                 $hosts = Join-Path $env:SystemRoot 'System32\\drivers\\etc\\hosts'
-                $policyKeys = @('HKLM:\\SOFTWARE\\Policies\\Google\\Chrome', 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge')
+                $policyKeys = @('HKLM:\\SOFTWARE\\Policies\\Google\\Chrome', 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge', 'HKLM:\\SOFTWARE\\Policies\\Naver\\Naver Whale')
+                $ffBlock = 'HKLM:\\SOFTWARE\\Policies\\Mozilla\\Firefox\\WebsiteFilter\\Block'
+                $taskName = 'HaengjeongnuliBlockNotice'
+                $noticeDir = Join-Path $env:ProgramData 'Haengjeongnuli'
+                $noticeFile = Join-Path $noticeDir 'block-notice.ps1'
+                # 이 PC 의 80 번(http)으로 온 접속을 행정누리 차단 안내 화면으로 넘기는 작은 프로그램 (127.0.0.1 에서만 받음)
+                $notice = @'
+                $base = '__BASE__'
+                $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 80)
+                try { $listener.Start() } catch { exit 1 }
+                while ($true) {
+                    $client = $listener.AcceptTcpClient()
+                    try {
+                        $client.ReceiveTimeout = 3000
+                        $stream = $client.GetStream()
+                        $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::ASCII)
+                        $site = ''
+                        $line = $reader.ReadLine()
+                        while ($line) {
+                            $line = $reader.ReadLine()
+                            if ($line -match '^[Hh]ost:\\s*([A-Za-z0-9.\\-]+)') { $site = $Matches[1] }
+                        }
+                        $loc = $base + '/site-blocked?site=' + [Uri]::EscapeDataString($site)
+                        $resp = "HTTP/1.1 302 Found`r`nLocation: $loc`r`nCache-Control: no-store`r`nContent-Length: 0`r`nConnection: close`r`n`r`n"
+                        $bytes = [System.Text.Encoding]::ASCII.GetBytes($resp)
+                        $stream.Write($bytes, 0, $bytes.Length)
+                    } catch { } finally { $client.Close() }
+                }
+                '@
 
                 function Strip-Hosts {
                     $lines = @()
@@ -434,6 +469,9 @@ public class SiteBlockService {
                         if (Test-Path "$k\\URLBlocklist") { Remove-Item "$k\\URLBlocklist" -Recurse -Force }
                         if (Test-Path $k) { Remove-ItemProperty -Path $k -Name DnsOverHttpsMode -ErrorAction SilentlyContinue }
                     }
+                    if (Test-Path $ffBlock) { Remove-Item $ffBlock -Recurse -Force }
+                    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+                    Remove-Item $noticeDir -Recurse -Force -ErrorAction SilentlyContinue
                     $kept = Strip-Hosts
                     Set-Content -Path $hosts -Value $kept -Encoding ASCII
                     Clear-DnsClientCache
@@ -456,6 +494,14 @@ public class SiteBlockService {
                     $i = 1
                     foreach ($d in $domains) { New-ItemProperty -Path "$k\\URLBlocklist" -Name "$i" -Value $d -PropertyType String -Force | Out-Null; $i++ }
                 }
+                # Firefox: 목록의 사이트 막기 (하위 주소 포함)
+                if (Test-Path $ffBlock) { Remove-Item $ffBlock -Recurse -Force }
+                New-Item -Path $ffBlock -Force | Out-Null
+                $i = 1
+                foreach ($d in $domains) {
+                    New-ItemProperty -Path $ffBlock -Name "$i" -Value "*://$d/*" -PropertyType String -Force | Out-Null; $i++
+                    New-ItemProperty -Path $ffBlock -Name "$i" -Value "*://*.$d/*" -PropertyType String -Force | Out-Null; $i++
+                }
                 # Firefox 도 DNS-over-HTTPS 끄기
                 $ff = 'HKLM:\\SOFTWARE\\Policies\\Mozilla\\Firefox\\DNSOverHTTPS'
                 New-Item -Path $ff -Force | Out-Null
@@ -466,13 +512,29 @@ public class SiteBlockService {
                 Copy-Item $hosts "$hosts.haengjeongnuli.bak" -Force -ErrorAction SilentlyContinue
                 $kept = Strip-Hosts
                 $kept.Add($begin)
-                foreach ($d in $domains) { $kept.Add("0.0.0.0 $d"); $kept.Add("0.0.0.0 www.$d") }
+                foreach ($d in $domains) { $kept.Add("127.0.0.1 $d"); $kept.Add("127.0.0.1 www.$d") }
                 $kept.Add($end)
                 Set-Content -Path $hosts -Value $kept -Encoding ASCII
                 Clear-DnsClientCache
 
+                # 4) 차단 안내 프로그램: 컴퓨터를 켤 때마다 SYSTEM 으로 실행
+                New-Item -ItemType Directory -Force -Path $noticeDir | Out-Null
+                Set-Content -Path $noticeFile -Value $notice.Replace('__BASE__', $noticeBase) -Encoding UTF8
+                $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $noticeFile + '"')
+                $trigger = New-ScheduledTaskTrigger -AtStartup
+                $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+                $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+                Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+                Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+                Start-ScheduledTask -TaskName $taskName
+                Start-Sleep -Seconds 2
+                $noticeOk = $false
+                try { $c = New-Object System.Net.Sockets.TcpClient; $c.Connect('127.0.0.1', 80); $noticeOk = $true; $c.Close() } catch { }
+
                 Write-Host ''
                 Write-Host ('차단을 적용했습니다. 막은 도메인 ' + $domains.Count + '개' + $(if ($dns.Count -gt 0) { ', 거르는 DNS ' + ($dns -join ', ') } else { '' })) -ForegroundColor Green
+                if ($noticeOk) { Write-Host '막힌 사이트에 들어가면 차단 안내 화면이 뜹니다 (크롬·엣지·웨일·Firefox 는 브라우저의 차단 화면).' }
+                else { Write-Host '이 PC 의 80 번 포트를 다른 프로그램이 쓰고 있어 차단 안내 프로그램을 켜지 못했습니다. 차단은 그대로 됩니다.' -ForegroundColor Yellow }
                 Write-Host '브라우저를 모두 닫았다가 다시 연 뒤, 행정누리 보안 프로그램 화면에서 "설치했습니다"를 누르세요.'
                 Read-Host '끝내려면 Enter'
                 """.replace("\n", "\r\n"));

@@ -90,7 +90,9 @@ class SiteBlockTest {
             assertThat(r.getHeader("Content-Disposition")).contains("site-block.ps1");
             byte[] b = r.getContentAsByteArray();
             assertThat(new byte[] {b[0], b[1], b[2]}).containsExactly((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);
-            assertThat(new String(b, StandardCharsets.UTF_8)).contains("행정누리 유해사이트 차단");
+            assertThat(new String(b, StandardCharsets.UTF_8)).contains("행정누리 유해사이트 차단")
+                    .contains("$noticeBase = 'http://localhost'").contains("Naver Whale").contains("WebsiteFilter")
+                    .contains("127.0.0.1 $d").contains("Register-ScheduledTask").contains("\r\n'@\r\n");
             assertThat(staff.perform(get("/security-apps")).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8))
                     .contains("유해사이트 차단").contains("/security-apps/site-block.ps1");
             staff.perform(post("/security-apps/" + appId + "/ack"));
@@ -143,5 +145,8 @@ class SiteBlockTest {
         assertThat(service.reasonFor("rodong.rep.kp")).isEqualTo("북한·이적 표현물");
         assertThat(service.loadPreset("admin").message()).contains("0개를 더했습니다");
         assertThat(service.script()).contains("'pornhub.com'").contains("'naenara.com.kp'");
+        // 스크립트에 들어가는 행정누리 주소는 좁은 글자만
+        assertThat(service.script("https://evil.example/'; Remove-Item C:\\ #")).contains("$noticeBase = 'https://localhost:8443'");
+        assertThat(service.script("https://hjn.example.go.kr:8443")).contains("$noticeBase = 'https://hjn.example.go.kr:8443'");
     }
 }

@@ -15,6 +15,7 @@
     새 판이 나오거나 다시 설치해야 하면 관리자가 확인을 다시 요청하며, 그때는 다시 눌러야 합니다.
     설치 확인 주소가 있는 프로그램은 이 PC에서 프로그램이 실제로 실행 중인지 확인한 뒤에만 확인됩니다. 설치가 어렵거나 오류가 나면 정보보안 담당자에게 연락하세요.</p>
 
+  <p class="hint">업무에 필요한 사이트가 막혔으면 <a th:href="@{/site-blocked}">차단 해제(항의) 신청</a>을 하세요.</p>
   <p th:if="${#lists.isEmpty(apps)}" class="panel hint">안내 중인 보안 프로그램이 없습니다. 관리자가 아직 목록을 정하지 않았습니다.</p>
 
   <section class="panel" th:each="a : ${apps}" th:attr="aria-labelledby='app' + ${a.appId}" style="gap:10px;">
