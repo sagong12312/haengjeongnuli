@@ -286,4 +286,27 @@ class EPetitionPortalApiTest {
         // 같은 아이디로 다시 가입할 수 있다
         apiPost("/members", base.formatted(id, "Tq7-Rivers-Blue!"), 200);
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    egovframework.haengjeongnuli.cmm.secapp.SecurityAppService securityApps;
+
+    @Test
+    void 민원인_PC_보안_프로그램_목록은_민원인용만_나간다() throws Exception {
+        String tag = java.util.UUID.randomUUID().toString().substring(0, 4);
+        securityApps.save(null, "국민키보드" + tag, "입력 보호", null, "https://dist.example.go.kr/kb", true, 1, "CITIZEN", "http://127.0.0.1:14440/s", "admin");
+        securityApps.save(null, "직원백신" + tag, "악성코드", null, null, false, 1, "STAFF", null, "admin");
+        Long a = null, b = null;
+        try {
+            for (var x : securityApps.all()) {
+                if (x.getName().equals("국민키보드" + tag)) a = x.getAppId();
+                if (x.getName().equals("직원백신" + tag)) b = x.getAppId();
+            }
+            com.fasterxml.jackson.databind.JsonNode items = apiGet("/security-apps", 200).get("data").get("items");
+            String all = items.toString();
+            assertThat(all).contains("국민키보드" + tag).contains("http://127.0.0.1:14440/s").doesNotContain("직원백신" + tag);
+        } finally {
+            if (a != null) securityApps.setUse(a, false, "admin");
+            if (b != null) securityApps.setUse(b, false, "admin");
+        }
+    }
 }

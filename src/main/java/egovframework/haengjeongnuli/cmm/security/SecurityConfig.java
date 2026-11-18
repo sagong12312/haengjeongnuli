@@ -21,6 +21,19 @@ public class SecurityConfig {
     static final String CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
             + "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'";
 
+    /**
+     * 보안 프로그램 설치 안내 화면에서만, 관리자가 적은 설치 확인 주소(이 PC 의 127.0.0.1·localhost)에 접속을 열어 준다.
+     * 그 화면의 스크립트가 프로그램이 실제로 떠 있는지 물어보려면 필요하다. 다른 화면은 그대로 'self' 만.
+     */
+    static String csp(jakarta.servlet.http.HttpServletRequest req, egovframework.haengjeongnuli.cmm.secapp.SecurityAppService secApps) {
+        String p = req.getRequestURI().substring(req.getContextPath().length());
+        if (!p.equals("/security-apps")) {
+            return CSP;
+        }
+        java.util.List<String> extra = secApps.checkOrigins();
+        return extra.isEmpty() ? CSP : CSP.replace("connect-src 'self'", "connect-src 'self' " + String.join(" ", extra));
+    }
+
     /** 비정상 URL(이중 슬래시, 인코딩된 경로 조작 등)을 막을 때 점수를 매긴다 */
     @Bean
     public org.springframework.security.web.firewall.RequestRejectedHandler requestRejectedHandler(AbuseGuard guard) {
@@ -69,7 +82,8 @@ public class SecurityConfig {
             egovframework.haengjeongnuli.user.service.UserService userService,
             egovframework.haengjeongnuli.cmm.audit.AuditService auditService,
             egovframework.haengjeongnuli.cmm.org.OrgService orgService,
-            LoginThrottle loginThrottle, AbuseGuard abuseGuard) throws Exception {
+            LoginThrottle loginThrottle, AbuseGuard abuseGuard,
+            egovframework.haengjeongnuli.cmm.secapp.SecurityAppService secApps) throws Exception {
         AntPathRequestMatcher h2 = new AntPathRequestMatcher("/h2-console/**");
         http
             // 허용한 네트워크(기본: 이 PC + 집 내부망)가 아니면 로그인 화면조차 보여주지 않는다
@@ -113,7 +127,7 @@ public class SecurityConfig {
                     // 2차 방어: 이 서버의 스크립트만 실행 (H2 콘솔은 자체 화면이 인라인 스크립트를 써서 뺀다)
                     .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(
                             new org.springframework.security.web.util.matcher.NegatedRequestMatcher(h2),
-                            new org.springframework.security.web.header.writers.StaticHeadersWriter("Content-Security-Policy", CSP)))
+                            (org.springframework.security.web.header.HeaderWriter) (req, res) -> res.setHeader("Content-Security-Policy", csp(req, secApps))))
                     .referrerPolicy(r -> r.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
                     // 카메라·마이크·위치 등 쓰지 않는 기능을 막고, 다른 사이트 창과 분리한다
                     .addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter("Permissions-Policy",

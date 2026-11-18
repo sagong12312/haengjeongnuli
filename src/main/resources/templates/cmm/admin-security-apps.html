@@ -7,7 +7,9 @@
 <main class="page">
   <div th:replace="~{fragments/layout :: flash}"></div>
   <div><span class="crumb"><a th:href="@{/admin/users}">시스템 관리</a> › 보안 프로그램 안내</span><h1>보안 프로그램 안내 관리</h1></div>
-  <p class="hint">직원이 업무용 PC에 설치할 보안 프로그램과 내려받는 곳(기관 내부 배포 서버 주소 등)을 적습니다. 필수 항목을 확인하지 않은 직원은 첫 화면에 안내가 뜹니다.
+  <p class="hint">업무용 PC·민원인 PC에 설치할 보안 프로그램과 내려받는 곳을 적습니다.
+    <b>강제</b> 항목을 설치하지 않은 직원은 행정누리 업무 화면을, 민원인은 전자민원을 쓸 수 없습니다. <b>권고</b> 항목은 안내만 합니다.
+    국민이 쓰는 전자민원에는 강제 설치를 되도록 피하세요 (정부 방침은 공공 누리집에서 플러그인을 걷어 내고, 보안 프로그램 설치는 이용자가 고르게 하는 것).
     새 판을 배포했거나 다시 설치하게 할 때는 <b>다시 확인 요청</b>을 누르면 모든 직원의 확인이 초기화됩니다.
     실제 설치 여부는 기관의 PC 보안 점검 도구(예: 내PC지키미, 패치관리시스템)로 따로 확인하세요.</p>
 
@@ -15,13 +17,14 @@
     <div class="panel-head"><h2>안내 항목</h2><span class="muted" th:text="'사용 중인 직원 ' + ${activeUsers} + '명'">직원</span></div>
     <p th:if="${#lists.isEmpty(apps)}" class="hint" style="padding:18px 22px;">아직 항목이 없습니다. 아래에서 추가하세요. (예: 백신, 보안패치 관리, PC 보안 점검, 개인정보 검출, 문서 보안)</p>
     <div class="table-wrap" th:unless="${#lists.isEmpty(apps)}"><table class="list" style="min-width:900px">
-      <thead><tr><th scope="col">순서</th><th scope="col" style="text-align:left">프로그램</th><th scope="col">구분</th><th scope="col">판</th>
+      <thead><tr><th scope="col">순서</th><th scope="col" style="text-align:left">프로그램</th><th scope="col">구분</th><th scope="col">대상</th><th scope="col">판</th>
         <th scope="col">확인한 직원</th><th scope="col">상태</th><th scope="col">관리</th></tr></thead>
       <tbody><tr th:each="a : ${apps}">
         <td th:text="${a.sortNo}">1</td>
         <td class="left"><b th:text="${a.name}">이름</b><small class="muted" style="display:block" th:text="${a.purpose}">용도</small>
           <small th:if="${a.url}" style="display:block; word-break:break-all;" th:text="${a.url}">주소</small></td>
-        <td th:text="${a.required} ? '필수' : '권장'">필수</td>
+        <td><span th:class="'badge ' + (${a.required} ? 'badge-red' : 'badge-gray')" th:text="${a.levelLabel}">강제</span></td>
+        <td th:text="${a.targetLabel}">대상</td>
         <td th:text="${a.version}">1</td>
         <td><a th:href="@{/admin/security-apps(app=${a.appId})}" th:text="${a.ackCount} + ' / ' + ${activeUsers} + '명'">0명</a></td>
         <td th:text="${a.inUse} ? '안내 중' : '멈춤'">상태</td>
@@ -49,11 +52,20 @@
     <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
       <div class="field"><label for="sn">프로그램 이름 <span class="req">*</span></label><input id="sn" name="name" class="input" required maxlength="100" th:value="${editing?.name}" placeholder="예: 백신"></div>
       <div class="field"><label for="so">순서</label><input id="so" name="sortNo" class="input" inputmode="numeric" th:value="${editing} ? ${editing.sortNo} : 100"></div>
-      <div class="field" style="justify-content:flex-end;"><label style="display:flex; gap:8px; align-items:center;">
-        <input type="checkbox" name="required" value="true" th:checked="${editing == null or editing.required}"> 필수 (확인 안 하면 첫 화면에 안내)</label></div>
+      <div class="field"><label for="sr">구분</label>
+        <select id="sr" name="required" class="select">
+          <option value="true" th:selected="${editing == null or editing.required}">강제 — 설치하지 않으면 쓸 수 없음</option>
+          <option value="false" th:selected="${editing != null and !editing.required}">권고 — 안내만</option></select></div>
+      <div class="field"><label for="st">대상</label>
+        <select id="st" name="target" class="select">
+          <option value="STAFF" th:selected="${editing == null or editing.target == 'STAFF'}">직원 PC (행정누리)</option>
+          <option value="CITIZEN" th:selected="${editing != null and editing.target == 'CITIZEN'}">민원인 PC (전자민원)</option>
+          <option value="BOTH" th:selected="${editing != null and editing.target == 'BOTH'}">직원·민원인 모두</option></select></div>
     </div>
     <div class="field"><label for="sp">용도 <span class="req">*</span></label><input id="sp" name="purpose" class="input" required maxlength="300" th:value="${editing?.purpose}" placeholder="예: 악성코드를 막고 실시간 검사합니다."></div>
     <div class="field"><label for="su">내려받는 곳 (http:// 또는 https://)</label><input id="su" name="url" class="input" maxlength="500" th:value="${editing?.url}" placeholder="예: https://배포서버.기관.go.kr/백신"></div>
+    <div class="field"><label for="sc">설치 확인 주소 (선택)</label><input id="sc" name="checkUrl" class="input" maxlength="300" th:value="${editing?.checkUrl}" placeholder="예: http://127.0.0.1:14440/status">
+      <p class="hint" style="margin:4px 0 0;">보안 프로그램이 이 PC에 띄우는 확인용 주소(127.0.0.1·localhost만)를 적으면, 화면이 그 주소에 응답이 오는지 확인한 뒤에만 '설치했습니다'를 받습니다. 비우면 본인 확인만 받습니다.</p></div>
     <div class="field"><label for="sg">설치 방법</label><textarea id="sg" name="guide" class="input" rows="4" maxlength="1300" th:text="${editing?.guide}" placeholder="1. 내려받은 파일을 실행합니다.&#10;2. 설치가 끝나면 PC를 다시 켭니다."></textarea></div>
     <div class="form-actions" style="justify-content:flex-end; gap:8px;">
       <a th:if="${editing}" class="btn btn-plain" th:href="@{/admin/security-apps}">취소</a>

@@ -10,7 +10,12 @@ public class SecurityAppVO {
     private String purpose;
     private String guide;
     private String url;
+    /** Y: 강제 (설치하지 않으면 쓰지 못함), N: 권고 */
     private String requiredYn;
+    /** STAFF: 직원 업무용 PC(행정누리), CITIZEN: 민원인 PC(전자민원), BOTH: 둘 다 */
+    private String target = "STAFF";
+    /** 설치 확인 주소: 프로그램이 이 PC 에 띄우는 확인용 주소 (http(s)://127.0.0.1 또는 localhost 만) */
+    private String checkUrl;
     /** 올리면 직원은 다시 확인해야 한다 (새 판, 재설치 요청) */
     private int version;
     private int sortNo;
@@ -23,6 +28,14 @@ public class SecurityAppVO {
     private Integer ackCount;
 
     public boolean isRequired() { return "Y".equals(requiredYn); }
+    public String getLevelLabel() { return isRequired() ? "강제" : "권고"; }
+    public String getTarget() { return target; }
+    public void setTarget(String target) { this.target = target; }
+    public String getTargetLabel() { return "CITIZEN".equals(target) ? "민원인 PC (전자민원)" : "BOTH".equals(target) ? "직원·민원인 모두" : "직원 PC (행정누리)"; }
+    public boolean isForStaff() { return !"CITIZEN".equals(target); }
+    public boolean isForCitizen() { return "CITIZEN".equals(target) || "BOTH".equals(target); }
+    public String getCheckUrl() { return checkUrl; }
+    public void setCheckUrl(String checkUrl) { this.checkUrl = checkUrl; }
     public boolean isInUse() { return "Y".equals(useYn); }
     public boolean isAcked() { return ackedAt != null; }
 

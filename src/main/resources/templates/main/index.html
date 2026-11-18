@@ -7,7 +7,7 @@
 <main class="page">
   <div th:replace="~{fragments/layout :: flash}"></div>
   <div th:if="${securityPending > 0}" class="alert" role="alert" style="background:#FFF4E5; border:2px solid #E8A33D; color:#5C3B00; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-    <b th:text="'설치를 확인하지 않은 필수 보안 프로그램이 ' + ${securityPending} + '개 있습니다.'">필수 보안 프로그램</b>
+    <b th:text="'설치를 확인하지 않은 강제 보안 프로그램이 ' + ${securityPending} + '개 있습니다.'">강제 보안 프로그램</b>
     <a th:href="@{/security-apps}" class="btn btn-outline btn-sm">설치 안내 보기</a>
   </div>
 

@@ -151,6 +151,30 @@ public class EPetitionApiController {
         return ok(portal.faqs());
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.secapp.SecurityAppService securityApps;
+
+    /** 민원인 PC 에 설치할 보안 프로그램 (강제·권고). 전자민원이 이것을 보고 강제 항목을 설치하지 않은 민원인을 막는다 */
+    @GetMapping("/security-apps")
+    public ResponseEntity<Map<String, Object>> securityApps() {
+        java.util.List<Map<String, Object>> items = new java.util.ArrayList<>();
+        for (egovframework.haengjeongnuli.cmm.secapp.SecurityAppVO a : securityApps.forCitizen()) {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", a.getAppId());
+            m.put("name", a.getName());
+            m.put("purpose", a.getPurpose());
+            m.put("guide", a.getGuide());
+            m.put("url", a.getUrl());
+            m.put("required", a.isRequired());
+            m.put("version", a.getVersion());
+            m.put("checkUrl", a.getCheckUrl());
+            items.add(m);
+        }
+        Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("items", items);
+        return ok(out);
+    }
+
     /* ---------------------------------------------------------------- 민원인이 하는 일 (조회 때 받은 actionToken) */
 
     public record WithdrawRequest(String token, String reason) {}

@@ -26,8 +26,9 @@ public class SecurityAppController {
     }
 
     @GetMapping("/security-apps")
-    public String list(@AuthenticationPrincipal LoginUser me, Model model) {
+    public String list(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String required, Model model) {
         model.addAttribute("apps", apps.forUser(me.getLoginId()));
+        model.addAttribute("blocked", apps.pending(me.getLoginId()) > 0);
         return "cmm/security-apps";
     }
 
@@ -36,7 +37,8 @@ public class SecurityAppController {
         if (apps.ack(id, me.getLoginId())) {
             SecurityAppVO a = apps.get(id);
             audit.record(AuditAction.SECURITY_APP_ACK, "보안 프로그램 " + id, a.getName() + " 판 " + a.getVersion());
-            ra.addFlashAttribute("message", a.getName() + " 설치를 확인했습니다.");
+            ra.addFlashAttribute("message", a.getName() + " 설치를 확인했습니다."
+                    + (apps.pending(me.getLoginId()) == 0 ? " 이제 행정누리를 쓸 수 있습니다." : ""));
         } else {
             ra.addFlashAttribute("message", "안내 중인 항목이 아닙니다.");
         }
@@ -60,8 +62,9 @@ public class SecurityAppController {
                        @RequestParam(required = false) String name, @RequestParam(required = false) String purpose,
                        @RequestParam(required = false) String guide, @RequestParam(required = false) String url,
                        @RequestParam(defaultValue = "false") boolean required, @RequestParam(required = false) Integer sortNo,
+                       @RequestParam(required = false) String target, @RequestParam(required = false) String checkUrl,
                        RedirectAttributes ra) {
-        String problem = apps.save(appId, name, purpose, guide, url, required, sortNo, me.getLoginId());
+        String problem = apps.save(appId, name, purpose, guide, url, required, sortNo, target, checkUrl, me.getLoginId());
         if (problem == null) {
             audit.record(AuditAction.SECURITY_APP_SAVE, "보안 프로그램 " + (appId == null ? "새 항목" : appId), name + " " + (url == null ? "" : url));
         }

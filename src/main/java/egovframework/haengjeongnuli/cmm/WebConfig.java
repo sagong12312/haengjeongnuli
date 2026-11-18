@@ -14,6 +14,9 @@ public class WebConfig implements WebMvcConfigurer {
     private final egovframework.haengjeongnuli.security.SecurityWeb.Reauth reauth;
     private final egovframework.haengjeongnuli.security.SecurityWeb.DownloadReason downloadReason;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.secapp.SecurityAppGate securityAppGate;
+
     public WebConfig(PasswordAgeInterceptor passwordAgeInterceptor, egovframework.haengjeongnuli.security.SecurityWeb.OtpGate otpGate,
                      egovframework.haengjeongnuli.security.SecurityWeb.Reauth reauth,
                      egovframework.haengjeongnuli.security.SecurityWeb.DownloadReason downloadReason) {
@@ -36,5 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns("/mypage/password", "/login", "/login/otp", "/logout", "/error", "/error/**",
                         "/css/**", "/js/**", "/fonts/**", "/favicon.ico", "/h2-console/**");
+        // 강제 보안 프로그램을 설치하지 않으면 업무 화면을 못 쓴다 (비밀번호 바꾸기가 먼저)
+        registry.addInterceptor(securityAppGate).addPathPatterns("/**");
     }
 }

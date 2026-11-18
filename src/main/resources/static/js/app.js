@@ -138,3 +138,28 @@
     });
   });
 })();
+
+// 보안 프로그램: 설치 확인 주소가 있으면 이 PC 에서 프로그램이 실제로 응답하는지 본 뒤에만 '설치했습니다'를 보낸다
+(function () {
+  document.querySelectorAll('form[data-check-url]').forEach(function (form) {
+    var url = form.getAttribute('data-check-url');
+    if (!url) return;
+    var checked = false;
+    form.addEventListener('submit', function (e) {
+      if (checked) return;
+      e.preventDefault();
+      var btn = form.querySelector('button');
+      if (btn) { btn.disabled = true; btn.textContent = '설치 확인 중…'; }
+      var done = false;
+      var timer = setTimeout(function () { fail(); }, 4000);
+      function fail() {
+        if (done) return; done = true;
+        if (btn) { btn.disabled = false; btn.textContent = '설치했습니다'; }
+        alert((form.getAttribute('data-check-name') || '보안 프로그램') + '이(가) 이 PC에서 실행 중이 아닙니다. 설치한 뒤 실행하고 다시 누르세요.');
+      }
+      fetch(url, { mode: 'no-cors', cache: 'no-store', credentials: 'omit' })
+        .then(function () { if (done) return; done = true; clearTimeout(timer); checked = true; form.submit(); })
+        .catch(function () { clearTimeout(timer); fail(); });
+    });
+  });
+})();

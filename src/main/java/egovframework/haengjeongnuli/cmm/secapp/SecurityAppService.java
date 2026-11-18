@@ -25,6 +25,40 @@ public class SecurityAppService {
     public List<SecurityAppVO> forUser(String loginId) { return mapper.selectForUser(loginId); }
     public int pending(String loginId) { return loginId == null ? 0 : mapper.countPending(loginId); }
     public List<SecurityAppVO> all() { return mapper.selectAll(); }
+    public List<SecurityAppVO> forCitizen() { return mapper.selectForCitizen(); }
+
+    /** 화면 보안 정책(connect-src)에 열어 줄 설치 확인 주소의 출처 (이 PC 주소만). 1분 동안 기억 */
+    private volatile List<String> originsCache = List.of();
+    private volatile long originsAt;
+
+    public List<String> checkOrigins() {
+        long now = System.currentTimeMillis();
+        if (now - originsAt > 60_000) {
+            java.util.Set<String> out = new java.util.TreeSet<>();
+            for (String u : mapper.selectCheckUrls()) {
+                if (safeCheckUrl(u)) {
+                    URI uri = URI.create(u);
+                    out.add(uri.getScheme().toLowerCase() + "://" + uri.getHost() + (uri.getPort() > 0 ? ":" + uri.getPort() : ""));
+                }
+            }
+            originsCache = List.copyOf(out);
+            originsAt = now;
+        }
+        return originsCache;
+    }
+
+    void forgetOrigins() {
+        originsAt = 0;
+    }
+
+    /** 설치 확인 주소: 보안 프로그램이 이 PC 에 띄우는 주소만 (http(s)://127.0.0.1 또는 localhost) */
+    static boolean safeCheckUrl(String u) {
+        if (u == null || u.length() > 300 || !safeUrl(u)) {
+            return false;
+        }
+        String host = URI.create(u).getHost();
+        return "127.0.0.1".equals(host) || "localhost".equalsIgnoreCase(host);
+    }
     public int activeUsers() { return mapper.countActiveUsers(); }
     public SecurityAppVO get(long id) { return mapper.selectById(id); }
     public List<Map<String, Object>> notAcked(long id) { return mapper.selectNotAcked(id); }
@@ -32,7 +66,20 @@ public class SecurityAppService {
     /** 저장. 문제가 있으면 그 이유 */
     @Transactional
     public String save(Long id, String name, String purpose, String guide, String url, boolean required, Integer sortNo, String by) {
-        String n = trim(name), p = trim(purpose), g = trim(guide), u = trim(url);
+        return save(id, name, purpose, guide, url, required, sortNo, "STAFF", null, by);
+    }
+
+    @Transactional
+    public String save(Long id, String name, String purpose, String guide, String url, boolean required, Integer sortNo,
+                       String target, String checkUrl, String by) {
+        String n = trim(name), p = trim(purpose), g = trim(guide), u = trim(url), c = trim(checkUrl);
+        String t = target == null ? "STAFF" : target.trim();
+        if (!t.equals("STAFF") && !t.equals("CITIZEN") && !t.equals("BOTH")) {
+            return "대상을 고르세요.";
+        }
+        if (c != null && !safeCheckUrl(c)) {
+            return "설치 확인 주소는 이 PC 주소(http://127.0.0.1:포트/… 또는 https://localhost:포트/…)로만 적을 수 있습니다.";
+        }
         if (n == null || n.length() > 100) {
             return "프로그램 이름을 100자 이내로 입력하세요.";
         }
@@ -57,6 +104,9 @@ public class SecurityAppService {
         a.setGuide(g);
         a.setUrl(u);
         a.setRequiredYn(required ? "Y" : "N");
+        a.setTarget(t);
+        a.setCheckUrl(c);
+        forgetOrigins();
         a.setSortNo(sortNo == null ? 100 : sortNo);
         a.setUpdatedBy(by);
         a.setUpdatedAt(LocalDateTime.now());
@@ -77,6 +127,7 @@ public class SecurityAppService {
 
     @Transactional
     public boolean setUse(long id, boolean use, String by) {
+        forgetOrigins();
         return mapper.setUse(id, use ? "Y" : "N", by, LocalDateTime.now()) == 1;
     }
 
@@ -84,7 +135,7 @@ public class SecurityAppService {
     @Transactional
     public boolean ack(long id, String loginId) {
         SecurityAppVO a = get(id);
-        if (a == null || !a.isInUse()) {
+        if (a == null || !a.isInUse() || !a.isForStaff()) {
             return false;
         }
         mapper.deleteAck(id, loginId);
