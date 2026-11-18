@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('업무 인계서')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › <a th:href="@{/office/handovers}">업무 인계인수</a></span><h1 th:text="${h['title']}">인계서</h1></div>
+  <section class="panel" style="gap:10px;">
+    <dl style="margin:0; display:grid; grid-template-columns:120px 1fr; gap:10px;">
+      <dt class="muted">인계자</dt><dd style="margin:0" th:text="${h['fromName']} + (${h['dept']} ? ' · ' + ${h['dept']} : '')">인계자</dd>
+      <dt class="muted">인수자</dt><dd style="margin:0" th:text="${h['toName']}">인수자</dd>
+      <dt class="muted">보낸 때</dt><dd style="margin:0" th:text="${#temporals.format(h['createdAt'], 'yyyy-MM-dd HH:mm')}">때</dd>
+      <dt class="muted">상태</dt><dd style="margin:0" th:text="${h['status'] == 'ACCEPTED'} ? '인수 확인 (' + ${#temporals.format(h['acceptedAt'], 'yyyy-MM-dd HH:mm')} + ')' : '인수 대기'">상태</dd>
+    </dl>
+    <h2>진행 중인 업무</h2><p style="margin:0; white-space:pre-wrap;" th:text="${h['tasks']}">업무</p>
+    <th:block th:if="${h['docs']}"><h2>주요 문서·자료 위치</h2><p style="margin:0; white-space:pre-wrap;" th:text="${h['docs']}">문서</p></th:block>
+    <th:block th:if="${h['notes']}"><h2>유의 사항·연락처</h2><p style="margin:0; white-space:pre-wrap;" th:text="${h['notes']}">유의</p></th:block>
+    <th:block th:if="${h['acceptNote']}"><h2>인수 의견</h2><p style="margin:0; white-space:pre-wrap;" th:text="${h['acceptNote']}">의견</p></th:block>
+  </section>
+  <form th:if="${canAccept}" class="panel" th:action="@{/office/handovers/{id}/accept(id=${h['id']})}" method="post" style="gap:10px;">
+    <h2>인수 확인</h2>
+    <div class="field"><label for="an">인수 의견 (선택)</label><textarea id="an" name="note" class="textarea" rows="3" maxlength="500"></textarea></div>
+    <label class="check"><input type="checkbox" required>위 업무를 넘겨받았음을 확인합니다.</label>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">인수 확인</button></div>
+  </form>
+  <p class="no-print"><button type="button" class="btn btn-outline" data-print>인쇄</button></p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

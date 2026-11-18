@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('법정의무교육')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › 법정의무교육</span><h1 th:text="${year} + '년 법정의무교육'">의무교육</h1></div>
+  <nav style="display:flex; gap:8px;" aria-label="해 바꾸기">
+    <a class="btn btn-plain btn-sm" th:href="@{/office/edu(year=${year - 1})}">‹ 작년</a>
+    <a th:if="${year < today.year}" class="btn btn-plain btn-sm" th:href="@{/office/edu(year=${year + 1})}">다음 해 ›</a></nav>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>내 이수 현황</h2></div>
+    <div class="table-wrap"><table class="list">
+      <thead><tr><th scope="col" style="text-align:left">과목</th><th scope="col">필요 시간</th><th scope="col">이수 시간</th><th scope="col">상태</th><th scope="col" style="text-align:left">근거</th></tr></thead>
+      <tbody><tr th:each="s : ${status}">
+        <td class="left" style="color:var(--text)" th:text="${s.course()['name']}">과목</td>
+        <td th:text="${s.need()} + '시간'">1</td><td th:text="${s.done()} + '시간'">0</td>
+        <td><span th:class="'badge ' + (${s.complete()} ? 'badge-green' : 'badge-orange')" th:text="${s.complete()} ? '이수' : '미이수'">상태</span></td>
+        <td class="left muted" th:text="${s.course()['basis']} ?: ''">근거</td></tr></tbody></table></div>
+  </section>
+
+  <form th:if="${year >= today.year - 1}" class="panel" th:action="@{/office/edu}" method="post" style="gap:12px;">
+    <h2>이수 등록</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+      <div class="field"><label for="ec">과목 <span class="req">*</span></label>
+        <select id="ec" name="courseId" class="select" required><option th:each="c : ${courses}" th:value="${c['id']}" th:text="${c['name']}">과목</option></select></div>
+      <div class="field"><label for="eo">이수한 날 <span class="req">*</span></label><input id="eo" name="on" type="date" class="input" required th:max="${today}" th:value="${today}"></div>
+      <div class="field"><label for="eh">시간 <span class="req">*</span></label><input id="eh" name="hours" type="number" min="0.5" max="100" step="0.5" class="input" required value="1"></div>
+      <div class="field"><label for="ep">교육 기관</label><input id="ep" name="provider" class="input" maxlength="100" placeholder="예: 나라배움터"></div>
+    </div>
+    <p class="hint" style="margin:0;">이수증은 기관 인사 담당이 요청할 때 내면 됩니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">등록</button></div>
+  </form>
+
+  <section class="panel flush" th:unless="${#lists.isEmpty(records)}">
+    <div class="panel-head"><h2>내 이수 기록</h2></div>
+    <div class="table-wrap"><table class="list">
+      <thead><tr><th scope="col">날짜</th><th scope="col" style="text-align:left">과목</th><th scope="col">시간</th><th scope="col">기관</th><th scope="col">지우기</th></tr></thead>
+      <tbody><tr th:each="r : ${records}"><td th:text="${r['on']}">날짜</td><td class="left" th:text="${r['course']}">과목</td><td th:text="${r['hours']}">1</td>
+        <td th:text="${r['provider']} ?: '—'">기관</td>
+        <td><form th:action="@{/office/edu/{id}/delete(id=${r['id']})}" method="post" style="margin:0;" data-confirm="이 기록을 지울까요?">
+          <button type="submit" class="btn btn-plain btn-sm" th:attr="aria-label=${r['course']} + ' 기록 지우기'">지우기</button></form></td></tr></tbody></table></div>
+  </section>
+
+  <th:block th:if="${loginUser.admin}">
+    <section class="panel" style="gap:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;"><h2 style="margin:0;">과목별 미이수 직원</h2>
+        <form th:action="@{/office/edu/remind}" method="post" style="margin:0;" data-confirm="미이수 직원에게 알림을 보낼까요?">
+          <input type="hidden" name="year" th:value="${year}"><button type="submit" class="btn btn-outline btn-sm">미이수 직원에게 알림</button></form></div>
+      <div th:each="e : ${missing}"><h3 style="margin:0 0 4px; font-size:17px;" th:text="${e.key} + ' (' + ${#lists.size(e.value)} + '명)'">과목</h3>
+        <p class="muted" style="margin:0;" th:text="${#lists.isEmpty(e.value)} ? '모두 이수했습니다.' : ${#strings.listJoin(e.value, ', ')}">명단</p></div>
+    </section>
+    <section class="panel" style="gap:12px;">
+      <h2>과목 관리</h2>
+      <p class="hint" style="margin:0;">기본 과목과 시간은 예시입니다. 기관 지침(국민권익위원회 부패방지 교육 운영 지침, 장애인복지법 등)에 맞게 과목·시간을 정하세요.</p>
+      <form th:action="@{/office/edu/courses}" method="post" class="search-bar" style="margin:0;">
+        <label for="cn" class="sr-only">과목 이름</label><input id="cn" name="name" class="input" maxlength="100" required placeholder="과목 이름">
+        <label for="chh" class="sr-only">연간 이수 시간</label><input id="chh" name="hours" type="number" min="0.5" step="0.5" class="input" required placeholder="시간" style="max-width:100px;">
+        <label for="cb" class="sr-only">근거</label><input id="cb" name="basis" class="input" maxlength="200" placeholder="근거 (선택)">
+        <button type="submit" class="btn btn-outline">추가</button></form>
+      <div class="table-wrap"><table class="list"><thead><tr><th scope="col" style="text-align:left">과목</th><th scope="col">시간</th><th scope="col">쓰기</th></tr></thead>
+        <tbody><tr th:each="c : ${allCourses}"><td class="left" th:text="${c['name']}">과목</td><td th:text="${c['hours']}">1</td>
+          <td><form th:action="@{/office/edu/courses/{id}/use(id=${c['id']})}" method="post" style="margin:0;"><input type="hidden" name="use" th:value="${c['useYn'] != 'Y'}">
+            <button type="submit" class="btn btn-plain btn-sm" th:text="${c['useYn'] == 'Y'} ? '쓰는 중 (빼기)' : '뺌 (다시 쓰기)'">상태</button></form></td></tr></tbody></table></div>
+    </section>
+  </th:block>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

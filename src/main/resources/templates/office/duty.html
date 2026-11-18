@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('당직')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › 당직</span>
+    <h1 th:text="${ym.year} + '년 ' + ${ym.monthValue} + '월 당직 편성표'">당직</h1></div>
+  <nav style="display:flex; gap:8px;" aria-label="달 바꾸기">
+    <a class="btn btn-plain btn-sm" th:href="@{/office/duty(month=${prevMonth})}">‹ 이전 달</a>
+    <a class="btn btn-plain btn-sm" th:href="@{/office/duty(month=${nextMonth})}">다음 달 ›</a></nav>
+
+  <section th:unless="${#lists.isEmpty(swaps)}" class="panel" style="gap:10px;">
+    <h2>기다리는 교대 신청</h2>
+    <div class="table-wrap"><table class="list">
+      <thead><tr><th scope="col">당직</th><th scope="col">신청</th><th scope="col">맞바꿀 당직</th><th scope="col" style="text-align:left">사유</th><th scope="col">처리</th></tr></thead>
+      <tbody><tr th:each="s : ${swaps}">
+        <td th:text="${s['day']} + ' ' + ${s['typeLabel']}">당직</td>
+        <td th:text="${s['fromName']} + ' → ' + ${s['toName']}">신청</td>
+        <td th:text="${s['backDay']} ? ${s['backDay']} + ' ' + ${s['backTypeLabel']} : '없음 (대신 서기)'">맞바꿈</td>
+        <td class="left" th:text="${s['reason']}">사유</td>
+        <td>
+          <th:block th:unless="${s['mine']}">
+            <form th:action="@{/office/swaps/{id}(id=${s['id']})}" method="post" style="display:inline; margin:0;"><input type="hidden" name="accept" value="true">
+              <button type="submit" class="btn btn-primary btn-sm">받아들이기</button></form>
+            <form th:action="@{/office/swaps/{id}(id=${s['id']})}" method="post" style="display:inline; margin:0;"><input type="hidden" name="accept" value="false">
+              <button type="submit" class="btn btn-plain btn-sm">거절</button></form>
+          </th:block>
+          <form th:if="${s['mine']}" th:action="@{/office/swaps/{id}(id=${s['id']})}" method="post" style="margin:0;"><input type="hidden" name="accept" value="false">
+            <button type="submit" class="btn btn-plain btn-sm">철회</button></form>
+        </td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(roster)}" class="hint" style="padding:18px 22px;">이 달에는 편성된 당직이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(roster)}"><table class="list" style="min-width:820px">
+      <thead><tr><th scope="col">날짜</th><th scope="col">근무</th><th scope="col">당직자</th><th scope="col" style="text-align:left">근무일지</th><th scope="col">내 당직</th></tr></thead>
+      <tbody><tr th:each="r : ${roster}" th:classappend="${r['mine']} ? 'warn'">
+        <td th:text="${T(egovframework.haengjeongnuli.office.OfficeService).md(r['day'])}">날짜</td>
+        <td th:text="${r['typeLabel']}">숙직</td>
+        <td th:text="${r['userName']} + (${r['dept']} ? ' · ' + ${r['dept']} : '')">당직자</td>
+        <td class="left" style="white-space:pre-wrap" th:text="${r['log']} ?: '—'">일지</td>
+        <td>
+          <th:block th:if="${r['mine'] and r['day'].isAfter(today)}">
+            <details><summary>교대 신청</summary>
+              <form th:action="@{/office/duty/{id}/swap(id=${r['id']})}" method="post" style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                <label th:for="'st' + ${r['id']}">부탁할 직원</label>
+                <select th:id="'st' + ${r['id']}" name="toId" class="select" required><option value="">선택</option>
+                  <option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + ' · ' + ${u.dept()}">직원</option></select>
+                <label th:for="'sb' + ${r['id']}">맞바꿀 그 사람 당직 (선택)</label>
+                <select th:id="'sb' + ${r['id']}" name="backId" class="select"><option value="">없음 (대신 서 주기)</option>
+                  <option th:each="o : ${others}" th:value="${o['id']}" th:text="${o['day']} + ' ' + ${o['userName']}">당직</option></select>
+                <label th:for="'sr' + ${r['id']}">사유</label>
+                <input th:id="'sr' + ${r['id']}" name="reason" class="input" maxlength="300" required>
+                <button type="submit" class="btn btn-outline btn-sm">신청</button></form></details>
+          </th:block>
+          <th:block th:if="${r['mine'] and !r['day'].isAfter(today) and !r['day'].isBefore(today.minusDays(2))}">
+            <details th:open="${r['log'] == null}"><summary>근무일지</summary>
+              <form th:action="@{/office/duty/{id}/log(id=${r['id']})}" method="post" style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">
+                <label th:for="'lg' + ${r['id']}">근무 내용</label>
+                <textarea th:id="'lg' + ${r['id']}" name="log" class="textarea" rows="4" maxlength="1300" required th:text="${r['log']}" placeholder="순찰 시각, 받은 전화·민원, 특이사항"></textarea>
+                <button type="submit" class="btn btn-outline btn-sm">저장</button></form></details>
+          </th:block>
+        </td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section th:if="${loginUser.admin}" class="panel" style="gap:12px;">
+    <h2>당직 편성 (관리자)</h2>
+    <p class="hint" style="margin:0;">평일은 숙직 1명, 토요일·일요일·공휴일은 일직 1명과 숙직 1명을 짭니다. 당직을 적게·오래전에 선 직원부터 정하고,
+      그날 휴가·출장(결재 중 포함)인 직원과 전날 당직자는 뺍니다. 이미 짠 날은 그대로 둡니다. 편성된 직원에게 알림이 갑니다.</p>
+    <form th:action="@{/office/duty/build}" method="post" class="search-bar" style="margin:0;">
+      <label for="bf">시작일</label><input id="bf" name="from" type="date" class="input" required th:value="${ym.atDay(1)}">
+      <label for="bt">종료일</label><input id="bt" name="to" type="date" class="input" required th:value="${ym.atEndOfMonth()}">
+      <button type="submit" class="btn btn-primary">자동 편성</button></form>
+    <form th:action="@{/office/duty/clear}" method="post" class="search-bar" style="margin:0;" data-confirm="오늘 이후 근무일지가 없는 편성을 지울까요?">
+      <label for="cf">시작일</label><input id="cf" name="from" type="date" class="input" required th:value="${ym.atDay(1)}">
+      <label for="ct">종료일</label><input id="ct" name="to" type="date" class="input" required th:value="${ym.atEndOfMonth()}">
+      <button type="submit" class="btn btn-plain">편성 지우기</button></form>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

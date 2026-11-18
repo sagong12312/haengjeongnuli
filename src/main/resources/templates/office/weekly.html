@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('주간 업무 보고')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page narrow">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › 주간 업무 보고</span>
+    <h1 th:text="${week} + ' ~ ' + ${weekEnd} + ' 주간 업무 보고'">주간 보고</h1></div>
+  <nav style="display:flex; flex-wrap:wrap; gap:8px;" aria-label="주 바꾸기">
+    <a class="btn btn-plain btn-sm" th:href="@{/office/weekly(week=${prevWeek})}">‹ 지난주</a>
+    <a th:if="${nextWeek}" class="btn btn-plain btn-sm" th:href="@{/office/weekly(week=${nextWeek})}">다음 주 ›</a>
+    <a class="btn btn-outline btn-sm" th:href="@{/office/weekly/dept(week=${week})}">부서 취합 보기</a></nav>
+  <form class="panel" th:action="@{/office/weekly}" method="post" style="gap:14px;">
+    <input type="hidden" name="week" th:value="${week}">
+    <div class="field"><label for="wd">이번 주 한 일 <span class="req">*</span></label>
+      <textarea id="wd" name="done" class="textarea" rows="6" maxlength="1300" required th:text="${report} ? ${report['done']} : ''" th:readonly="${!editable}"></textarea></div>
+    <div class="field"><label for="wp">다음 주 할 일 <span class="req">*</span></label>
+      <textarea id="wp" name="plan" class="textarea" rows="6" maxlength="1300" required th:text="${report} ? ${report['plan']} : ''" th:readonly="${!editable}"></textarea></div>
+    <div class="field"><label for="wi">건의·협조 사항</label>
+      <textarea id="wi" name="issue" class="textarea" rows="3" maxlength="1000" th:text="${report} ? ${report['issue']} : ''" th:readonly="${!editable}"></textarea></div>
+    <p th:if="${report}" class="hint" style="margin:0;" th:text="'마지막 저장 ' + ${#temporals.format(report['updatedAt'], 'yyyy-MM-dd HH:mm')}">저장</p>
+    <p th:unless="${editable}" class="hint" style="margin:0;">4주가 지난 보고는 고칠 수 없습니다.</p>
+    <div class="form-actions" th:if="${editable}" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

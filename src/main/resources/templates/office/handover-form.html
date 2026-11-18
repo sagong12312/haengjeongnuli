@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('인계서 쓰기')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page narrow">
+  <div th:if="${message}" class="alert alert-error" role="alert" th:text="${message}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › <a th:href="@{/office/handovers}">업무 인계인수</a></span><h1>인계서 쓰기</h1></div>
+  <p class="hint">인사이동·휴직 때 맡던 업무를 다음 담당자에게 넘깁니다. 받은 사람이 인수 확인을 하면 끝납니다. 개인정보는 적지 말고 문서 번호·위치로 알려 주세요.</p>
+  <form class="panel" th:action="@{/office/handovers}" method="post" style="gap:14px;">
+    <div class="field"><label for="ht">받는 직원 <span class="req">*</span></label>
+      <select id="ht" name="toId" class="select" required><option value="">선택</option>
+        <option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + ' ' + ${u.position()} + ' · ' + ${u.dept()}">직원</option></select></div>
+    <div class="field"><label for="hn">제목 <span class="req">*</span></label><input id="hn" name="title" class="input" maxlength="200" required placeholder="예: 세외수입 부과 업무 인계"></div>
+    <div class="field"><label for="hk">진행 중인 업무 <span class="req">*</span></label>
+      <textarea id="hk" name="tasks" class="textarea" rows="6" maxlength="1300" required placeholder="1. 업무 이름 — 진행 상황, 다음 할 일, 기한"></textarea></div>
+    <div class="field"><label for="hd">주요 문서·자료 위치</label><textarea id="hd" name="docs" class="textarea" rows="4" maxlength="1300" placeholder="결재 문서 번호, 공유 폴더 위치 등"></textarea></div>
+    <div class="field"><label for="hx">유의 사항·연락처</label><textarea id="hx" name="notes" class="textarea" rows="4" maxlength="1300"></textarea></div>
+    <div class="form-actions"><a class="btn btn-plain btn-lg" th:href="@{/office/handovers}">취소</a><button type="submit" class="btn btn-primary btn-lg">보내기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

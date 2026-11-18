@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('업무 인계인수')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › 업무 인계인수</span><h1>업무 인계인수</h1></div>
+  <p><a class="btn btn-primary" th:href="@{/office/handovers/new}">인계서 쓰기</a></p>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(list)}" class="hint" style="padding:18px 22px;">주고받은 인계서가 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(list)}"><table class="list">
+      <thead><tr><th scope="col" style="text-align:left">제목</th><th scope="col">인계자</th><th scope="col">인수자</th><th scope="col">보낸 날</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="h : ${list}">
+        <td class="left"><a th:href="@{/office/handovers/{id}(id=${h['id']})}" th:text="${h['title']}">제목</a></td>
+        <td th:text="${h['fromName']}">인계자</td><td th:text="${h['toName']}">인수자</td>
+        <td th:text="${#temporals.format(h['createdAt'], 'yyyy-MM-dd')}">날짜</td>
+        <td><span th:class="'badge ' + (${h['status'] == 'ACCEPTED'} ? 'badge-green' : 'badge-orange')" th:text="${h['status'] == 'ACCEPTED'} ? '인수 확인' : (${h['toId'] == me} ? '확인할 차례' : '인수 대기')">상태</span></td>
+      </tr></tbody></table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

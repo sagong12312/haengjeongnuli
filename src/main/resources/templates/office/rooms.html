@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('회의실 예약')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › 회의실 예약</span><h1>회의실 예약</h1></div>
+
+  <form th:unless="${#lists.isEmpty(rooms)}" class="panel" th:action="@{/office/rooms/reserve}" method="post" style="gap:12px;">
+    <h2>예약하기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));">
+      <div class="field"><label for="rr">회의실 <span class="req">*</span></label>
+        <select id="rr" name="roomId" class="select" required>
+          <option th:each="r : ${rooms}" th:value="${r['id']}" th:text="${r['name']} + (${r['capacity']} ? ' (' + ${r['capacity']} + '명)' : '')">회의실</option></select></div>
+      <div class="field"><label for="rd">날짜 <span class="req">*</span></label>
+        <input id="rd" name="day" type="date" class="input" required th:value="${date}" th:min="${today}"></div>
+      <div class="field"><label for="rs">시작 <span class="req">*</span></label>
+        <select id="rs" name="start" class="select" required><option th:each="t : ${times}" th:value="${t}" th:text="${t}" th:selected="${t == '10:00'}">10:00</option></select></div>
+      <div class="field"><label for="re">끝 <span class="req">*</span></label>
+        <select id="re" name="end" class="select" required><option th:each="t : ${times}" th:value="${t}" th:text="${t}" th:selected="${t == '11:00'}">11:00</option></select></div>
+    </div>
+    <div class="field"><label for="rt">회의 이름 <span class="req">*</span></label><input id="rt" name="title" class="input" maxlength="200" required placeholder="예: 축제 추진 회의"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">예약</button></div>
+  </form>
+  <p th:if="${#lists.isEmpty(rooms)}" class="hint">등록된 회의실이 없습니다. 시스템 관리자가 아래에서 회의실을 등록합니다.</p>
+
+  <section class="panel flush">
+    <div class="panel-head" style="flex-wrap:wrap; gap:8px;">
+      <h2 th:text="${days[0]} + ' ~ ' + ${days[6]} + ' 예약 현황'">예약 현황</h2>
+      <nav style="display:flex; gap:8px;" aria-label="주 바꾸기">
+        <a class="btn btn-plain btn-sm" th:href="@{/office/rooms(date=${prevWeek})}">‹ 지난주</a>
+        <a class="btn btn-plain btn-sm" th:href="@{/office/rooms(date=${nextWeek})}">다음 주 ›</a></nav>
+    </div>
+    <p th:if="${#lists.isEmpty(resvs)}" class="hint" style="padding:18px 22px;">이 주에는 예약이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(resvs)}"><table class="list" style="min-width:760px">
+      <thead><tr><th scope="col">날짜</th><th scope="col">시간</th><th scope="col">회의실</th><th scope="col" style="text-align:left">회의</th><th scope="col">예약자</th><th scope="col">취소</th></tr></thead>
+      <tbody><tr th:each="r : ${resvs}">
+        <td th:text="${T(egovframework.haengjeongnuli.office.OfficeService).md(r['day'])}">날짜</td>
+        <td th:text="${r['start']} + '~' + ${r['end']}">시간</td>
+        <td th:text="${r['roomName']}">회의실</td>
+        <td class="left" th:text="${r['title']}">회의</td>
+        <td th:text="${r['userName']} + (${r['dept']} ? ' · ' + ${r['dept']} : '')">예약자</td>
+        <td><form th:if="${(r['mine'] or loginUser.admin) and !r['day'].isBefore(today)}" th:action="@{/office/rooms/resv/{id}/cancel(id=${r['id']})}" method="post" style="margin:0;" data-confirm="이 예약을 취소할까요?">
+          <input type="hidden" name="back" th:value="${date}"><button type="submit" class="btn btn-plain btn-sm" th:attr="aria-label=${r['title']} + ' 예약 취소'">취소</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section th:if="${loginUser.admin}" class="panel" style="gap:12px;">
+    <h2>회의실 관리</h2>
+    <form th:action="@{/office/rooms/add}" method="post" class="search-bar" style="margin:0;">
+      <label for="an" class="sr-only">회의실 이름</label><input id="an" name="name" class="input" maxlength="100" required placeholder="회의실 이름">
+      <label for="ap" class="sr-only">위치</label><input id="ap" name="place" class="input" maxlength="200" placeholder="위치 (예: 본관 3층)">
+      <label for="ac" class="sr-only">수용 인원</label><input id="ac" name="capacity" type="number" min="1" class="input" placeholder="인원" style="max-width:110px;">
+      <button type="submit" class="btn btn-outline">등록</button></form>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(allRooms)}"><table class="list">
+      <thead><tr><th scope="col">이름</th><th scope="col">위치</th><th scope="col">인원</th><th scope="col">예약 받기</th></tr></thead>
+      <tbody><tr th:each="r : ${allRooms}"><td th:text="${r['name']}">이름</td><td th:text="${r['place']} ?: '—'">위치</td><td th:text="${r['capacity']} ?: '—'">0</td>
+        <td><form th:action="@{/office/rooms/{id}/use(id=${r['id']})}" method="post" style="margin:0;">
+          <input type="hidden" name="use" th:value="${r['useYn'] != 'Y'}">
+          <button type="submit" class="btn btn-plain btn-sm" th:text="${r['useYn'] == 'Y'} ? '받는 중 (멈추기)' : '멈춤 (다시 받기)'">상태</button></form></td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

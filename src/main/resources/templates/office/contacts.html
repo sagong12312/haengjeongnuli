@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('비상연락망')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/office}">공통 업무</a> › 비상연락망</span><h1>비상연락망</h1></div>
+  <p class="hint">내선번호는 모든 직원에게 보입니다. 휴대전화는 본인이 공개에 동의한 경우에만 보이며, 공개하지 않은 번호는 재난·비상 소집을 위해 시스템 관리자만 볼 수 있습니다. 열람 기록이 남습니다.</p>
+  <form class="panel" th:action="@{/office/contacts/me}" method="post" style="gap:10px;">
+    <h2>내 휴대전화</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="cm">휴대전화</label><input id="cm" name="mobile" type="tel" class="input" maxlength="20" placeholder="010-1234-5678" th:value="${mine} ? ${mine['mobile']} : ''"></div>
+    </div>
+    <label class="check"><input type="checkbox" name="share" value="true" th:checked="${mine != null and mine['shareYn'] == 'Y'}">직원들에게 공개합니다 (체크하지 않으면 관리자만 봅니다)</label>
+    <p class="hint" style="margin:0;">비워서 저장하면 번호를 지웁니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+  <section class="panel flush" th:each="g : ${groups}">
+    <div class="panel-head"><h2 th:text="${g.key}">부서</h2><span class="muted" th:text="${#lists.size(g.value)} + '명'">0명</span></div>
+    <div class="table-wrap"><table class="list">
+      <thead><tr><th scope="col">이름</th><th scope="col">직급</th><th scope="col">내선</th><th scope="col">휴대전화</th></tr></thead>
+      <tbody><tr th:each="p : ${g.value}"><td style="color:var(--text)" th:text="${p['name']}">이름</td><td th:text="${p['position']}">직급</td>
+        <td th:text="${p['extension']} ?: '—'">내선</td>
+        <td th:text="${p['mobile']} != null ? ${p['mobile']} + (${p['hidden']} ? ' (비공개)' : '') : (${p['hidden']} ? '비공개' : '—')">휴대전화</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

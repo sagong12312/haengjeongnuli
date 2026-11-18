@@ -62,6 +62,7 @@ public enum AuditAction {
     EPETITION_SATISFACTION("전자민원 만족도 응답(연동)"),
     EPETITION_NOTICE_SAVE("전자민원 공지사항 등록·수정·삭제"),
     EPETITION_FAQ_SAVE("전자민원 자주 묻는 질문 등록·수정·삭제"),
+    OFFICE("공통 업무 (회의실·당직·인계·교육·연락망)"),
     TRIP_SETTLE("출장 복명·여비 정산"),
     HR_PAY_SETTING("수당·여비 설정, 유연근무, 시간외 집계"),
     EPETITION_MEMBER("전자민원 회원 가입·로그인·정보 변경·탈퇴(연동)"),
