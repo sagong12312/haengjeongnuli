@@ -59,7 +59,8 @@ public class DutyRequestVO {
     /** 화면에 보여 줄 기간 */
     public String getPeriodText() {
         if (kind == DutyKind.OVERTIME) {
-            return startDate + " " + startTime + "~" + endTime + " (" + fmt(hours) + "시간)";
+            boolean nextDay = startTime != null && endTime != null && endTime.compareTo(startTime) < 0;
+            return startDate + " " + startTime + "~" + (nextDay ? "다음 날 " : "") + endTime + " (" + fmt(hours) + "시간)";
         }
         String range = startDate.equals(endDate) ? startDate.toString() : startDate + " ~ " + endDate;
         if (halfDay != null) {

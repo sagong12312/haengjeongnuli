@@ -24,6 +24,9 @@
     <label class="check"><input type="checkbox" required>위 업무를 넘겨받았음을 확인합니다.</label>
     <div class="form-actions"><button type="submit" class="btn btn-primary">인수 확인</button></div>
   </form>
+  <form th:if="${canWithdraw}" th:action="@{/office/handovers/{id}/withdraw(id=${h['id']})}" method="post" class="no-print"
+        data-confirm="인수 확인 전인 인계서를 회수할까요? 받는 직원에게 알림이 갑니다.">
+    <button type="submit" class="btn btn-plain">인계서 회수</button></form>
   <p class="no-print"><button type="button" class="btn btn-outline" data-print>인쇄</button></p>
 </main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>

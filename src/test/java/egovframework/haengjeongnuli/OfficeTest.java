@@ -200,9 +200,12 @@ class OfficeTest {
         assertThat(office.addEdu(clean, LocalDate.now(), 1.0, "나라배움터", a).ok()).isTrue();
         assertThat(office.eduStatus(a.getLoginId(), y).stream().filter(s -> "청렴교육".equals(s.course().get("name"))).findFirst().orElseThrow()
                 .complete()).isFalse(); // 2시간 필요
-        assertThat(office.addEdu(clean, LocalDate.now(), 1.0, null, a).ok()).isTrue();
+        // 같은 날 같은 과목은 한 번만 (두 번째 교육은 다른 날)
+        assertThat(office.addEdu(clean, LocalDate.now(), 1.0, null, a).ok()).isFalse();
+        LocalDate other = LocalDate.now().getDayOfYear() > 1 ? LocalDate.now().minusDays(1) : LocalDate.now();
+        assertThat(office.addEdu(clean, other, 1.0, null, a).ok()).isEqualTo(!other.equals(LocalDate.now()));
         assertThat(office.eduStatus(a.getLoginId(), y).stream().filter(s -> "청렴교육".equals(s.course().get("name"))).findFirst().orElseThrow()
-                .complete()).isTrue();
+                .complete()).isEqualTo(!other.equals(LocalDate.now()));
         assertThat(office.missingEdu(y).get("청렴교육")).noneMatch(n -> n.startsWith("교육 ("));
         assertThat(office.missingEdu(y).get("장애인 인식개선 교육")).anyMatch(n -> n.startsWith("교육 ("));
         assertThat(office.remindEdu(y, a).ok()).isFalse();

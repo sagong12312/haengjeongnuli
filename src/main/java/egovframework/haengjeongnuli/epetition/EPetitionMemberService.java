@@ -28,6 +28,10 @@ import egovframework.haengjeongnuli.epetition.EPetitionService.Problem;
 @Service
 public class EPetitionMemberService {
 
+    /** 기관·관리자로 오해할 수 있는 아이디 */
+    static final java.util.Set<String> RESERVED = java.util.Set.of("root", "system", "manager", "master", "operator", "webmaster",
+            "support", "staff", "official", "gov", "minwon", "epetition", "nuri");
+
     private static final Pattern LOGIN_ID = Pattern.compile("[a-z][a-z0-9_]{4,19}");
     private static final Pattern EMAIL = Pattern.compile("[^@\\s]{1,64}@[^@\\s]+\\.[^@\\s]{2,}");
     private static final DateTimeFormatter HM = DateTimeFormatter.ofPattern("HH:mm");
@@ -118,6 +122,9 @@ public class EPetitionMemberService {
             throw new Problem(422, "consent_required", "이용약관과 개인정보 수집·이용에 동의해야 가입할 수 있습니다.");
         }
         String id = r.loginId() == null ? "" : r.loginId().trim();
+        if (RESERVED.contains(id) || id.startsWith("admin")) {
+            throw new Problem(422, "invalid_login_id", "쓸 수 없는 아이디입니다 (관리자로 오해할 수 있는 이름). 다른 아이디를 정하세요.");
+        }
         if (!LOGIN_ID.matcher(id).matches()) {
             throw new Problem(422, "invalid_login_id", "아이디는 영문 소문자로 시작하고 영문 소문자·숫자·밑줄(_)로 5~20자입니다.");
         }
@@ -141,6 +148,46 @@ public class EPetitionMemberService {
     /** 로그인. 없는 아이디와 틀린 비밀번호는 같은 답 */
     @Transactional(noRollbackFor = Problem.class)
     public Map<String, Object> login(LoginRequest r) {
+        return login(r, null);
+    }
+
+    /** 같은 국민 IP 에서 10분에 10번 넘게 틀리면 잠시 막는다 (여러 아이디에 비밀번호를 넣어 보는 공격) */
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.Deque<Long>> ipFails = new java.util.concurrent.ConcurrentHashMap<>();
+    static final int IP_MAX_FAILS = 10;
+    static final long IP_WINDOW_MILLIS = 10 * 60_000L;
+
+    private int recentFails(String ip, long now) {
+        java.util.Deque<Long> q = ip == null ? null : ipFails.get(ip);
+        if (q == null) {
+            return 0;
+        }
+        while (!q.isEmpty() && q.peekFirst() < now - IP_WINDOW_MILLIS) {
+            q.pollFirst();
+        }
+        return q.size();
+    }
+
+    @Transactional(noRollbackFor = Problem.class)
+    public Map<String, Object> login(LoginRequest r, String clientIp) {
+        String ip = clientIp == null || clientIp.isBlank() ? null : clientIp.trim();
+        long nowMs = System.currentTimeMillis();
+        if (ip != null && recentFails(ip, nowMs) >= IP_MAX_FAILS) {
+            throw new Problem(429, "too_many_attempts", "로그인을 여러 번 틀렸습니다. 10분 뒤 다시 시도해 주세요.");
+        }
+        try {
+            return doLogin(r);
+        } catch (Problem p) {
+            if (ip != null && ("not_matched".equals(p.code()) || "locked".equals(p.code()))) {
+                if (ipFails.size() > 50_000) {
+                    ipFails.clear();
+                }
+                ipFails.computeIfAbsent(ip, k -> new java.util.concurrent.ConcurrentLinkedDeque<>()).addLast(nowMs);
+            }
+            throw p;
+        }
+    }
+
+    private Map<String, Object> doLogin(LoginRequest r) {
         String id = r == null || r.loginId() == null ? "" : r.loginId().trim();
         String pw = r == null ? null : r.password();
         if (id.isEmpty() || id.length() > 30 || pw == null || pw.length() > 64) {

@@ -75,7 +75,7 @@
     <p class="hint" style="margin:0;" th:switch="${kind.name()}">
       <span th:case="'ANNUAL'">휴가 일수는 토요일·일요일·공휴일을 빼고 셉니다. 남은 연가를 넘겨 신청할 수 없습니다.</span>
       <span th:case="'SICK'">병가는 연 60일 범위이며, 연 6일을 넘으면 의사의 진단서를 첨부해야 합니다(지방공무원 복무규정 제7조의5). 진단서는 결재 문서에서 첨부하세요.</span>
-      <span th:case="'OVERTIME'" th:text="'시간외근무 명령은 하루 ' + ${otDailyCap} + '시간, 한 달 ' + ${otMonthlyCap} + '시간을 넘을 수 없습니다. 승인된 명령 시간 안에서 실제 출퇴근 기록으로 인정 시간을 계산합니다 (평일은 1시간 공제, 1시간 미만은 인정하지 않음).'">안내</span>
+      <span th:case="'OVERTIME'" th:text="'이달 명령(결재 중 포함) ' + ${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(otOrdered)} + '시간, 남은 시간 ' + ${T(egovframework.haengjeongnuli.hr.service.DutyService).fmt(otMonthlyCap - otOrdered)} + '시간. 끝 시각이 시작보다 이르면 자정을 넘겨 다음 날 끝나는 것으로 봅니다. 시간외근무 명령은 하루 ' + ${otDailyCap} + '시간, 한 달 ' + ${otMonthlyCap} + '시간을 넘을 수 없습니다. 승인된 명령 시간 안에서 실제 출퇴근 기록으로 인정 시간을 계산합니다 (평일은 1시간 공제, 1시간 미만은 인정하지 않음).'">안내</span>
       <span th:case="'TRIP'">승인되면 출장을 다녀와서 <a th:href="@{/hr/trips}">출장 복명·정산</a>에서 결과를 적고 운임·숙박비로 여비를 정산합니다.</span>
       <span th:case="'OFFICIAL'">공가는 병역 소집, 투표, 건강검진, 헌혈 등 복무규정 제7조의6의 사유에 해당할 때 신청합니다.</span>
       <span th:case="*">신청하면 전자결재로 올라가고, 결재 결과가 신청 결과가 됩니다.</span>

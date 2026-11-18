@@ -224,7 +224,12 @@ public class WorkPayService {
     }
 
     public List<Map<String, Object>> schedules() {
-        return mapper.schedules();
+        List<Map<String, Object>> out = mapper.schedules();
+        for (Map<String, Object> m : out) {
+            LoginUser u = users.findByLoginId((String) m.get("loginId"));
+            m.put("name", u == null ? "(없는 직원)" : u.getUserName() + " · " + u.dept());
+        }
+        return out;
     }
 
     /** 관리자: 시차출퇴근 시각 정하기 (점심 1시간 포함 하루 9시간). start 를 비우면 기본 시각으로 되돌린다 */
@@ -422,6 +427,24 @@ public class WorkPayService {
         if (i != null && o != null && !outNextDay && !o.isAfter(i)) {
             return Result.fail("퇴근 시각이 출근 시각보다 늦어야 합니다 (자정을 넘겼으면 '다음 날'을 고르세요).");
         }
+        if (outNextDay && o != null && o.isAfter(LocalTime.of(9, 0))) {
+            return Result.fail("다음 날 퇴근은 오전 9시까지로 적으세요. 더 늦으면 그날 기록으로 따로 신청하세요.");
+        }
+        // 고치지 않는 쪽은 지금 기록과 맞춰 본다
+        AttendanceVO cur = attendance.selectDay(me.getLoginId(), day);
+        LocalDateTime effIn = i != null ? day.atTime(i) : cur == null ? null : cur.getInAt();
+        LocalDateTime effOut = o != null ? (outNextDay ? day.plusDays(1) : day).atTime(o) : cur == null ? null : cur.getOutAt();
+        if (effIn == null && o != null) {
+            return Result.fail("그날 출근 기록이 없습니다. 출근 시각도 함께 적으세요.");
+        }
+        if (effIn != null && effOut != null && !effOut.isAfter(effIn)) {
+            return Result.fail("고친 뒤 퇴근이 출근보다 이르게 됩니다. 시각을 확인하세요.");
+        }
+        LocalDateTime nowTime = LocalDateTime.now();
+        if ((effIn != null && effIn.isAfter(nowTime)) || (o != null && effOut.isAfter(nowTime))) {
+            return Result.fail("아직 오지 않은 시각으로는 정정할 수 없습니다.");
+        }
+
         String r = reason == null ? "" : reason.trim();
         if (r.isEmpty() || r.length() > 500) {
             return Result.fail("정정 사유를 500자 이내로 적으세요 (예: 퇴근 버튼을 누르지 못함).");

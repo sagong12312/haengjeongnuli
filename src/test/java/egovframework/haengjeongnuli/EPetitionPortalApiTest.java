@@ -32,6 +32,7 @@ class EPetitionPortalApiTest {
 
     @Autowired WebApplicationContext ctx;
     @Autowired CivilProcessService process;
+    @Autowired egovframework.haengjeongnuli.epetition.EPetitionPortalService portalService;
     final ObjectMapper json = new ObjectMapper();
 
     MockMvc mvc() {
@@ -42,6 +43,11 @@ class EPetitionPortalApiTest {
     JsonNode call(MockHttpServletRequestBuilder r, int expect) throws Exception {
         MvcResult res = mvc().perform(r).andExpect(status().is(expect)).andReturn();
         return json.readTree(res.getResponse().getContentAsString(StandardCharsets.UTF_8));
+    }
+
+    JsonNode statsNow() throws Exception {
+        portalService.clearStatsCache(); // 통계는 1분 캐시
+        return apiGet("/stats", 200);
     }
 
     JsonNode apiGet(String path, int expect) throws Exception {
@@ -79,7 +85,7 @@ class EPetitionPortalApiTest {
     void 안내와_통계와_공지와_자주_묻는_질문() throws Exception {
         JsonNode info = apiGet("/info", 200).get("data");
         assertThat(info.get("kinds").toString()).contains("질의민원").contains("\"online\":false");
-        JsonNode st = apiGet("/stats", 200).get("data");
+        JsonNode st = statsNow().get("data");
         assertThat(st.get("months").size()).isEqualTo(12);
         assertThat(st.toString()).doesNotContain("김민원");
 
@@ -171,7 +177,7 @@ class EPetitionPortalApiTest {
         d = lookup(no);
         assertThat(d.get("canRate").asBoolean()).isFalse();
         assertThat(d.get("satisfaction").get("score").asInt()).isEqualTo(4);
-        assertThat(apiGet("/stats", 200).get("data").get("satisfactionCount").asInt()).isGreaterThanOrEqualTo(1);
+        assertThat(statsNow().get("data").get("satisfactionCount").asInt()).isGreaterThanOrEqualTo(1);
         // 처리 뒤에는 취하할 수 없다
         apiPost("/complaints/withdraw", "{\"token\":\"" + token + "\"}", 409);
 
@@ -210,7 +216,7 @@ class EPetitionPortalApiTest {
         JsonNode l = apiGet("/consultations?page=1&category=ROAD&q=" + tag, 200).get("data");
         assertThat(l.get("total").asInt()).isEqualTo(1);
         assertThat(l.get("items").get(0).get("categoryLabel").asText()).isEqualTo("도로·교통");
-        assertThat(apiGet("/stats", 200).get("data").get("categories").toString()).contains("도로·교통");
+        assertThat(statsNow().get("data").get("categories").toString()).contains("도로·교통");
         // 직원 목록도 분야로 거른다
         String html = admin.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/civil").param("category", "ROAD").param("q", tag))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);

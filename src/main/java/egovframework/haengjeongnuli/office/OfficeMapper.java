@@ -36,6 +36,15 @@ public interface OfficeMapper {
     @Select("SELECT ROOM_ID AS \"id\", NAME AS \"name\", USE_YN AS \"useYn\" FROM ROOM WHERE ROOM_ID = #{id}")
     Map<String, Object> room(@Param("id") long id);
 
+    /** 같은 방을 두 사람이 동시에 예약하지 못하게 방 행을 잠근다 */
+    @Select("SELECT ROOM_ID FROM ROOM WHERE ROOM_ID = #{id} FOR UPDATE")
+    Long lockRoom(@Param("id") long id);
+
+    /** 앞으로 남은 예약 (회의실을 멈출 때 알리려고) */
+    @Select("SELECT RESV_ID AS \"id\", LOGIN_ID AS \"loginId\", RESV_DATE AS \"day\", START_TIME AS \"start\" FROM ROOM_RESV "
+            + "WHERE ROOM_ID = #{roomId} AND RESV_DATE >= #{from, jdbcType=DATE}")
+    List<Map<String, Object>> futureResvs(@Param("roomId") long roomId, @Param("from") LocalDate from);
+
     @Select("SELECT COUNT(*) FROM ROOM WHERE NAME = #{name}")
     int roomNameUsed(@Param("name") String name);
 
@@ -91,6 +100,19 @@ public interface OfficeMapper {
     /** 직원별 당직 횟수와 마지막 당직일 (공평하게 돌리려고) */
     @Select("SELECT LOGIN_ID AS \"loginId\", COUNT(*) AS \"cnt\", MAX(DUTY_DATE) AS \"last\" FROM DUTY_ROSTER GROUP BY LOGIN_ID")
     List<Map<String, Object>> rosterStats();
+
+    /** 그 직원의 그 날짜 앞뒤 하루 당직 수 (교대 받을 사람이 잇달아 서지 않게) */
+    @Select("SELECT COUNT(*) FROM DUTY_ROSTER WHERE LOGIN_ID = #{loginId} AND DUTY_DATE >= #{from, jdbcType=DATE} "
+            + "AND DUTY_DATE <= #{to, jdbcType=DATE} AND ROSTER_ID <> #{except}")
+    int dutyNear(@Param("loginId") String loginId, @Param("from") LocalDate from, @Param("to") LocalDate to, @Param("except") long exceptRosterId);
+
+    /** 인수 전 인계서 회수 */
+    @Delete("DELETE FROM HANDOVER WHERE HO_ID = #{id} AND FROM_ID = #{fromId} AND STATUS = 'SENT'")
+    int withdrawHandover(@Param("id") long id, @Param("fromId") String fromId);
+
+    /** 같은 날 같은 과목 이수 기록 */
+    @Select("SELECT COUNT(*) FROM EDU_RECORD WHERE LOGIN_ID = #{loginId} AND COURSE_ID = #{courseId} AND DONE_ON = #{on, jdbcType=DATE}")
+    int eduSameDay(@Param("loginId") String loginId, @Param("courseId") long courseId, @Param("on") LocalDate on);
 
     @Update("UPDATE DUTY_ROSTER SET LOGIN_ID = #{loginId}, USER_NAME = #{userName}, DEPT_NAME = #{dept} WHERE ROSTER_ID = #{id}")
     int reassign(@Param("id") long id, @Param("loginId") String loginId, @Param("userName") String userName, @Param("dept") String dept);

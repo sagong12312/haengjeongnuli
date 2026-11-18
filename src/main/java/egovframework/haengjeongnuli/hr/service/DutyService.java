@@ -181,10 +181,19 @@ public class DutyService {
             } catch (DateTimeParseException | NullPointerException e) {
                 return fail("시작·끝 시각을 입력하세요.");
             }
-            if (!to.isAfter(from)) {
-                return fail("끝 시각이 시작 시각보다 늦어야 합니다.");
+            if (to.equals(from)) {
+                return fail("시작·끝 시각이 같습니다.");
             }
-            double hours = Math.round(ChronoUnit.MINUTES.between(from, to) / 6.0) / 10.0;
+            // 끝 시각이 시작보다 이르면 자정을 넘겨 다음 날 끝나는 것으로 본다 (예: 22:00~01:00)
+            long mins = to.isAfter(from) ? ChronoUnit.MINUTES.between(from, to) : ChronoUnit.MINUTES.between(from, to) + 24 * 60;
+            double hours = Math.round(mins / 6.0) / 10.0;
+            LocalDate todayDate = LocalDate.now();
+            if (start.isBefore(todayDate.minusDays(7))) {
+                return fail("시간외근무는 미리 명령을 받는 것이 원칙입니다. 부득이한 사후 신청도 7일 안에만 할 수 있습니다.");
+            }
+            if (start.isAfter(todayDate.plusDays(31))) {
+                return fail("시간외근무는 한 달 안의 날짜만 신청할 수 있습니다.");
+            }
             int dayCap = workPay.dailyCap();
             int monthCap = workPay.monthlyCap();
             if (hours > dayCap) {

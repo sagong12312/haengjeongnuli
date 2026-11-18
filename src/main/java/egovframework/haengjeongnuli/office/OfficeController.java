@@ -308,7 +308,14 @@ public class OfficeController {
         }
         model.addAttribute("h", h);
         model.addAttribute("canAccept", "SENT".equals(h.get("status")) && me.getLoginId().equals(h.get("toId")));
+        model.addAttribute("canWithdraw", "SENT".equals(h.get("status")) && me.getLoginId().equals(h.get("fromId")));
         return "office/handover";
+    }
+
+    @PostMapping("/office/handovers/{id:\\d+}/withdraw")
+    public String withdrawHandover(@AuthenticationPrincipal LoginUser me, @PathVariable long id, RedirectAttributes ra) {
+        OfficeService.Result r = service.withdrawHandover(id, me);
+        return done(r, ra, r.ok() ? "/office/handovers" : "/office/handovers/" + id, "업무 인계서 회수 " + id);
     }
 
     @PostMapping("/office/handovers/{id:\\d+}/accept")

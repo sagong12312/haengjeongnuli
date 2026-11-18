@@ -99,6 +99,7 @@ public class HrController {
         model.addAttribute("tripRates", workPay.tripRates());
         model.addAttribute("otDailyCap", workPay.dailyCap());
         model.addAttribute("otMonthlyCap", workPay.monthlyCap());
+        model.addAttribute("otOrdered", workPay.orderedHoursOf(me.getLoginId(), YearMonth.now()));
         return "hr/duty-form";
     }
 

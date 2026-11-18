@@ -90,8 +90,20 @@ public class OfficeService {
         if (me == null || !me.isAdmin()) {
             return Result.fail("시스템 관리자만 바꿀 수 있습니다.");
         }
-        return mapper.setRoomUse(id, use ? "Y" : "N") == 1 ? Result.ok(use ? "다시 쓰게 했습니다." : "예약을 받지 않게 했습니다.", id)
-                : Result.fail("회의실을 찾을 수 없습니다.");
+        if (mapper.setRoomUse(id, use ? "Y" : "N") != 1) {
+            return Result.fail("회의실을 찾을 수 없습니다.");
+        }
+        if (use) {
+            return Result.ok("다시 예약을 받습니다.", id);
+        }
+        // 이미 잡힌 예약은 지우지 않고, 예약한 사람에게 다른 방을 찾도록 알린다
+        Map<String, Object> room = mapper.room(id);
+        List<Map<String, Object>> left = mapper.futureResvs(id, LocalDate.now());
+        for (Map<String, Object> r : left) {
+            notifications.notify((String) r.get("loginId"), room.get("name") + " 회의실을 쓸 수 없게 되었습니다. " + date(r.get("day")) + " "
+                    + r.get("start") + " 예약을 확인하고 다른 방을 잡으세요.", "/office/rooms?date=" + date(r.get("day")));
+        }
+        return Result.ok("예약을 받지 않게 했습니다." + (left.isEmpty() ? "" : " 남은 예약 " + left.size() + "건의 예약자에게 알렸습니다."), id);
     }
 
     /** 30분 단위, 07:00~22:00, 오늘부터 90일 안 */
@@ -124,6 +136,7 @@ public class OfficeService {
         if (t.isEmpty() || t.length() > 200) {
             return Result.fail("회의 이름을 200자 이내로 적으세요.");
         }
+        mapper.lockRoom(roomId); // 같은 방 동시 예약은 한 사람씩 확인한다
         if (mapper.overlap(roomId, day, s.toString(), e.toString()) > 0) {
             return Result.fail("그 시간에 이미 예약이 있습니다. 예약 현황을 보고 다른 시간을 고르세요.");
         }
@@ -145,6 +158,9 @@ public class OfficeService {
         }
         if (!me.getLoginId().equals(r.get("loginId")) && !me.isAdmin()) {
             return Result.fail("예약한 사람과 관리자만 취소할 수 있습니다.");
+        }
+        if (date(r.get("day")).isBefore(LocalDate.now())) {
+            return Result.fail("지난 예약은 기록으로 남기므로 취소할 수 없습니다.");
         }
         mapper.deleteResv(id);
         if (!me.getLoginId().equals(r.get("loginId"))) {
@@ -191,6 +207,7 @@ public class OfficeService {
             last.put((String) m.get("loginId"), date(m.get("last")));
         }
         int made = 0;
+        List<String> empty = new ArrayList<>();
         Set<String> yesterday = new HashSet<>();
         for (Map<String, Object> m : mapper.roster(from.minusDays(1), from.minusDays(1))) {
             yesterday.add((String) m.get("loginId"));
@@ -217,10 +234,15 @@ public class OfficeService {
                                 .thenComparing(LoginUser::getLoginId))
                         .orElse(null);
                 if (pick == null) {
-                    continue; // 설 사람이 없으면 비워 두고 관리자가 손으로 정한다
+                    empty.add(d + " " + (DAY.equals(type) ? "일직" : "숙직"));
+                    continue; // 설 사람이 없으면 비워 두고 알린다
                 }
-                mapper.insertRoster(mapper.nextRosterId(), d, type, pick.getLoginId(), pick.getUserName(), pick.getDeptName(),
-                        me.getLoginId(), now);
+                try {
+                    mapper.insertRoster(mapper.nextRosterId(), d, type, pick.getLoginId(), pick.getUserName(), pick.getDeptName(),
+                            me.getLoginId(), now);
+                } catch (DuplicateKeyException ex) {
+                    continue; // 다른 관리자가 같은 때 같은 날을 짰다
+                }
                 count.merge(pick.getLoginId(), 1, Integer::sum);
                 last.put(pick.getLoginId(), day);
                 today.add(pick.getLoginId());
@@ -229,7 +251,9 @@ public class OfficeService {
             }
             yesterday = today;
         }
-        return Result.ok(made == 0 ? "새로 편성할 날이 없습니다 (이미 편성됨)." : "당직 " + made + "건을 편성하고 당직자에게 알렸습니다.", null);
+        String gap = empty.isEmpty() ? "" : " 설 사람이 없어 비운 자리: " + String.join(", ", empty.subList(0, Math.min(5, empty.size())))
+                + (empty.size() > 5 ? " 외 " + (empty.size() - 5) + "건" : "") + " (휴가·출장이 많은 날입니다).";
+        return Result.ok((made == 0 ? "새로 편성할 날이 없습니다 (이미 편성됨)." : "당직 " + made + "건을 편성하고 당직자에게 알렸습니다.") + gap, null);
     }
 
     @Transactional
@@ -307,9 +331,12 @@ public class OfficeService {
         }
         long rosterId = ((Number) s.get("rosterId")).longValue();
         Map<String, Object> r = mapper.rosterOne(rosterId);
-        if (accept && (r == null || !s.get("fromId").equals(r.get("loginId")))) {
-            mapper.decideSwap(swapId, "NO", LocalDateTime.now());
-            return Result.fail("그 사이에 당직이 바뀌어 교대할 수 없습니다.");
+        if (accept) {
+            String why = swapProblem(s, r);
+            if (why != null) {
+                mapper.decideSwap(swapId, "NO", LocalDateTime.now());
+                return Result.fail(why);
+            }
         }
         if (mapper.decideSwap(swapId, accept ? "OK" : (isFrom ? "CANCEL" : "NO"), LocalDateTime.now()) != 1) {
             return Result.fail("이미 처리된 신청입니다.");
@@ -329,6 +356,39 @@ public class OfficeService {
         }
         notifications.notify(from.getLoginId(), to.getUserName() + " 님이 " + date(r.get("day")) + " 당직 교대를 받아들였습니다.", "/office/duty");
         return Result.ok("당직을 교대했습니다.", swapId);
+    }
+
+    /** 교대를 받아들일 수 없는 까닭 (없으면 null) */
+    private String swapProblem(Map<String, Object> s, Map<String, Object> r) {
+        if (r == null || !s.get("fromId").equals(r.get("loginId"))) {
+            return "그 사이에 당직이 바뀌어 교대할 수 없습니다.";
+        }
+        LocalDate day = date(r.get("day"));
+        if (!day.isAfter(LocalDate.now())) {
+            return "이미 지났거나 오늘인 당직은 교대할 수 없습니다. 관리자에게 바꿔 달라고 하세요.";
+        }
+        String toId = (String) s.get("toId");
+        long rid = ((Number) r.get("id")).longValue();
+        Object back = s.get("backId");
+        long backId = back == null ? -1 : ((Number) back).longValue();
+        if (mapper.awayOn(day).contains(toId)) {
+            return "그날 휴가·출장이 있어 교대를 받을 수 없습니다.";
+        }
+        if (back != null) {
+            Map<String, Object> b = mapper.rosterOne(backId);
+            if (b == null || !toId.equals(b.get("loginId")) || !date(b.get("day")).isAfter(LocalDate.now())) {
+                return "맞바꾸기로 한 당직이 그 사이에 바뀌었습니다.";
+            }
+            LocalDate bd = date(b.get("day"));
+            if (mapper.awayOn(bd).contains((String) s.get("fromId"))) {
+                return "신청한 직원이 맞바꿀 날에 휴가·출장이 있습니다.";
+            }
+        }
+        // 받는 사람이 그 날 앞뒤로 다른 당직이 있으면 (맞바꿀 당직은 빼고) 잇달아 서게 되므로 막는다
+        if (mapper.dutyNear(toId, day.minusDays(1), day.plusDays(1), backId) > 0) {
+            return "받는 직원이 그날 앞뒤로 당직이 있어 잇달아 서게 됩니다.";
+        }
+        return null;
     }
 
     public List<Map<String, Object>> openSwaps(LoginUser me) {
@@ -467,6 +527,20 @@ public class OfficeService {
         return party || me.isAdmin() ? h : null;
     }
 
+    /** 인수 확인 전이면 보낸 사람이 회수(삭제)할 수 있다 */
+    @Transactional
+    public Result withdrawHandover(long id, LoginUser me) {
+        Map<String, Object> h = mapper.handover(id);
+        if (h == null || !me.getLoginId().equals(h.get("fromId"))) {
+            return Result.fail("보낸 사람만 회수할 수 있습니다.");
+        }
+        if (mapper.withdrawHandover(id, me.getLoginId()) != 1) {
+            return Result.fail("이미 인수 확인한 인계서는 회수할 수 없습니다.");
+        }
+        notifications.notify((String) h.get("toId"), me.getUserName() + " 님이 인계서를 회수했습니다: " + h.get("title"), "/office/handovers");
+        return Result.ok("인계서를 회수했습니다.", id);
+    }
+
     @Transactional
     public Result acceptHandover(long id, String note, LoginUser me) {
         Map<String, Object> h = mapper.handover(id);
@@ -557,6 +631,9 @@ public class OfficeService {
         String p = trim(provider);
         if (p.length() > 100) {
             return Result.fail("교육 기관은 100자 이내로 적으세요.");
+        }
+        if (mapper.eduSameDay(me.getLoginId(), courseId, on) > 0) {
+            return Result.fail("같은 날 같은 과목을 이미 등록했습니다. 시간을 바꾸려면 기록을 지우고 다시 등록하세요.");
         }
         long id = mapper.nextEduId();
         mapper.insertEdu(id, courseId, me.getLoginId(), on.getYear(), on, hours, p.isEmpty() ? null : p, LocalDateTime.now());

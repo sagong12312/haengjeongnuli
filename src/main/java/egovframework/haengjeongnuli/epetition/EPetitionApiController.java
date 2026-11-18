@@ -200,7 +200,7 @@ public class EPetitionApiController {
         String id = req == null || req.loginId() == null ? "-" : req.loginId().replaceAll("[^a-z0-9_]", "");
         id = id.length() > 30 ? id.substring(0, 30) : id;
         try {
-            Map<String, Object> out = members.login(req);
+            Map<String, Object> out = members.login(req, clientIp);
             audit.recordAs(EPetitionService.REGISTER_ID, AuditAction.EPETITION_MEMBER, "회원 " + id, "로그인 " + client(clientIp));
             return ok(out);
         } catch (EPetitionService.Problem p) {

@@ -84,8 +84,8 @@
     </form>
     <p th:if="${#lists.isEmpty(schedules)}" class="hint" style="margin:0;">정해 둔 유연근무자가 없습니다.</p>
     <div class="table-wrap" th:unless="${#lists.isEmpty(schedules)}"><table class="list">
-      <thead><tr><th scope="col">아이디</th><th scope="col">근무시간</th><th scope="col">정한 사람</th></tr></thead>
-      <tbody><tr th:each="s : ${schedules}"><td th:text="${s['loginId']}">id</td><td th:text="${s['start']} + '~' + ${s['end']}">시간</td><td th:text="${s['by']}">관리자</td></tr></tbody>
+      <thead><tr><th scope="col">직원</th><th scope="col">근무시간</th><th scope="col">정한 사람</th></tr></thead>
+      <tbody><tr th:each="s : ${schedules}"><td th:text="${s['name']}">이름</td><td th:text="${s['start']} + '~' + ${s['end']}">시간</td><td th:text="${s['by']}">관리자</td></tr></tbody>
     </table></div>
   </section>
 </main>

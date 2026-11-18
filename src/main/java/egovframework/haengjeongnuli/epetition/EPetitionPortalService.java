@@ -386,8 +386,30 @@ public class EPetitionPortalService {
         return out;
     }
 
-    /** 최근 12개월 처리 통계 (숫자만) */
+    /** 통계는 누구나 부를 수 있고 12개월치를 훑으므로 1분 동안 같은 답을 쓴다 */
+    private volatile Map<String, Object> statsCache;
+    private volatile long statsAt;
+    static final long STATS_TTL_MILLIS = 60_000;
+
+    /** 최근 12개월 처리 통계 (숫자만, 1분 캐시) */
     public Map<String, Object> stats() {
+        long now = System.currentTimeMillis();
+        Map<String, Object> c = statsCache;
+        if (c != null && now - statsAt < STATS_TTL_MILLIS) {
+            return c;
+        }
+        Map<String, Object> fresh = java.util.Collections.unmodifiableMap(computeStats());
+        statsCache = fresh;
+        statsAt = now;
+        return fresh;
+    }
+
+    /** 캐시를 비운다 (시험용) */
+    public void clearStatsCache() {
+        statsCache = null;
+    }
+
+    private Map<String, Object> computeStats() {
         YearMonth now = YearMonth.now();
         YearMonth first = now.minusMonths(11);
         LocalDateTime from = first.atDay(1).atStartOfDay();
