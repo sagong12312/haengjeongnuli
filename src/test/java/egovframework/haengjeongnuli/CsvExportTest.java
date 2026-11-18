@@ -47,11 +47,11 @@ class CsvExportTest {
         String name = "일계" + UUID.randomUUID().toString().substring(0, 4);
         counter.perform(post("/civil/certs").param("certType", "주민등록표 등본").param("applicantName", name)
                 .param("applicantType", "본인").param("copies", "3").param("idChecked", "true"));
-        String day = csv(counter, "/civil/certs.csv?day=" + LocalDate.now());
+        String day = csv(counter, "/civil/certs.csv?reason=test&day=" + LocalDate.now());
         assertThat(day).startsWith("﻿발급번호").contains(name).contains("종류별 합계").contains("주민등록표 등본");
-        String month = csv(counter, "/civil/certs.csv?month=" + LocalDate.now().toString().substring(0, 7));
+        String month = csv(counter, "/civil/certs.csv?reason=test&month=" + LocalDate.now().toString().substring(0, 7));
         assertThat(month).contains(name);
-        TestUsers.mvcAs(ctx, TestUsers.general()).perform(get("/civil/certs.csv")).andExpect(status().isForbidden());
+        TestUsers.mvcAs(ctx, TestUsers.general()).perform(get("/civil/certs.csv").param("reason", "시험")).andExpect(status().isForbidden());
     }
 
     @Test

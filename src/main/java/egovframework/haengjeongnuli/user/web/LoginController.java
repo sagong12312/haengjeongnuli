@@ -20,6 +20,9 @@ import egovframework.haengjeongnuli.user.service.UserService;
 @Controller
 public class LoginController {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.security.SecurityService securityService;
+
     private final UserService userService;
     private final AuditService auditService;
     private final PasswordAgeInterceptor passwordAge;
@@ -77,7 +80,8 @@ public class LoginController {
                 case "timeout" -> "오랫동안 사용하지 않아 자동으로 로그아웃되었습니다. 다시 로그인하세요.";
                 case "ip" -> "이 PC에서 로그인을 여러 번 틀려 잠시 로그인을 막았습니다. 몇 분 뒤 다시 시도하세요.";
                 case "revoked" -> "계정 상태가 바뀌어(사용 중지·비밀번호 재설정 등) 로그아웃되었습니다. 다시 로그인하세요.";
-                case "disabled" -> "사용이 중지된 계정입니다. 시스템 관리자에게 문의하세요.";
+                case "disabled" -> "사용이 중지된 계정입니다. 오래 쓰지 않은 계정은 자동으로 중지됩니다. 시스템 관리자에게 문의하세요.";
+                case "otp" -> "2단계 인증 번호를 여러 번 틀려 로그아웃했습니다. 다시 로그인하세요.";
                 default -> "아이디 또는 비밀번호가 맞지 않습니다.";
             });
         }
@@ -103,6 +107,10 @@ public class LoginController {
         String problem = !newPassword.equals(confirmPassword) ? "새 비밀번호 확인이 맞지 않습니다."
                 : newPassword.equals(currentPassword) ? "지금 비밀번호와 다른 비밀번호를 입력하세요."
                 : PasswordPolicy.check(newPassword, me.getLoginId());
+        if (problem == null && securityService.reused(me, newPassword)) {
+            problem = "최근에 쓴 비밀번호(" + securityService.historySize() + "개)는 다시 쓸 수 없습니다.";
+        }
+        LoginUser before = problem == null ? userService.findByLoginId(me.getLoginId()) : null;
         if (problem == null && !userService.changeOwnPassword(me.getUserId(), currentPassword, newPassword)) {
             problem = "현재 비밀번호가 맞지 않습니다.";
         }
@@ -111,6 +119,7 @@ public class LoginController {
             addPasswordInfo(me, model);
             return "user/password";
         }
+        securityService.remember(me.getLoginId(), before == null ? null : before.getPasswordHash());
         // 지금 로그인 정보도 새 비밀번호·보안 번호로 바꿔서 세션이 끊기거나 변경 화면으로 다시 가지 않게 한다
         LoginUser fresh = userService.findByLoginId(me.getLoginId());
         egovframework.haengjeongnuli.cmm.security.SessionRevalidationFilter.replace(request, response,

@@ -93,10 +93,16 @@ public class InitialAdminRunner implements ApplicationRunner {
     /** 영문·숫자 14자 + 특수문자·숫자 (비밀번호 규칙 충족) */
     static String randomPassword() {
         SecureRandom r = new SecureRandom();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 14; i++) {
-            sb.append(CHARS.charAt(r.nextInt(CHARS.length())));
+        while (true) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 14; i++) {
+                sb.append(CHARS.charAt(r.nextInt(CHARS.length())));
+            }
+            String pw = sb.append('!').append(r.nextInt(10)).toString();
+            // 우연히 흔한 낱말·이어지는 숫자가 나오면 다시 만든다
+            if (egovframework.haengjeongnuli.user.service.PasswordPolicy.check(pw, "admin") == null) {
+                return pw;
+            }
         }
-        return sb.append('!').append(r.nextInt(10)).toString();
     }
 }

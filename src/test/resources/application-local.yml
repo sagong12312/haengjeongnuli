@@ -19,10 +19,14 @@ app:
   file:
     upload-dir: build/test-uploads
   init-admin:
-    password: "Test-first-1!"
+    password: "Fern-first-1!"
   # 테스트 중에는 아침 알림 일정을 끈다 (run() 을 직접 불러 확인)
   reminder:
     cron: "-"
+  # 시스템 관리 POST 전 비밀번호 재확인은 끄고(관리 화면 시험이 많음), 따로 시험한다. 휴면 잠금 일정도 끔
+  security:
+    reauth-minutes: 0
+    dormant-cron: "-"
   # 테스트는 사설 주소에서 오는 요청도 쓴다
   access:
     allowed-networks: 127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12

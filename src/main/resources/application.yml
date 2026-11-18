@@ -66,6 +66,15 @@ app:
     password: ${APP_INIT_ADMIN_PASSWORD:}
     # true 면 계정이 없을 때 APP_INIT_ADMIN_PASSWORD 가 없으면 시작하지 않는다 (운영 프로필에서 켠다)
     require-password: false
+  security:
+    # 최근 몇 개 비밀번호를 다시 쓰지 못하게 할지
+    password-history: 3
+    # 이 날수 동안 로그인하지 않은 직원 계정은 매일 새벽 사용 중지 (0 이면 끔, 관리자 계정은 빼고 알림만)
+    dormant-days: ${APP_DORMANT_DAYS:90}
+    # 시스템 관리 화면에서 바꾸는 작업 전 비밀번호 재확인 유효 시간(분). 0 이면 끔
+    reauth-minutes: 10
+    # true 면 시스템 관리자는 2단계 인증(OTP)을 켜야 한다
+    otp-required-for-admin: ${APP_OTP_REQUIRED_FOR_ADMIN:false}
   password:
     # 비밀번호를 이 일수마다 바꾸게 한다
     max-age-days: 90

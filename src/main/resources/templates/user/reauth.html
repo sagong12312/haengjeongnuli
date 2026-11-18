@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('비밀번호 다시 확인')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+<main class="page" style="max-width:560px;">
+  <h1>비밀번호 다시 확인</h1>
+  <p class="hint" th:text="'계정·권한을 바꾸는 시스템 관리 작업은 비밀번호를 다시 확인한 뒤 ' + ${minutes} + '분 동안만 할 수 있습니다. 자리를 비운 사이 다른 사람이 바꾸는 것을 막기 위한 것입니다.'">안내</p>
+  <div th:if="${error}" class="alert alert-error" role="alert" th:text="${error}"></div>
+  <form class="panel" th:action="@{/reauth}" method="post" style="gap:12px;">
+    <input type="hidden" name="next" th:value="${next}">
+    <div class="field"><label for="rp">내 비밀번호</label>
+      <input id="rp" name="password" type="password" class="input" autocomplete="current-password" required autofocus></div>
+    <div class="form-actions"><a class="btn btn-plain" th:href="@{${next}}">취소</a><button type="submit" class="btn btn-primary">확인</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

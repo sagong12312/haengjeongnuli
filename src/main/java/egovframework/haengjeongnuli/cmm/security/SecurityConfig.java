@@ -111,7 +111,12 @@ public class SecurityConfig {
                     .addHeaderWriter(new org.springframework.security.web.header.writers.DelegatingRequestMatcherHeaderWriter(
                             new org.springframework.security.web.util.matcher.NegatedRequestMatcher(h2),
                             new org.springframework.security.web.header.writers.StaticHeadersWriter("Content-Security-Policy", CSP)))
-                    .referrerPolicy(r -> r.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)));
+                    .referrerPolicy(r -> r.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
+                    // 카메라·마이크·위치 등 쓰지 않는 기능을 막고, 다른 사이트 창과 분리한다
+                    .addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter("Permissions-Policy",
+                            "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"))
+                    .addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter("Cross-Origin-Opener-Policy", "same-origin"))
+                    .addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter("X-Permitted-Cross-Domain-Policies", "none")));
         return http.build();
     }
 

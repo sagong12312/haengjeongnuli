@@ -9,7 +9,8 @@
   <nav style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;" aria-label="주 바꾸기">
     <a class="btn btn-plain btn-sm" th:href="@{/office/weekly/dept(week=${prevWeek}, dept=${dept})}">‹ 지난주</a>
     <a th:if="${nextWeek}" class="btn btn-plain btn-sm" th:href="@{/office/weekly/dept(week=${nextWeek}, dept=${dept})}">다음 주 ›</a>
-    <a class="btn btn-outline btn-sm" th:href="@{/office/weekly/dept.csv(week=${week}, dept=${dept})}">CSV 내려받기</a>
+    <form th:action="@{/office/weekly/dept.csv}" method="get" style="display:flex; gap:6px; margin:0;">
+      <input type="hidden" name="week" th:value="${week}"><input type="hidden" name="dept" th:value="${dept}"><label class="sr-only" for="wr">내려받는 사유</label><input id="wr" name="reason" class="input" required minlength="2" maxlength="200" placeholder="내려받는 사유 (예: 월말 보고)" style="max-width:240px;"><button type="submit" class="btn btn-outline btn-sm">CSV 내려받기</button></form>
     <form th:if="${depts}" th:action="@{/office/weekly/dept}" method="get" class="search-bar" style="margin:0;">
       <input type="hidden" name="week" th:value="${week}">
       <label for="wdept" class="sr-only">부서</label>

@@ -79,8 +79,9 @@ public class EPetitionMemberService {
         if (loginId != null && !loginId.isEmpty() && pw.toLowerCase().contains(loginId.toLowerCase())) {
             return "비밀번호에 아이디를 넣을 수 없습니다.";
         }
-        if (pw.matches(".*(.)\\1\\1\\1.*")) {
-            return "같은 글자를 4번 넘게 잇달아 쓸 수 없습니다.";
+        String weak = egovframework.haengjeongnuli.user.service.PasswordPolicy.weakness(pw);
+        if (weak != null) {
+            return weak;
         }
         return null;
     }

@@ -32,8 +32,10 @@
   <form th:action="@{/civil/certs}" method="get" class="search-bar">
     <label for="cday" class="sr-only">날짜</label><input id="cday" name="day" type="date" class="input" th:value="${day}">
     <button type="submit" class="btn btn-outline">보기</button>
-    <a class="btn btn-plain" th:href="@{/civil/certs.csv(day=${day})}">일계표 (CSV)</a>
-    <a class="btn btn-plain" th:href="@{/civil/certs.csv(month=${#temporals.format(day, 'yyyy-MM')})}">월계표 (CSV)</a>
+    <form th:action="@{/civil/certs.csv}" method="get" class="search-bar" style="margin:0;">
+      <input type="hidden" name="day" th:value="${day}"><label class="sr-only" for="cr1">내려받는 사유</label><input id="cr1" name="reason" class="input" required minlength="2" maxlength="200" placeholder="내려받는 사유 (예: 월말 보고)" style="max-width:240px;"><button type="submit" class="btn btn-plain">일계표 (CSV)</button></form>
+    <form th:action="@{/civil/certs.csv}" method="get" class="search-bar" style="margin:0;">
+      <input type="hidden" name="month" th:value="${#temporals.format(day, 'yyyy-MM')}"><label class="sr-only" for="cr2">내려받는 사유</label><input id="cr2" name="reason" class="input" required minlength="2" maxlength="200" placeholder="내려받는 사유 (예: 월말 보고)" style="max-width:240px;"><button type="submit" class="btn btn-plain">월계표 (CSV)</button></form>
   </form>
   <section class="panel flush">
     <div class="panel-head"><h2 th:text="${day} + ' 발급'">발급</h2>

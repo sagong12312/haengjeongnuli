@@ -183,3 +183,7 @@ table.list td a { color: var(--text); text-decoration: none; }
 .hwp-view table { border-collapse:collapse; margin:8px 0; }
 .hwp-view td { border:1px solid #666; padding:4px 8px; vertical-align:top; }
 .hwp-view td p { margin:0; }
+
+/* 화면·출력물 워터마크 (누가 언제 본 화면인지). 클릭·읽기에 방해되지 않게 */
+.watermark { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; background-repeat: repeat; }
+@media print { .watermark { position: fixed; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

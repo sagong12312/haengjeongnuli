@@ -13,7 +13,8 @@
       <nav style="display:flex; gap:8px;" aria-label="달 바꾸기">
         <a class="btn btn-plain btn-sm" th:href="@{/hr/pay(month=${prevMonth})}">‹ 이전 달</a>
         <a th:if="${nextMonth}" class="btn btn-plain btn-sm" th:href="@{/hr/pay(month=${nextMonth})}">다음 달 ›</a>
-        <a class="btn btn-outline btn-sm" th:href="@{/hr/pay/summary.csv(month=${ym})}">CSV 내려받기</a>
+        <form th:action="@{/hr/pay/summary.csv}" method="get" style="display:flex; gap:6px; margin:0;">
+          <input type="hidden" name="month" th:value="${ym}"><label class="sr-only" for="pr">내려받는 사유</label><input id="pr" name="reason" class="input" required minlength="2" maxlength="200" placeholder="내려받는 사유 (예: 월말 보고)" style="max-width:240px;"><button type="submit" class="btn btn-outline btn-sm">CSV 내려받기</button></form>
       </nav>
     </div>
     <div class="table-wrap"><table class="list" style="min-width:900px">

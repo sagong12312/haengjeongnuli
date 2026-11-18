@@ -29,6 +29,19 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/admin/users")
 public class AdminUserController {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.security.SecurityService securityService;
+
+    /** 권한 관련 변경을 본인과 다른 관리자에게 알린다 */
+    private void privilege(long userId, String what) {
+        LoginUser target = userService.list().stream().filter(x -> x.getUserId() == userId).findFirst().orElse(null);
+        org.springframework.security.core.Authentication a = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        LoginUser by = a != null && a.getPrincipal() instanceof LoginUser u ? u : null;
+        if (target != null) {
+            securityService.privilegeChanged(target, what, by);
+        }
+    }
+
     private final UserService userService;
     private final AuditService auditService;
     private final DeptService deptService;
@@ -89,6 +102,9 @@ public class AdminUserController {
             try {
                 LoginUser u = userService.create(form);
                 auditService.record(AuditAction.USER_CREATE, u.getLoginId(), u.getRole().getLabel());
+                if (u.isAdmin()) {
+                    privilege(u.getUserId(), "시스템 관리자 권한으로 계정 생성");
+                }
                 ra.addFlashAttribute("message", u.getUserName() + "(" + u.getLoginId() + ") 계정을 만들었습니다. 초기 비밀번호를 본인에게 따로 전달하세요.");
                 return "redirect:/admin/users";
             } catch (IllegalStateException e) {
@@ -117,6 +133,7 @@ public class AdminUserController {
         }
         userService.setEnabled(userId, value);
         auditService.record(value ? AuditAction.USER_ENABLE : AuditAction.USER_DISABLE, "사용자 " + userId, null);
+        privilege(userId, "계정 " + (value ? "사용" : "사용 중지"));
         ra.addFlashAttribute("message", value ? "계정을 다시 사용하게 했습니다." : "계정 사용을 중지했습니다.");
         return "redirect:/admin/users";
     }
@@ -177,6 +194,7 @@ public class AdminUserController {
     public String welfare(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {
         userService.setWelfareStaff(userId, value);
         auditService.record(AuditAction.USER_WELFARE, "사용자 " + userId, value ? "지정" : "해제");
+        privilege(userId, "사회복지 담당 " + (value ? "지정" : "해제"));
         ra.addFlashAttribute("message", value ? "사회복지 담당으로 지정했습니다. 다시 로그인하면 반영됩니다."
                 : "사회복지 담당을 해제했습니다. 다시 로그인하면 반영됩니다.");
         return "redirect:/admin/users";
@@ -187,6 +205,7 @@ public class AdminUserController {
     public String recordsManager(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {
         userService.setRecordsManager(userId, value);
         auditService.record(AuditAction.USER_RECORDS_MANAGER, "사용자 " + userId, value ? "지정" : "해제");
+        privilege(userId, "기록물관리책임자 " + (value ? "지정" : "해제"));
         ra.addFlashAttribute("message", value ? "기록물관리책임자로 지정했습니다. 다시 로그인하면 반영됩니다."
                 : "기록물관리책임자를 해제했습니다. 다시 로그인하면 반영됩니다.");
         return "redirect:/admin/users";
@@ -197,6 +216,7 @@ public class AdminUserController {
     public String revenue(@PathVariable long userId, @RequestParam boolean value, RedirectAttributes ra) {
         userService.setRevenueStaff(userId, value);
         auditService.record(AuditAction.USER_REVENUE, "사용자 " + userId, value ? "지정" : "해제");
+        privilege(userId, "세입 담당 " + (value ? "지정" : "해제"));
         ra.addFlashAttribute("message", value ? "세입 담당으로 지정했습니다. 다시 로그인하면 세입 화면이 열립니다."
                 : "세입 담당을 해제했습니다. 다시 로그인하면 세입 화면이 닫힙니다.");
         return "redirect:/admin/users";
@@ -209,6 +229,8 @@ public class AdminUserController {
             ra.addFlashAttribute("message", "비밀번호를 바꾸지 못했습니다: " + problem);
             return "redirect:/admin/users";
         }
+        userService.list().stream().filter(x -> x.getUserId() == userId).findFirst()
+                .ifPresent(x -> securityService.remember(x.getLoginId(), x.getPasswordHash()));
         userService.resetPassword(userId, newPassword);
         auditService.record(AuditAction.USER_PASSWORD_RESET, "사용자 " + userId, null);
         ra.addFlashAttribute("message", "비밀번호를 새로 정하고 잠금도 풀었습니다. 본인에게 따로 전달하세요.");

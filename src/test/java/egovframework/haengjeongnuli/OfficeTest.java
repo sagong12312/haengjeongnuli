@@ -166,7 +166,7 @@ class OfficeTest {
         assertThat(office.missingReports(b, null, null)).containsExactly("나보고");
         assertThat(office.deptReports(x, dept, null)).isEmpty(); // 다른 부서는 볼 수 없다
         assertThat(page(b, "/office/weekly/dept")).contains("예산 요구서 작성 완료").contains("나보고");
-        String csv = new String(TestUsers.mvcAs(ctx, b).perform(get("/office/weekly/dept.csv")).andReturn().getResponse()
+        String csv = new String(TestUsers.mvcAs(ctx, b).perform(get("/office/weekly/dept.csv").param("reason", "주간 보고")).andReturn().getResponse()
                 .getContentAsByteArray(), StandardCharsets.UTF_8);
         assertThat(csv).contains("회의실 필요");
     }

@@ -32,6 +32,13 @@ public class GlobalModelAdvice {
         return s == null ? 0 : s.getMaxInactiveInterval();
     }
 
+    /** 화면·출력물 워터마크 (누가 언제 본 화면인지 흐리게 깐다) */
+    @ModelAttribute("watermark")
+    public String watermark(@AuthenticationPrincipal LoginUser user, jakarta.servlet.http.HttpServletRequest request) {
+        return user == null ? null : egovframework.haengjeongnuli.security.SecurityService.watermarkSvg(
+                egovframework.haengjeongnuli.security.SecurityService.watermarkText(user, request.getRemoteAddr()));
+    }
+
     /** 머리글 알림 버튼에 표시할 읽지 않은 알림 수 */
     @ModelAttribute("unreadNotifications")
     public int unreadNotifications(@AuthenticationPrincipal LoginUser user) {

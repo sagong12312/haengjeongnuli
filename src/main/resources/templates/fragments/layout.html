@@ -10,6 +10,7 @@
 <body>
 
 <header class="site-header" th:fragment="header(active)">
+  <div th:if="${watermark}" class="watermark" aria-hidden="true" th:style="|background-image:url(&quot;${watermark}&quot;)|"></div>
   <div class="inner">
     <a class="logo" th:href="@{/}">
       <span class="logo-mark">
