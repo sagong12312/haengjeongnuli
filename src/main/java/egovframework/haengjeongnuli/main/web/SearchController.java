@@ -58,11 +58,26 @@ public class SearchController {
             new Menu("공지사항", "게시판 공지", "/board?tab=notice"),
             new Menu("자료실", "게시판 자료 파일", "/board?tab=archive"),
             new Menu("알림", "알림", "/notifications"),
+            new Menu("오늘 요약", "내 업무 요약 오늘 대시보드", "/desk"),
+            new Menu("할 일", "할 일 메모 todo 기한", "/desk/todos"),
+            new Menu("내 일정", "일정 달력 캘린더 휴가 출장 당직 회의", "/desk/calendar"),
+            new Menu("쪽지", "쪽지 메시지 메신저 부서 전체", "/desk/messages"),
+            new Menu("직원 찾기·업무 분장", "직원 담당자 업무분장 내선 전화번호 조직", "/desk/staff"),
+            new Menu("민원 답변 문구", "답변 상용구 문구 템플릿 민원", "/desk/templates"),
+            new Menu("물품 대여", "물품 대여 반납 노트북 빔프로젝터 카메라", "/desk/loans"),
+            new Menu("직원 설문", "설문 투표 조사 무기명", "/desk/surveys"),
+            new Menu("즐겨찾기 메뉴", "즐겨찾기 바로가기", "/desk/favorites"),
+            new Menu("회의실 예약", "회의실 예약 회의 참석자", "/office/rooms"),
+            new Menu("당직", "당직 숙직 일직 교대 근무일지", "/office/duty"),
+            new Menu("보안 설정", "보안 2단계 OTP 로그인 기록", "/mypage/security"),
             new Menu("비밀번호 변경", "내 정보 비밀번호", "/mypage/password"));
 
     private final ApprovalService approvalService;
     private final CivilService civilService;
     private final BoardService boardService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.desk.DeskService desk;
 
     public SearchController(ApprovalService approvalService, CivilService civilService, BoardService boardService) {
         this.approvalService = approvalService;
@@ -103,6 +118,26 @@ public class SearchController {
             posts.addAll(boardService.list(BoardSearchVO.of(tab, query, 1, me).size(10)));
         }
         model.addAttribute("posts", posts);
+
+        // 직원(이름·부서·내선·맡은 업무), 내 쪽지, 내 할 일
+        List<egovframework.haengjeongnuli.desk.DeskService.Staff> staff = desk.staff(query);
+        model.addAttribute("staff", staff.subList(0, Math.min(20, staff.size())));
+        List<Map<String, Object>> msgs = new ArrayList<>();
+        for (Map<String, Object> m : desk.inbox(me)) {
+            if (String.valueOf(m.get("body")).toLowerCase(Locale.ROOT).contains(lower)
+                    || String.valueOf(m.get("fromName")).toLowerCase(Locale.ROOT).contains(lower)) {
+                msgs.add(m);
+            }
+        }
+        for (Map<String, Object> m : desk.sent(me)) {
+            if (String.valueOf(m.get("body")).toLowerCase(Locale.ROOT).contains(lower)
+                    || String.valueOf(m.get("toName")).toLowerCase(Locale.ROOT).contains(lower)) {
+                msgs.add(m);
+            }
+        }
+        model.addAttribute("messages", msgs.subList(0, Math.min(20, msgs.size())));
+        model.addAttribute("todos", desk.todos(me).stream()
+                .filter(t -> String.valueOf(t.get("title")).toLowerCase(Locale.ROOT).contains(lower)).limit(20).toList());
         return "main/search";
     }
 }

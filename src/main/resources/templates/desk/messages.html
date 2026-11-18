@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('쪽지')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › 쪽지</span><h1>쪽지</h1></div>
+  <form class="panel" th:action="@{/desk/messages/send}" method="post" style="gap:10px;">
+    <h2>쪽지 보내기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));">
+      <div class="field"><label for="mto">받는 사람</label>
+        <select id="mto" name="to" class="select">
+          <option value="">— 고르세요 —</option>
+          <option th:each="u : ${colleagues}" th:value="${u.loginId}" th:selected="${u.loginId == to}"
+                  th:text="${u.userName} + ' · ' + (${u.dept()} ?: '부서 없음') + ' ' + ${u.position()}">직원</option>
+        </select></div>
+    </div>
+    <label class="check" th:unless="${#strings.isEmpty(myDept)}"><input type="checkbox" name="dept" value="true">
+      <span th:text="'받는 사람 대신 ' + ${myDept} + ' 직원 모두에게 보냅니다'">부서 전체</span></label>
+    <div class="field"><label for="mbody">내용</label><textarea id="mbody" name="body" class="textarea" rows="4" maxlength="1300" required th:text="${draft}"></textarea></div>
+    <p class="hint" style="margin:0;">쪽지는 업무 연락용입니다. 주민등록번호 같은 개인정보는 적지 마세요. 받는 사람에게 알림이 갑니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">보내기</button></div>
+  </form>
+  <nav class="tabs" aria-label="쪽지함">
+    <a th:href="@{/desk/messages}" th:attr="aria-current=${box == 'in'} ? 'page' : null">받은 쪽지</a>
+    <a th:href="@{/desk/messages(box='sent')}" th:attr="aria-current=${box == 'sent'} ? 'page' : null">보낸 쪽지</a>
+  </nav>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(messages)}" class="hint" style="padding:20px 24px;">쪽지가 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(messages)}"><table class="list stack">
+      <thead><tr><th scope="col" th:text="${box == 'in'} ? '보낸 사람' : '받는 사람'">사람</th><th scope="col" style="text-align:left">내용</th><th scope="col">보낸 때</th><th scope="col">읽음</th></tr></thead>
+      <tbody><tr th:each="m : ${messages}">
+        <td th:data-label="${box == 'in'} ? '보낸 사람' : '받는 사람'" th:text="${box == 'in'} ? ${m['fromName']} : ${m['toName']}">사람</td>
+        <td class="left" data-label="내용"><a th:href="@{/desk/messages/{id}(id=${m['id']})}" th:style="${box == 'in' and m['readAt'] == null} ? 'font-weight:800' : ''"
+               th:text="${#strings.abbreviate(m['body'], 60)}">내용</a></td>
+        <td data-label="보낸 때" th:text="${#temporals.format(m['sentAt'], 'MM-dd HH:mm')}">때</td>
+        <td data-label="읽음"><span th:class="'badge ' + (${m['readAt'] == null} ? 'badge-orange' : 'badge-gray')" th:text="${m['readAt'] == null} ? '안 읽음' : '읽음'">읽음</span></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

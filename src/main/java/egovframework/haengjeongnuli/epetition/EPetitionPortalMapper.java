@@ -199,14 +199,18 @@ public interface EPetitionPortalMapper {
     @Update("UPDATE CIVIL_COMPLAINT SET MEMBER_ID = #{memberId} WHERE COMPLAINT_ID = #{id}")
     int linkMember(@Param("id") long id, @Param("memberId") long memberId);
 
-    @Select("SELECT COUNT(*) FROM CIVIL_COMPLAINT WHERE MEMBER_ID = #{memberId}")
-    int countMemberComplaints(@Param("memberId") long memberId);
+    /** st: null 이면 모두, OPEN 이면 처리 중(접수 대기 포함), DONE 이면 처리 완료(취하 포함) */
+    @Select("SELECT COUNT(*) FROM CIVIL_COMPLAINT WHERE MEMBER_ID = #{memberId} "
+            + "AND (#{st, jdbcType=VARCHAR} IS NULL OR (#{st, jdbcType=VARCHAR} = 'DONE' AND STATUS = 'DONE') OR (#{st, jdbcType=VARCHAR} = 'OPEN' AND STATUS <> 'DONE'))")
+    int countMemberComplaints(@Param("memberId") long memberId, @Param("st") String st);
 
     @Select("SELECT * FROM (SELECT X.*, ROWNUM AS RN FROM (SELECT COMPLAINT_ID AS \"id\", RECEIPT_NO AS \"receiptNo\", KIND AS \"kind\", "
             + "TITLE AS \"title\", STATUS AS \"status\", RECEIVED_AT AS \"receivedAt\", DEADLINE_AT AS \"deadlineAt\", "
             + "COMPLETED_AT AS \"completedAt\", RESULT_TYPE AS \"resultType\" FROM CIVIL_COMPLAINT WHERE MEMBER_ID = #{memberId} "
+            + "AND (#{st, jdbcType=VARCHAR} IS NULL OR (#{st, jdbcType=VARCHAR} = 'DONE' AND STATUS = 'DONE') OR (#{st, jdbcType=VARCHAR} = 'OPEN' AND STATUS <> 'DONE')) "
             + "ORDER BY COMPLAINT_ID DESC) X WHERE ROWNUM <= #{endRow}) WHERE RN > #{startRow}")
-    List<Map<String, Object>> memberComplaints(@Param("memberId") long memberId, @Param("startRow") int startRow, @Param("endRow") int endRow);
+    List<Map<String, Object>> memberComplaints(@Param("memberId") long memberId, @Param("startRow") int startRow, @Param("endRow") int endRow,
+                                               @Param("st") String st);
 
     @Select("SELECT COMPLAINT_ID FROM CIVIL_COMPLAINT WHERE MEMBER_ID = #{memberId} AND RECEIPT_NO = #{receiptNo}")
     Long memberComplaintId(@Param("memberId") long memberId, @Param("receiptNo") String receiptNo);

@@ -276,13 +276,19 @@ public class EPetitionMemberService {
 
     /** 내 민원 목록 */
     public Map<String, Object> complaints(long memberId, int page) {
+        return complaints(memberId, page, null);
+    }
+
+    /** status: open(처리 중) · done(처리 완료) · 그 밖은 모두 */
+    public Map<String, Object> complaints(long memberId, int page, String status) {
         mustGet(memberId);
+        String filter = "open".equals(status) ? "OPEN" : "done".equals(status) ? "DONE" : null;
         int size = EPetitionService.PAGE_SIZE;
-        int total = mapper.countMemberComplaints(memberId);
+        int total = mapper.countMemberComplaints(memberId, filter);
         int pages = Math.max(1, (total + size - 1) / size);
         int p = Math.min(Math.max(page, 1), pages);
         List<Map<String, Object>> items = new ArrayList<>();
-        for (Map<String, Object> c : mapper.memberComplaints(memberId, (p - 1) * size, p * size)) {
+        for (Map<String, Object> c : mapper.memberComplaints(memberId, (p - 1) * size, p * size, filter)) {
             Map<String, Object> it = new LinkedHashMap<>();
             it.put("receiptNo", c.get("receiptNo"));
             it.put("kindLabel", EPetitionService.kindLabel((String) c.get("kind")));

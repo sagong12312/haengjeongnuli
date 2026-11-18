@@ -97,3 +97,22 @@
   tick();
   setInterval(tick, 1000);
 })();
+
+// 민원 처리: 추천 담당자 누르면 담당자 칸을 고르고, 답변 문구를 고르면 결과 칸 끝에 넣는다
+(function () {
+  document.querySelectorAll('[data-pick-select]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var sel = document.getElementById(b.getAttribute('data-pick-select'));
+      if (sel) { sel.value = b.getAttribute('data-value'); sel.focus(); }
+    });
+  });
+  document.querySelectorAll('select[data-fill-target]').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var t = document.getElementById(sel.getAttribute('data-fill-target'));
+      if (!t || !sel.value) return;
+      t.value = t.value ? t.value.replace(/\s+$/, '') + '\n\n' + sel.value : sel.value;
+      sel.value = '';
+      t.focus();
+    });
+  });
+})();

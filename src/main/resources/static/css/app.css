@@ -187,3 +187,42 @@ table.list td a { color: var(--text); text-decoration: none; }
 /* 화면·출력물 워터마크 (누가 언제 본 화면인지). 클릭·읽기에 방해되지 않게 */
 .watermark { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; background-repeat: repeat; }
 @media print { .watermark { position: fixed; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* 내 업무 */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { text-decoration: none; border: 1px solid var(--input); border-radius: 999px; padding: 10px 14px; color: var(--text); min-height: 44px; display: inline-flex; align-items: center; }
+.chip:hover { border-color: var(--brand); color: var(--brand); }
+.plain-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.plain-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.inline-form { display: inline; margin: 0; }
+.inline-actions { display: inline-flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.search-row { display: flex; gap: 8px; }
+.search-row .input { flex: 1; min-width: 0; }
+.cal { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.cal th { font-size: 16px; color: var(--text-2); padding: 8px 4px; border-bottom: 1px solid var(--line); }
+.cal td { vertical-align: top; height: 110px; border: 1px solid var(--line-2); padding: 6px; font-size: 15px; }
+.cal td.other { background: var(--soft); color: var(--text-2); }
+.cal td.today { outline: 3px solid var(--brand); outline-offset: -3px; }
+.cal .d { font-weight: 800; display: block; margin-bottom: 4px; }
+.cal .sun .d, .cal .holi .d { color: var(--red-fg); }
+.cal .ev { display: block; border-radius: 6px; padding: 2px 6px; margin-bottom: 3px; text-decoration: none; color: var(--text); overflow-wrap: anywhere; line-height: 1.35; }
+.ev.duty { background: var(--brand-tint); } .ev.night { background: var(--orange-bg); } .ev.meet { background: var(--green-bg); } .ev.todo { background: var(--gray-bg); }
+.bar { height: 14px; background: var(--gray-bg); border-radius: 999px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--brand); }
+.cal-list { display: none; }
+@media (max-width: 720px) {
+  .cal { display: none; }
+  .cal-list { display: flex; flex-direction: column; gap: 10px; list-style: none; margin: 0; padding: 0; }
+  .cal-list li { border-bottom: 1px solid var(--line-2); padding-bottom: 8px; }
+  .cal-list .ev { display: block; border-radius: 6px; padding: 6px 10px; margin-top: 4px; text-decoration: none; color: var(--text); }
+  .search-row { flex-wrap: wrap; } .search-row .btn { width: 100%; }
+}
+/* 휴대폰: 표를 카드처럼 (칸 이름은 data-label) */
+@media (max-width: 720px) {
+  table.list.stack { min-width: 0; font-size: 17px; }
+  table.list.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.list.stack tr { display: block; border-top: 1px solid var(--line-2); padding: 8px 0; }
+  table.list.stack td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; padding: 6px 16px; text-align: right; }
+  table.list.stack td::before { content: attr(data-label); font-weight: 700; color: var(--text-2); text-align: left; flex: 0 0 auto; }
+  table.list.stack td.left { text-align: right; }
+}

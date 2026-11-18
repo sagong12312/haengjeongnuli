@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('직원 설문')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › <a th:href="@{/desk/surveys}">직원 설문</a></span><h1 th:text="${v.survey()['title']}">설문</h1></div>
+  <section class="panel" style="gap:12px;">
+    <p style="margin:0; font-size:20px;" th:text="${v.survey()['question']}">질문</p>
+    <p class="hint" style="margin:0;" th:text="'마감 ' + ${v.survey()['closes']} + (${v.open()} ? '' : ' (마감됨)') + ' · 참여 ' + ${v.total()} + '명'">마감</p>
+    <form th:if="${v.open() and !v.voted()}" th:action="@{/desk/surveys/{id}/vote(id=${v.survey()['id']})}" method="post" style="display:flex; flex-direction:column; gap:10px;">
+      <fieldset style="border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:10px;">
+        <legend class="sr-only">보기</legend>
+        <label class="check" th:each="o, st : ${v.options()}"><input type="radio" name="choice" th:value="${st.count}" required><span th:text="${o}">보기</span></label>
+      </fieldset>
+      <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">참여</button></div>
+    </form>
+    <th:block th:if="${v.voted() or !v.open()}">
+      <h2>결과</h2>
+      <div th:each="o, st : ${v.options()}" style="display:flex; flex-direction:column; gap:4px;">
+        <div style="display:flex; justify-content:space-between; gap:8px;"><span th:text="${o}">보기</span>
+          <b th:with="c=${v.counts()[st.index]}" th:text="${c} + '명' + (${v.total() > 0} ? ' (' + ${c * 100 / v.total()} + '%)' : '')">0명</b></div>
+        <div class="bar" role="presentation"><span th:style="'width:' + (${v.total() > 0} ? ${v.counts()[st.index] * 100 / v.total()} : 0) + '%'"></span></div>
+      </div>
+    </th:block>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -11,12 +11,12 @@
   </div>
   <form role="search" th:action="@{/search}" method="get" style="display:flex; gap:8px;">
     <label for="sq" class="sr-only">검색어</label>
-    <input id="sq" name="q" class="input" type="search" th:value="${q}" maxlength="100" placeholder="메뉴, 문서번호·제목, 민원번호·민원인, 게시글 검색" style="flex:1; min-width:0; height:60px; font-size:20px;" autofocus>
+    <input id="sq" name="q" class="input" type="search" th:value="${q}" maxlength="100" placeholder="메뉴, 문서, 민원, 게시글, 직원·업무, 쪽지, 할 일" style="flex:1; min-width:0; height:60px; font-size:20px;" autofocus>
     <button type="submit" class="btn btn-primary" style="height:60px;">검색</button>
   </form>
 
   <th:block th:if="${!#strings.isEmpty(q)}">
-    <p class="hint" th:if="${#lists.isEmpty(menus) and #lists.isEmpty(docs) and #lists.isEmpty(complaints) and #lists.isEmpty(posts)}"
+    <p class="hint" th:if="${#lists.isEmpty(menus) and #lists.isEmpty(docs) and #lists.isEmpty(complaints) and #lists.isEmpty(posts) and #lists.isEmpty(staff) and #lists.isEmpty(messages) and #lists.isEmpty(todos)}"
        th:text="'‘' + ${q} + '’에 맞는 결과가 없습니다.'">결과 없음</p>
 
     <section class="panel" th:unless="${#lists.isEmpty(menus)}" aria-labelledby="r-menu">
@@ -63,6 +63,29 @@
           <td th:text="${#temporals.format(p.createdAt, 'yyyy-MM-dd')}">날짜</td>
         </tr></tbody>
       </table></div>
+    </section>
+    <section class="panel flush" th:unless="${#lists.isEmpty(staff)}" aria-labelledby="r-staff">
+      <div class="panel-head"><h2 id="r-staff">직원</h2><span class="muted" th:text="${#lists.size(staff)} + '명'">0명</span></div>
+      <div class="table-wrap"><table class="list stack">
+        <thead><tr><th scope="col">이름</th><th scope="col">부서</th><th scope="col">내선</th><th scope="col" style="text-align:left">맡은 업무</th></tr></thead>
+        <tbody><tr th:each="s : ${staff}">
+          <td data-label="이름"><a th:href="@{/desk/messages(to=${s.user().loginId})}" th:text="${s.user().userName}" th:title="${s.user().userName} + '에게 쪽지'">이름</a></td>
+          <td data-label="부서" th:text="${s.user().dept()} ?: '—'">부서</td>
+          <td data-label="내선" th:text="${s.user().extension} ?: '—'">내선</td>
+          <td class="left" data-label="맡은 업무" th:text="${#strings.isEmpty(s.duties())} ? '—' : ${s.duties()}">업무</td>
+        </tr></tbody>
+      </table></div>
+    </section>
+
+    <section class="panel" th:unless="${#lists.isEmpty(messages)}" aria-labelledby="r-msg" style="gap:8px;">
+      <h2 id="r-msg">내 쪽지</h2>
+      <ul style="margin:0; padding-left:20px;"><li th:each="m : ${messages}"><a th:href="@{/desk/messages/{id}(id=${m['id']})}"
+          th:text="${m['fromName']} + ' → ' + ${m['toName']} + ': ' + ${#strings.abbreviate(m['body'], 60)}">쪽지</a></li></ul>
+    </section>
+
+    <section class="panel" th:unless="${#lists.isEmpty(todos)}" aria-labelledby="r-todo" style="gap:8px;">
+      <h2 id="r-todo">내 할 일</h2>
+      <ul style="margin:0; padding-left:20px;"><li th:each="t : ${todos}"><a th:href="@{/desk/todos}" th:text="${t['title']} + (${t['due']} ? ' (' + ${t['due']} + ')' : '')">할 일</a></li></ul>
     </section>
   </th:block>
 </main>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('쪽지')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › <a th:href="@{/desk/messages}">쪽지</a></span><h1>쪽지</h1></div>
+  <section class="panel" style="gap:10px;">
+    <dl class="kv" style="margin:0; display:grid; grid-template-columns:120px 1fr; gap:8px;">
+      <dt class="muted">보낸 사람</dt><dd style="margin:0" th:text="${m['fromName']}">보낸 사람</dd>
+      <dt class="muted">받는 사람</dt><dd style="margin:0" th:text="${m['toName']}">받는 사람</dd>
+      <dt class="muted">보낸 때</dt><dd style="margin:0" th:text="${#temporals.format(m['sentAt'], 'yyyy-MM-dd HH:mm')}">때</dd>
+      <dt class="muted">읽은 때</dt><dd style="margin:0" th:text="${m['readAt']} ? ${#temporals.format(m['readAt'], 'yyyy-MM-dd HH:mm')} : '안 읽음'">읽음</dd>
+    </dl>
+    <div style="white-space:pre-wrap; font-size:19px; border-top:1px solid var(--line-2); padding-top:14px;" th:text="${m['body']}">내용</div>
+    <div class="form-actions">
+      <form th:action="@{/desk/messages/{id}/delete(id=${m['id']})}" method="post" class="inline-form"><button type="submit" class="btn btn-outline">지우기</button></form>
+      <a th:if="${incoming}" class="btn btn-primary" th:href="@{/desk/messages(to=${m['fromId']})}">답장</a>
+    </div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -108,10 +108,21 @@ public class OfficeController {
         model.addAttribute("rooms", service.rooms(true));
         model.addAttribute("allRooms", me.isAdmin() ? service.rooms(false) : List.of());
         List<Map<String, Object>> resvs = service.reservations(monday, monday.plusDays(6));
+        Map<String, String> names = new java.util.HashMap<>();
+        users.list().forEach(u -> names.put(u.getLoginId(), u.getUserName()));
+        List<Map<String, Object>> myFuture = new ArrayList<>();
         for (Map<String, Object> r : resvs) {
             r.put("day", OfficeService.date(r.get("day")));
             r.put("mine", me.getLoginId().equals(r.get("loginId")));
+            java.util.Set<String> ids = egovframework.haengjeongnuli.desk.DeskService.attendees(r);
+            r.put("attendeeIds", ids);
+            r.put("attendeeNames", String.join(", ", ids.stream().map(i -> names.getOrDefault(i, i)).toList()));
+            if (Boolean.TRUE.equals(r.get("mine")) && !((LocalDate) r.get("day")).isBefore(LocalDate.now())) {
+                myFuture.add(r);
+            }
         }
+        model.addAttribute("myFuture", myFuture);
+        model.addAttribute("colleagues", colleagues(me));
         model.addAttribute("resvs", resvs);
         model.addAttribute("today", LocalDate.now());
         List<String> times = new ArrayList<>();

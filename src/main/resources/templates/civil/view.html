@@ -40,7 +40,8 @@
   </section>
 
   <section class="panel" aria-labelledby="who-title">
-    <h2 id="who-title">민원인 <span class="muted" style="font-size:16px; font-weight:400;">(개인정보 — 처리 목적 외 사용 금지, 열람이 기록됩니다)</span></h2>
+    <h2 id="who-title">민원인 <span class="muted" style="font-size:16px; font-weight:400;">(개인정보 — 처리 목적 외 사용 금지, 열람이 기록됩니다)</span>
+      <span th:if="${repeat}" class="badge badge-orange" style="font-size:15px;" th:text="'반복 민원 · 최근 1년 ' + (${sameOthers} + 1) + '건'">반복</span></h2>
     <dl class="kv">
       <div><dt>이름</dt><dd th:text="${c.applicantName}">이름</dd></div>
       <div><dt>연락처</dt><dd th:text="${c.mobile} ?: (${c.homePhone} ?: '없음')">연락처</dd></div>
@@ -49,6 +50,19 @@
       <div><dt>받기 원하는 통지</dt><dd th:text="${c.notifyMethod}">문자</dd></div>
       <div th:if="${c.faxNo}"><dt>팩스</dt><dd th:text="${c.faxNo}">팩스</dd></div>
     </dl>
+  </section>
+
+  <section class="panel flush" th:unless="${#lists.isEmpty(sameList)}" aria-labelledby="same-title">
+    <div class="panel-head"><h2 id="same-title">같은 민원인의 다른 민원 (최근 1년)</h2><span class="muted" th:text="${#lists.size(sameList)} + '건'">0건</span></div>
+    <div class="table-wrap"><table class="list stack">
+      <thead><tr><th scope="col">접수번호</th><th scope="col" style="text-align:left">제목</th><th scope="col">접수일</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="o : ${sameList}">
+        <td data-label="접수번호" th:text="${o['receiptNo']}">번호</td>
+        <td class="left" data-label="제목"><a th:href="@{/civil/{id}(id=${o['id']})}" th:text="${o['title']}">제목</a></td>
+        <td data-label="접수일" th:text="${#temporals.format(o['receivedAt'], 'yyyy-MM-dd')}">날짜</td>
+        <td data-label="상태"><span th:class="'badge ' + ${o['statusBadge']}" th:text="${o['statusLabel']}">상태</span></td>
+      </tr></tbody>
+    </table></div>
   </section>
 
   <section class="panel" aria-labelledby="body-title">
@@ -104,6 +118,11 @@
                     th:text="${u.userName} + ' ' + ${u.position()} + (${u.deptName} ? ' · ' + ${u.deptName} : '')">직원</option>
           </select></div>
       </div>
+      <div th:unless="${#lists.isEmpty(suggestions)}" class="hint" style="margin:0; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <span>업무 분장으로 본 추천 담당자:</span>
+        <button type="button" class="btn btn-outline btn-sm" th:each="s : ${suggestions}" data-pick-select="astaff" th:attr="data-value=${s.user().loginId}"
+                th:text="${s.user().userName} + ' (' + ${#strings.listJoin(s.matched(), ', ')} + ')'">추천</button>
+      </div>
       <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">배정</button></div>
     </form>
 
@@ -122,6 +141,11 @@
         <div class="field"><label for="rfax">보낼 팩스 번호 <span class="muted" style="font-size:16px;">(팩스로 알릴 때)</span></label>
           <input id="rfax" name="faxNo" class="input" type="tel" maxlength="20" th:value="${c.faxNo}" placeholder="예: 02-123-4567"></div>
       </div>
+      <div class="field" th:unless="${#lists.isEmpty(replyTemplates)}"><label for="rtpl">답변 문구 넣기 <a th:href="@{/desk/templates}" style="font-size:16px; font-weight:400;">문구 관리</a></label>
+        <select id="rtpl" class="select" data-fill-target="rtext">
+          <option value="">— 저장한 문구에서 고르면 아래 칸 끝에 넣습니다 —</option>
+          <option th:each="t : ${replyTemplates}" th:value="${t['body']}" th:text="${t['title']}">문구</option>
+        </select></div>
       <div class="field"><label for="rtext">처리 결과 <span class="req">*</span></label>
         <textarea id="rtext" name="result" class="textarea" rows="6" required></textarea></div>
       <div class="field" id="remedy-field"><label for="rremedy">거부 이유와 구제절차 <span class="muted" style="font-size:16px;">(불수용·일부 수용이면 꼭 적습니다)</span></label>

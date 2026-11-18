@@ -34,17 +34,32 @@
     </div>
     <p th:if="${#lists.isEmpty(resvs)}" class="hint" style="padding:18px 22px;">이 주에는 예약이 없습니다.</p>
     <div class="table-wrap" th:unless="${#lists.isEmpty(resvs)}"><table class="list" style="min-width:760px">
-      <thead><tr><th scope="col">날짜</th><th scope="col">시간</th><th scope="col">회의실</th><th scope="col" style="text-align:left">회의</th><th scope="col">예약자</th><th scope="col">취소</th></tr></thead>
+      <thead><tr><th scope="col">날짜</th><th scope="col">시간</th><th scope="col">회의실</th><th scope="col" style="text-align:left">회의</th><th scope="col">예약자</th><th scope="col">참석자</th><th scope="col">취소</th></tr></thead>
       <tbody><tr th:each="r : ${resvs}">
         <td th:text="${T(egovframework.haengjeongnuli.office.OfficeService).md(r['day'])}">날짜</td>
         <td th:text="${r['start']} + '~' + ${r['end']}">시간</td>
         <td th:text="${r['roomName']}">회의실</td>
         <td class="left" th:text="${r['title']}">회의</td>
         <td th:text="${r['userName']} + (${r['dept']} ? ' · ' + ${r['dept']} : '')">예약자</td>
+        <td th:text="${#strings.isEmpty(r['attendeeNames'])} ? '—' : ${r['attendeeNames']}">참석자</td>
         <td><form th:if="${(r['mine'] or loginUser.admin) and !r['day'].isBefore(today)}" th:action="@{/office/rooms/resv/{id}/cancel(id=${r['id']})}" method="post" style="margin:0;" data-confirm="이 예약을 취소할까요?">
           <input type="hidden" name="back" th:value="${date}"><button type="submit" class="btn btn-plain btn-sm" th:attr="aria-label=${r['title']} + ' 예약 취소'">취소</button></form></td>
       </tr></tbody>
     </table></div>
+  </section>
+
+  <section th:unless="${#lists.isEmpty(myFuture)}" class="panel" style="gap:12px;">
+    <h2>내 예약 참석자 정하기</h2>
+    <p class="hint" style="margin:0;">고른 직원에게 회의 알림이 가고, 그 직원의 '내 일정'에도 나옵니다. Ctrl(맥은 ⌘)을 누른 채 여러 명을 고르세요.</p>
+    <form th:each="r : ${myFuture}" th:action="@{/office/rooms/resv/{id}/attendees(id=${r['id']})}" method="post" style="display:flex; flex-direction:column; gap:8px; border-top:1px solid var(--line-2); padding-top:12px;">
+      <input type="hidden" name="back" th:value="${date}">
+      <label th:for="'att' + ${r['id']}" th:text="${T(egovframework.haengjeongnuli.office.OfficeService).md(r['day'])} + ' ' + ${r['start']} + ' ' + ${r['title']}">회의</label>
+      <select th:id="'att' + ${r['id']}" name="attendee" class="select" multiple size="5" style="height:auto;">
+        <option th:each="u : ${colleagues}" th:value="${u.loginId}" th:selected="${#sets.contains(r['attendeeIds'], u.loginId)}"
+                th:text="${u.userName} + ' · ' + (${u.deptName} ?: '부서 없음')">직원</option>
+      </select>
+      <div style="display:flex; justify-content:flex-end;"><button type="submit" class="btn btn-outline btn-sm">참석자 저장</button></div>
+    </form>
   </section>
 
   <section th:if="${loginUser.admin}" class="panel" style="gap:12px;">

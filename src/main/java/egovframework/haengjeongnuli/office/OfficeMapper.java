@@ -63,7 +63,7 @@ public interface OfficeMapper {
                    @Param("userName") String userName, @Param("dept") String dept, @Param("at") LocalDateTime at);
 
     @Select("SELECT V.RESV_ID AS \"id\", V.ROOM_ID AS \"roomId\", R.NAME AS \"roomName\", V.RESV_DATE AS \"day\", V.START_TIME AS \"start\", "
-            + "V.END_TIME AS \"end\", V.TITLE AS \"title\", V.LOGIN_ID AS \"loginId\", V.USER_NAME AS \"userName\", V.DEPT_NAME AS \"dept\" "
+            + "V.END_TIME AS \"end\", V.TITLE AS \"title\", V.LOGIN_ID AS \"loginId\", V.USER_NAME AS \"userName\", V.DEPT_NAME AS \"dept\", V.ATTENDEES AS \"attendees\" "
             + "FROM ROOM_RESV V JOIN ROOM R ON R.ROOM_ID = V.ROOM_ID "
             + "WHERE V.RESV_DATE >= #{from, jdbcType=DATE} AND V.RESV_DATE <= #{to, jdbcType=DATE} ORDER BY V.RESV_DATE, V.START_TIME, R.NAME")
     List<Map<String, Object>> resvs(@Param("from") LocalDate from, @Param("to") LocalDate to);

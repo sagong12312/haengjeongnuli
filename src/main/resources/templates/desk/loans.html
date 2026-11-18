@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('물품 대여')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › 물품 대여</span><h1>물품 대여</h1></div>
+  <p class="hint">노트북·빔프로젝터·카메라 같은 공용 물품을 빌리고 돌려줍니다. 반납 기한이 지나면 매일 아침 빌린 사람에게 알림이 갑니다.</p>
+  <section class="panel flush">
+    <div class="panel-head"><h2>물품</h2><span class="muted" th:text="${#lists.size(items)} + '개'">0개</span></div>
+    <p th:if="${#lists.isEmpty(items)}" class="hint" style="padding:0 24px 20px;">등록된 물품이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(items)}"><table class="list stack">
+      <thead><tr><th scope="col">물품</th><th scope="col">보관 장소</th><th scope="col">상태</th><th scope="col">빌린 사람</th><th scope="col">반납 기한</th><th scope="col">처리</th></tr></thead>
+      <tbody><tr th:each="i : ${items}">
+        <td data-label="물품" style="color:var(--text)" th:text="${i['name']}">물품</td>
+        <td data-label="보관 장소" th:text="${i['place']} ?: '—'">장소</td>
+        <td data-label="상태"><span th:if="${i['useYn'] != 'Y'}" class="badge badge-gray">사용 안 함</span>
+          <span th:if="${i['useYn'] == 'Y' and i['loanId'] == null}" class="badge badge-green">빌릴 수 있음</span>
+          <span th:if="${i['loanId'] != null and !i['overdue']}" class="badge badge-orange">대여 중</span>
+          <span th:if="${i['loanId'] != null and i['overdue']}" class="badge badge-red">반납 기한 지남</span></td>
+        <td data-label="빌린 사람" th:text="${i['borrower']} ? ${i['borrower']} + ' · ' + ${i['purpose']} : '—'">사람</td>
+        <td data-label="반납 기한" th:text="${i['due']} ?: '—'">기한</td>
+        <td data-label="처리">
+          <form th:if="${i['loanId'] != null and (i['borrowerId'] == loginUser.loginId or loginUser.admin)}" th:action="@{/desk/loans/{id}/return(id=${i['loanId']})}" method="post" class="inline-form">
+            <button type="submit" class="btn btn-outline btn-sm">반납</button></form></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+  <form class="panel" th:action="@{/desk/loans/borrow}" method="post" style="gap:10px;">
+    <h2>빌리기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="li">물품</label><select id="li" name="itemId" class="select" required>
+        <option value="">— 고르세요 —</option>
+        <option th:each="i : ${items}" th:if="${i['useYn'] == 'Y' and i['loanId'] == null}" th:value="${i['id']}" th:text="${i['name']}">물품</option></select></div>
+      <div class="field"><label for="lp">쓰는 곳</label><input id="lp" name="purpose" class="input" maxlength="200" required placeholder="예: 주민설명회 발표"></div>
+      <div class="field"><label for="ld">돌려줄 날</label><input id="ld" name="due" type="date" class="input" required th:min="${today}" th:max="${maxDue}"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">빌리기</button></div>
+  </form>
+  <form th:if="${loginUser.admin}" class="panel" th:action="@{/desk/loans/items}" method="post" style="gap:10px;">
+    <h2>물품 등록 (관리자)</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="in">물품 이름</label><input id="in" name="name" class="input" maxlength="100" required placeholder="예: 노트북 3호"></div>
+      <div class="field"><label for="ip">보관 장소</label><input id="ip" name="place" class="input" maxlength="200" placeholder="예: 총무과 캐비닛"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">등록</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

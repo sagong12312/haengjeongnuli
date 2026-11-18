@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('직원 설문')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › 직원 설문</span><h1>직원 설문</h1></div>
+  <p class="hint">무기명 설문입니다. 참여했는지만 기록하고, 무엇을 골랐는지는 누구와도 이어지지 않게 따로 셉니다.</p>
+  <section class="panel flush">
+    <div class="panel-head"><h2>설문</h2></div>
+    <p th:if="${#lists.isEmpty(surveys)}" class="hint" style="padding:0 24px 20px;">올라온 설문이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(surveys)}"><table class="list stack">
+      <thead><tr><th scope="col" style="text-align:left">제목</th><th scope="col">마감</th><th scope="col">상태</th><th scope="col">나</th></tr></thead>
+      <tbody><tr th:each="s : ${surveys}">
+        <td class="left" data-label="제목"><a th:href="@{/desk/surveys/{id}(id=${s['id']})}" th:text="${s['title']}">제목</a></td>
+        <td data-label="마감" th:text="${s['closes']}">마감</td>
+        <td data-label="상태"><span th:class="'badge ' + (${s['open']} ? 'badge-green' : 'badge-gray')" th:text="${s['open']} ? '진행 중' : '마감'">상태</span></td>
+        <td data-label="나"><span th:class="'badge ' + (${s['voted']} ? 'badge-blue' : 'badge-gray')" th:text="${s['voted']} ? '참여함' : '안 함'">나</span></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+  <form class="panel" th:action="@{/desk/surveys}" method="post" style="gap:10px;">
+    <h2>새 설문</h2>
+    <div class="field"><label for="st">제목</label><input id="st" name="title" class="input" maxlength="200" required placeholder="예: 12월 직원 교육 날짜"></div>
+    <div class="field"><label for="sq">질문</label><input id="sq" name="question" class="input" maxlength="500" required placeholder="예: 언제가 좋으십니까?"></div>
+    <div class="field"><label for="so">보기 (한 줄에 하나, 2~8개)</label><textarea id="so" name="options" class="textarea" rows="4" required placeholder="12월 3일 오후&#10;12월 10일 오후"></textarea></div>
+    <div class="field" style="max-width:260px;"><label for="sc">마감일</label><input id="sc" name="closes" type="date" class="input" required th:min="${today}" th:max="${maxClose}"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">올리기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

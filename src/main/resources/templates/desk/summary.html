@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('오늘 요약')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/}">홈</a> › 내 업무</span><h1>오늘 요약 <small class="muted" style="font-size:18px; font-weight:400;" th:text="${todayText}">날짜</small></h1></div>
+  <div class="stat-grid">
+    <a class="stat blue center" th:href="@{/approval(box='wait')}"><strong th:text="${approvalWait}">0</strong><small>결재 대기</small></a>
+    <a class="stat blue center" th:href="@{/civil(status='IN_PROGRESS')}"><strong th:text="${civilSummary.inProgress}">0</strong><small>처리할 민원</small></a>
+    <a th:class="'stat center ' + (${civilSummary.imminent > 0} ? 'orange' : 'blue')" th:href="@{/civil}"><strong th:text="${civilSummary.imminent}">0</strong><small>기한 임박 민원</small></a>
+    <a th:class="'stat center ' + (${unread > 0} ? 'orange' : 'blue')" th:href="@{/desk/messages}"><strong th:text="${unread}">0</strong><small>읽지 않은 쪽지</small></a>
+  </div>
+
+  <section class="panel" style="gap:10px;">
+    <div class="panel-head" style="padding:0; border:0;"><h2>즐겨찾기</h2><a th:href="@{/desk/favorites}">고치기</a></div>
+    <p th:if="${#lists.isEmpty(favorites)}" class="hint" style="margin:0;">자주 쓰는 메뉴를 골라 두면 여기에서 바로 갈 수 있습니다.</p>
+    <div th:unless="${#lists.isEmpty(favorites)}" class="chips">
+      <a th:each="f : ${favorites}" class="chip" th:href="@{${f['path']}}" th:text="${f['label']}">메뉴</a>
+    </div>
+  </section>
+
+  <div class="card-grid">
+    <a class="menu-card" th:href="@{/desk/todos}"><b>할 일</b><span>기한 있는 할 일, 마친 일 표시</span></a>
+    <a class="menu-card" th:href="@{/desk/calendar}"><b>내 일정</b><span>휴가·출장·시간외, 당직, 회의, 할 일을 달력으로</span></a>
+    <a class="menu-card" th:href="@{/desk/messages}"><b>쪽지</b><span>직원·부서 전체에 쪽지 보내기</span></a>
+    <a class="menu-card" th:href="@{/desk/staff}"><b>직원 찾기·업무 분장</b><span>이름·부서·맡은 업무로 담당자 찾기</span></a>
+    <a class="menu-card" th:href="@{/desk/templates}"><b>민원 답변 문구</b><span>자주 쓰는 답변을 저장해 민원 처리에 넣기</span></a>
+    <a class="menu-card" th:href="@{/desk/loans}"><b>물품 대여</b><span>노트북·빔프로젝터·카메라 대여와 반납</span></a>
+    <a class="menu-card" th:href="@{/desk/surveys}"><b>직원 설문</b><span>무기명 설문 올리기·참여·결과</span></a>
+  </div>
+
+  <div class="row">
+    <div class="col-main" style="gap:16px;">
+      <section class="panel" style="gap:8px;">
+        <h2>오늘까지 할 일</h2>
+        <p th:if="${#lists.isEmpty(todos)}" class="hint" style="margin:0;">오늘까지 해야 할 일이 없습니다.</p>
+        <ul th:unless="${#lists.isEmpty(todos)}" class="plain-list">
+          <li th:each="t : ${todos}">
+            <form th:action="@{/desk/todos/{id}/done(id=${t['id']})}" method="post" class="inline-form">
+              <input type="hidden" name="back" value="desk"><button type="submit" class="btn btn-outline btn-sm">마침</button></form>
+            <span th:text="${t['title']}">할 일</span>
+            <span th:if="${t['overdue']}" class="badge badge-red" th:text="'기한 ' + ${t['due']}">지남</span>
+          </li>
+        </ul>
+      </section>
+      <section class="panel" style="gap:8px;">
+        <h2>오늘 회의</h2>
+        <p th:if="${#lists.isEmpty(meetings)}" class="hint" style="margin:0;">오늘 회의가 없습니다.</p>
+        <ul th:unless="${#lists.isEmpty(meetings)}" style="margin:0; padding-left:20px;">
+          <li th:each="r : ${meetings}" th:text="${r['start']} + '~' + ${r['end']} + ' ' + ${r['title']} + ' (' + ${r['roomName']} + ')'">회의</li></ul>
+      </section>
+    </div>
+    <div class="col-side" style="gap:16px;">
+      <section class="panel" style="gap:8px;">
+        <h2>이번 주 내 당직</h2>
+        <p th:if="${#lists.isEmpty(roster)}" class="hint" style="margin:0;">없습니다.</p>
+        <ul th:unless="${#lists.isEmpty(roster)}" style="margin:0; padding-left:20px;">
+          <li th:each="d : ${roster}" th:text="${d['day']} + ' ' + ${d['typeLabel']}">당직</li></ul>
+      </section>
+      <section class="panel" style="gap:8px;" th:unless="${#lists.isEmpty(loans)}">
+        <h2>빌린 물품</h2>
+        <ul style="margin:0; padding-left:20px;">
+          <li th:each="i : ${loans}"><span th:text="${i['name']} + ' · ' + ${i['due']} + '까지'">물품</span>
+            <span th:if="${i['overdue']}" class="badge badge-red">기한 지남</span></li></ul>
+      </section>
+      <section class="panel" style="gap:8px;" th:unless="${#lists.isEmpty(surveys)}">
+        <h2>참여할 설문</h2>
+        <ul style="margin:0; padding-left:20px;">
+          <li th:each="s : ${surveys}"><a th:href="@{/desk/surveys/{id}(id=${s['id']})}" th:text="${s['title']}">설문</a></li></ul>
+      </section>
+    </div>
+  </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

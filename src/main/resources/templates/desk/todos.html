@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('할 일')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › 할 일</span><h1>할 일</h1></div>
+  <form class="panel" th:action="@{/desk/todos}" method="post" style="gap:10px;">
+    <h2>새 할 일</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field" style="grid-column:span 2;"><label for="tt">할 일</label><input id="tt" name="title" class="input" maxlength="200" required placeholder="예: 3분기 민원 실적 보고서 작성"></div>
+      <div class="field"><label for="td">기한 (선택)</label><input id="td" name="due" type="date" class="input"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">적기</button></div>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>목록</h2><span class="muted">마친 일은 7일 동안 보입니다</span></div>
+    <p th:if="${#lists.isEmpty(todos)}" class="hint" style="padding:0 24px 20px;">할 일이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(todos)}"><table class="list stack">
+      <thead><tr><th scope="col" style="text-align:left">할 일</th><th scope="col">기한</th><th scope="col">상태</th><th scope="col">처리</th></tr></thead>
+      <tbody><tr th:each="t : ${todos}">
+        <td class="left" data-label="할 일" th:style="${t['done'] == 'Y'} ? 'text-decoration:line-through; color:var(--text-2)' : 'color:var(--text)'" th:text="${t['title']}">할 일</td>
+        <td data-label="기한" th:text="${t['due']} ?: '—'">기한</td>
+        <td data-label="상태"><span th:if="${t['done'] == 'Y'}" class="badge badge-green">마침</span>
+          <span th:if="${t['done'] == 'N' and t['overdue']}" class="badge badge-red">기한 지남</span>
+          <span th:if="${t['done'] == 'N' and t['today']}" class="badge badge-orange">오늘</span>
+          <span th:if="${t['done'] == 'N' and !t['overdue'] and !t['today']}" class="badge badge-gray">할 일</span></td>
+        <td data-label="처리"><div class="inline-actions">
+          <form th:action="@{/desk/todos/{id}/done(id=${t['id']})}" method="post" class="inline-form">
+            <input type="hidden" name="on" th:value="${t['done'] == 'N'}">
+            <button type="submit" class="btn btn-outline btn-sm" th:text="${t['done'] == 'N'} ? '마침' : '되돌리기'">마침</button></form>
+          <form th:action="@{/desk/todos/{id}/delete(id=${t['id']})}" method="post" class="inline-form">
+            <button type="submit" class="btn btn-outline btn-sm">지우기</button></form></div></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

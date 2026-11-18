@@ -48,6 +48,9 @@ public class CivilController {
     private final egovframework.haengjeongnuli.civil.service.CivilFileService civilFiles;
     private final egovframework.haengjeongnuli.cmm.file.FileStorage fileStorage;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.desk.DeskService desk;
+
     public CivilController(DeadlineCalculator deadlineCalculator, CivilService civilService, AuditService auditService,
                            egovframework.haengjeongnuli.civil.service.CivilProcessService process,
                            egovframework.haengjeongnuli.civil.service.CivilFileService civilFiles,
@@ -249,6 +252,14 @@ public class CivilController {
         model.addAttribute("reasons", egovframework.haengjeongnuli.civil.service.ExtendReason.values());
         model.addAttribute("resultTypes", egovframework.haengjeongnuli.civil.service.ResultType.staffChoices());
         model.addAttribute("notifyMethods", egovframework.haengjeongnuli.civil.service.CivilProcessService.NOTIFY_METHODS);
+        // 같은 민원인의 다른 민원(볼 수 있는 것만)과 반복 민원 표시, 담당자 추천, 답변 문구
+        int others = desk.sameApplicantCount(c);
+        model.addAttribute("sameOthers", others);
+        model.addAttribute("repeat", egovframework.haengjeongnuli.desk.DeskService.isRepeat(others));
+        model.addAttribute("sameList", desk.sameApplicant(c, me));
+        boolean processing = process.canProcess(c, me) && !c.isDone();
+        model.addAttribute("suggestions", processing ? desk.suggest(c) : java.util.List.of());
+        model.addAttribute("replyTemplates", processing ? desk.templates(me) : java.util.List.of());
         return "civil/view";
     }
 

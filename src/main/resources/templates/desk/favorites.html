@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('즐겨찾기')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › 즐겨찾기</span><h1>즐겨찾기 메뉴</h1></div>
+  <form class="panel" th:action="@{/desk/favorites}" method="post" style="gap:12px;">
+    <fieldset style="border:0; padding:0; margin:0;">
+      <legend class="hint" th:text="'자주 쓰는 메뉴를 ' + ${max} + '개까지 고르세요. 오늘 요약 화면 맨 위에 나옵니다.'">안내</legend>
+      <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+        <label class="check" th:each="m, st : ${menus}"><input type="checkbox" name="path" th:value="${m.path}" th:checked="${#lists.contains(chosen, m.path)}"><span th:text="${m.label}">메뉴</span></label>
+      </div>
+    </fieldset>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

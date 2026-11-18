@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('직원 찾기')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › 직원 찾기</span><h1>직원 찾기 · 업무 분장</h1></div>
+  <form role="search" th:action="@{/desk/staff}" method="get" class="search-row">
+    <label for="sq" class="sr-only">이름·부서·업무</label>
+    <input id="sq" name="q" type="search" class="input" maxlength="50" th:value="${q}" placeholder="이름, 부서, 내선, 맡은 업무 (예: 불법주정차)">
+    <button type="submit" class="btn btn-primary">찾기</button>
+  </form>
+  <form class="panel" th:action="@{/desk/staff/duty}" method="post" style="gap:10px;">
+    <h2>내 업무 분장</h2>
+    <div class="field"><label for="md">맡은 업무 (쉼표로 나눠 적기)</label>
+      <input id="md" name="duties" class="input" maxlength="500" th:value="${myDuty}" placeholder="예: 불법주정차, 도로 파손, 가로등"></div>
+    <p class="hint" style="margin:0;">여기 적은 낱말이 민원 제목·내용에 나오면 민원 배정 때 담당자로 추천됩니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>직원</h2><span class="muted" th:text="${#lists.size(staff)} + '명'">0명</span></div>
+    <div class="table-wrap"><table class="list stack">
+      <thead><tr><th scope="col">이름</th><th scope="col">부서</th><th scope="col">직급</th><th scope="col">내선</th><th scope="col" style="text-align:left">맡은 업무</th><th scope="col">쪽지</th></tr></thead>
+      <tbody><tr th:each="s : ${staff}">
+        <td data-label="이름" style="color:var(--text)" th:text="${s.user().userName}">이름</td>
+        <td data-label="부서" th:text="${s.user().dept()} ?: '—'">부서</td>
+        <td data-label="직급" th:text="${s.user().position()} ?: '—'">직급</td>
+        <td data-label="내선" th:text="${s.user().extension} ?: '—'">내선</td>
+        <td class="left" data-label="맡은 업무" th:text="${#strings.isEmpty(s.duties())} ? '—' : ${s.duties()}">업무</td>
+        <td data-label="쪽지"><a th:if="${s.user().loginId != loginUser.loginId}" class="btn btn-outline btn-sm" th:href="@{/desk/messages(to=${s.user().loginId})}">보내기</a></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

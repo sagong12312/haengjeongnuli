@@ -243,8 +243,9 @@ public class EPetitionApiController {
     }
 
     @GetMapping("/members/{id:\\d+}/complaints")
-    public ResponseEntity<Map<String, Object>> memberComplaints(@PathVariable long id, @RequestParam(defaultValue = "1") int page) {
-        return ok(members.complaints(id, page));
+    public ResponseEntity<Map<String, Object>> memberComplaints(@PathVariable long id, @RequestParam(defaultValue = "1") int page,
+                                                                @RequestParam(required = false) String status) {
+        return ok(members.complaints(id, page, status));
     }
 
     @GetMapping("/members/{id:\\d+}/complaints/{receiptNo}")

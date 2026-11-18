@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('내 일정')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/desk}">내 업무</a> › 내 일정</span><h1>내 일정</h1></div>
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <a class="btn btn-outline btn-sm" th:href="@{/desk/calendar(ym=${prev})}" aria-label="이전 달">‹ 이전 달</a>
+    <h2 style="margin:0;" th:text="${title}">달</h2>
+    <a class="btn btn-outline btn-sm" th:href="@{/desk/calendar(ym=${next})}" aria-label="다음 달">다음 달 ›</a>
+    <a class="btn btn-outline btn-sm" th:href="@{/desk/calendar}">이번 달</a>
+  </div>
+  <p class="hint" style="margin:0;">
+    <span class="ev duty" style="display:inline-block; padding:2px 8px; border-radius:6px;">휴가·출장·시간외</span>
+    <span class="ev night" style="display:inline-block; padding:2px 8px; border-radius:6px;">당직</span>
+    <span class="ev meet" style="display:inline-block; padding:2px 8px; border-radius:6px;">회의</span>
+    <span class="ev todo" style="display:inline-block; padding:2px 8px; border-radius:6px;">할 일 기한</span></p>
+  <section class="panel">
+    <table class="cal">
+      <caption class="sr-only" th:text="${title} + ' 일정'">일정</caption>
+      <thead><tr><th scope="col">월</th><th scope="col">화</th><th scope="col">수</th><th scope="col">목</th><th scope="col">금</th><th scope="col">토</th><th scope="col">일</th></tr></thead>
+      <tbody><tr th:each="w : ${weeks}">
+        <td th:each="d : ${w}" th:classappend="${(d.monthValue != ym.monthValue ? 'other ' : '') + (d == today ? 'today ' : '') + (d.dayOfWeek.value == 7 ? 'sun' : '')}">
+          <span class="d" th:text="${d.dayOfMonth}">1</span>
+          <a th:each="e : ${events.get(d)}" th:class="'ev ' + ${e.kind()}" th:href="@{${e.link()}}" th:text="${e.text()}">일정</a>
+        </td>
+      </tr></tbody>
+    </table>
+    <ul class="cal-list">
+      <li th:if="${#maps.isEmpty(events)}" class="hint">이 달에는 일정이 없습니다.</li>
+      <li th:each="en : ${events}"><b th:text="${en.key}">날짜</b>
+        <a th:each="e : ${en.value}" th:class="'ev ' + ${e.kind()}" th:href="@{${e.link()}}" th:text="${e.text()}">일정</a></li>
+    </ul>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

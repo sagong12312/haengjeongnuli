@@ -251,6 +251,10 @@ class EPetitionPortalApiTest {
         JsonNode mine = apiGet("/members/" + mid + "/complaints?page=1", 200).get("data");
         assertThat(mine.get("total").asInt()).isEqualTo(1);
         assertThat(mine.get("items").get(0).get("receiptNo").asText()).isEqualTo(no);
+        // 처리 상태로 거르기
+        assertThat(apiGet("/members/" + mid + "/complaints?page=1&status=open", 200).get("data").get("total").asInt()).isEqualTo(1);
+        assertThat(apiGet("/members/" + mid + "/complaints?page=1&status=done", 200).get("data").get("total").asInt()).isZero();
+        assertThat(apiGet("/members/" + mid + "/complaints?page=1&status=bogus", 200).get("data").get("total").asInt()).isEqualTo(1);
         JsonNode one = apiGet("/members/" + mid + "/complaints/" + no, 200).get("data");
         assertThat(one.get("title").asText()).isEqualTo("회원 민원");
         assertThat(one.get("actionToken").asText()).hasSize(32);
