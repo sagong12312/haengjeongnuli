@@ -31,6 +31,9 @@ app:
     dormant-cron: "-"
   desk:
     loan-cron: "-"
+  biz:
+    morning-cron: "-"
+    purge-cron: "-"
   # 테스트는 사설 주소에서 오는 요청도 쓴다
   access:
     allowed-networks: 127.0.0.1/32,::1/128,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12

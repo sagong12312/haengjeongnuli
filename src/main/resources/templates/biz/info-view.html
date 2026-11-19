@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('정보공개청구')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › <a th:href="@{/biz/info}">정보공개청구</a></span><h1>정보공개청구</h1></div>
+  <section class="panel" style="gap:8px;">
+    <h2 th:text="${i['no']} + ' · ' + ${i['requester']}">청구</h2>
+    <p class="hint" style="margin:0;" th:text="'접수 ' + ${i['received']} + ' · 결정 기한 ' + ${i['due']} + (${i['extended'] == 'Y'} ? ' (연장: ' + ${i['extendReason']} + ')' : '') + (${i['contact']} ? ' · 연락처 ' + ${i['contact']} : '')">요약</p>
+    <div style="white-space:pre-wrap;" th:text="${i['content']}">내용</div>
+    <p th:if="${i['status'] == 'DONE'}" style="margin:0;"><b th:text="'결정: ' + ${decisions[i['decision']]} + ' (' + ${i['decisionOn']} + ')'">결정</b>
+      <span th:if="${i['decisionNote']}" style="display:block; white-space:pre-wrap;" th:text="${i['decisionNote']}">이유</span></p>
+  </section>
+  <th:block th:if="${i['status'] == 'WAIT'}">
+  <form class="panel" th:action="@{/biz/info/{id}/decide(id=${i['id']})}" method="post" style="gap:10px;">
+    <h2>공개 여부 결정</h2>
+    <div class="field" style="max-width:300px;"><label for="dd">결정</label><select id="dd" name="decision" class="select">
+      <option th:each="d : ${decisions}" th:value="${d.key}" th:text="${d.value}">결정</option></select></div>
+    <div class="field"><label for="dn">이유·근거 조항 (공개가 아니면 꼭)</label><textarea id="dn" name="note" class="textarea" rows="3" maxlength="1000"></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">결정 기록</button></div>
+  </form>
+  <form th:if="${i['extended'] == 'N'}" class="panel" th:action="@{/biz/info/{id}/extend(id=${i['id']})}" method="post" style="gap:10px;">
+    <h2>결정 기간 연장 (한 번, 10일)</h2>
+    <div class="field"><label for="er">부득이한 사유</label><input id="er" name="reason" class="input" maxlength="300" required></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-outline">연장</button></div>
+  </form>
+  </th:block>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

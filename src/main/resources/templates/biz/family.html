@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('경조사')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 경조사</span><h1>경조사</h1></div>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(list)}" class="hint" style="padding:20px 24px;">최근 경조사가 없습니다.</p>
+    <div th:each="e : ${list}" style="padding:14px 24px; border-top:1px solid var(--line-2); display:flex; flex-direction:column; gap:4px;">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"><span class="badge badge-gray" th:text="${kinds[e['kind']]}">종류</span><b th:text="${e['title']}">제목</b>
+        <span class="muted" th:text="${e['day']} + ' · ' + ${e['byName']}">날짜</span>
+        <form th:if="${e['by'] == loginUser.loginId or loginUser.admin}" th:action="@{/biz/family/{id}/delete(id=${e['id']})}" method="post" class="inline-form" style="margin-left:auto;">
+          <button type="submit" class="btn btn-plain btn-sm">지우기</button></form></div>
+      <div th:if="${e['body']}" style="white-space:pre-wrap;" th:text="${e['body']}">내용</div>
+    </div>
+  </section>
+  <form class="panel" th:action="@{/biz/family}" method="post" style="gap:10px;">
+    <h2>경조사 알리기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="fk">종류</label><select id="fk" name="kind" class="select"><option th:each="k : ${kinds}" th:value="${k.key}" th:text="${k.value}">종류</option></select></div>
+      <div class="field"><label for="fd">날짜</label><input id="fd" name="day" type="date" class="input" th:value="${today}" required></div>
+    </div>
+    <div class="field"><label for="ft">제목</label><input id="ft" name="title" class="input" maxlength="200" required placeholder="예: 총무과 홍길동 주무관 결혼"></div>
+    <div class="field"><label for="fb">내용 (장소·연락처 등, 선택)</label><textarea id="fb" name="body" class="textarea" rows="3" maxlength="1000"></textarea></div>
+    <label class="check"><input type="checkbox" name="notifyAll" value="true">모든 직원에게 알림 보내기</label>
+    <p class="hint" style="margin:0;">당사자의 동의를 받고 올리세요.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">올리기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

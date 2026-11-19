@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('전화 응대 기록')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 전화 응대 기록</span><h1>전화 응대 기록</h1></div>
+  <form class="panel" th:action="@{/biz/calls}" method="post" style="gap:10px;">
+    <h2>통화 기록하기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="cn">거신 분 (선택)</label><input id="cn" name="name" class="input" maxlength="100"></div>
+      <div class="field"><label for="cp">전화번호 (선택)</label><input id="cp" name="phone" class="input" type="tel" maxlength="20"></div>
+      <div class="field"><label for="cr">처리</label><select id="cr" name="result" class="select">
+        <option th:each="r : ${results}" th:value="${r.key}" th:text="${r.value}" th:selected="${r.key == 'DONE'}">결과</option></select></div>
+    </div>
+    <div class="field"><label for="ct">문의 요지</label><input id="ct" name="topic" class="input" maxlength="200" required placeholder="예: 여권 발급 소요 기간 문의"></div>
+    <div class="field"><label for="cs">통화 요약 (선택)</label><textarea id="cs" name="summary" class="textarea" rows="3" maxlength="1300"></textarea></div>
+    <p class="hint" style="margin:0;">'다시 연락하기로'를 고르면 오늘 할 일에 들어갑니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">기록</button></div>
+  </form>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <a class="btn btn-outline btn-sm" th:href="@{/biz/calls(ym=${prev})}">‹ 이전 달</a><h2 style="margin:0;" th:text="${ym} + ' 통화 ' + ${stats.total()} + '건'">달</h2>
+    <a class="btn btn-outline btn-sm" th:href="@{/biz/calls(ym=${next})}">다음 달 ›</a>
+    <span th:each="b : ${stats.byResult()}" class="badge badge-gray" th:text="${results[b.key]} + ' ' + ${b.value}">결과</span></div>
+  <form th:action="@{/biz/calls}" method="get" class="search-row"><input type="hidden" name="ym" th:value="${ym}">
+    <label for="cq" class="sr-only">검색어</label><input id="cq" name="q" type="search" class="input" maxlength="50" th:value="${q}" placeholder="요지·요약·이름 검색">
+    <button type="submit" class="btn btn-outline">찾기</button></form>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(stats.rows())}" class="hint" style="padding:20px 24px;">기록이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(stats.rows())}"><table class="list stack">
+      <thead><tr><th scope="col">때</th><th scope="col" style="text-align:left">문의 요지</th><th scope="col">거신 분</th><th scope="col">처리</th><th scope="col">받은 직원</th></tr></thead>
+      <tbody><tr th:each="c : ${stats.rows()}"><td data-label="때" th:text="${#temporals.format(c['at'], 'MM-dd HH:mm')}">때</td>
+        <td class="left" data-label="문의 요지"><span th:text="${c['topic']}">요지</span><small class="muted" th:if="${c['summary']}" style="display:block; white-space:pre-wrap;" th:text="${c['summary']}">요약</small></td>
+        <td data-label="거신 분" th:text="(${c['name']} ?: '—') + (${c['phone']} ? ' ' + ${c['phone']} : '')">이름</td>
+        <td data-label="처리" th:text="${results[c['result']]}">처리</td><td data-label="받은 직원" th:text="${c['staffName']}">직원</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

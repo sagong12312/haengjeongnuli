@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('협조 요청')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 협조 요청</span><h1>협조 요청</h1></div>
+  <section class="panel flush">
+    <div class="panel-head"><h2>주고받은 협조 요청</h2></div>
+    <p th:if="${#lists.isEmpty(coops)}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(coops)}"><table class="list stack">
+      <thead><tr><th scope="col">구분</th><th scope="col" style="text-align:left">제목</th><th scope="col">요청</th><th scope="col">받는 부서</th><th scope="col">회신 기한</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="c : ${coops}">
+        <td data-label="구분"><span th:class="'badge ' + (${c['incoming']} ? 'badge-blue' : 'badge-gray')" th:text="${c['incoming']} ? '받음' : '보냄'">구분</span></td>
+        <td class="left" data-label="제목"><a th:href="@{/biz/coops/{id}(id=${c['id']})}" th:text="${c['title']}">제목</a></td>
+        <td data-label="요청" th:text="(${c['fromDept']} ?: '') + ' ' + ${c['fromName']}">요청</td>
+        <td data-label="받는 부서" th:text="${c['toDept']}">부서</td>
+        <td data-label="회신 기한" th:text="${c['due']}">기한</td>
+        <td data-label="상태"><span th:class="'badge ' + (${c['status'] == 'DONE'} ? 'badge-green' : (${c['overdue']} ? 'badge-red' : 'badge-orange'))"
+              th:text="${c['status'] == 'DONE'} ? '회신함' : (${c['overdue']} ? '기한 지남' : '기다림')">상태</span></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+  <form class="panel" th:action="@{/biz/coops}" method="post" style="gap:10px;">
+    <h2>협조 요청 보내기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="cd">받는 부서</label><select id="cd" name="toDept" class="select" required>
+        <option value="">— 고르세요 —</option><option th:each="d : ${depts}" th:value="${d}" th:text="${d}">부서</option></select></div>
+      <div class="field"><label for="cu">회신 기한</label><input id="cu" name="due" type="date" class="input" th:min="${today}" required></div>
+    </div>
+    <div class="field"><label for="ct">제목</label><input id="ct" name="title" class="input" maxlength="200" required></div>
+    <div class="field"><label for="cb">요청 내용</label><textarea id="cb" name="body" class="textarea" rows="5" maxlength="1300" required></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">보내기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

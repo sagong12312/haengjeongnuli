@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('회의록')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 회의록</span><h1>회의록</h1></div>
+  <section class="panel flush">
+    <div class="panel-head"><h2>회의록</h2><span class="muted">내가 쓴 것, 우리 부서, 내가 참석한 회의</span></div>
+    <p th:if="${#lists.isEmpty(list)}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(list)}"><table class="list stack">
+      <thead><tr><th scope="col">날짜</th><th scope="col" style="text-align:left">회의</th><th scope="col">작성</th></tr></thead>
+      <tbody><tr th:each="m : ${list}"><td data-label="날짜" th:text="${m['day']}">날짜</td>
+        <td class="left" data-label="회의"><a th:href="@{/biz/minutes/{id}(id=${m['id']})}" th:text="${m['title']}">회의</a></td>
+        <td data-label="작성" th:text="${m['writerName']}">이름</td></tr></tbody>
+    </table></div>
+  </section>
+  <form class="panel" th:action="@{/biz/minutes}" method="post" style="gap:10px;">
+    <h2>회의록 쓰기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field" style="grid-column:span 2;"><label for="mt">회의 이름</label><input id="mt" name="title" class="input" maxlength="200" required></div>
+      <div class="field"><label for="md">날짜</label><input id="md" name="day" type="date" class="input" th:value="${today}" required></div>
+    </div>
+    <div class="field"><label for="ma">참석자 (Ctrl 을 누른 채 여러 명)</label>
+      <select id="ma" name="attendee" class="select" multiple size="5" style="height:auto;">
+        <option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + ' · ' + (${u.deptName} ?: '부서 없음') + ' (' + ${u.loginId} + ')'">직원</option></select></div>
+    <div class="field"><label for="mb">회의 내용</label><textarea id="mb" name="body" class="textarea" rows="5" maxlength="1300" required th:text="${draftBody}"></textarea></div>
+    <div class="field"><label for="mdc">결정 사항</label><textarea id="mdc" name="decisions" class="textarea" rows="3" maxlength="1300"></textarea></div>
+    <div class="field"><label for="mac">후속 조치 (한 줄에 하나: 아이디: 할 일 @기한)</label>
+      <textarea id="mac" name="actions" class="textarea" rows="3" th:text="${draftActions}" placeholder="kim01: 예산안 수정본 공유 @2026-12-01&#10;lee02: 업체 견적 받기"></textarea>
+      <p class="hint" style="margin:4px 0 0;">적은 후속 조치는 담당자의 '할 일'에 들어가고 알림이 갑니다.</p></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

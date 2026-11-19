@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('업무 매뉴얼')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 업무 매뉴얼</span><h1>업무 매뉴얼</h1></div>
+  <form th:action="@{/biz/manuals}" method="get" class="search-row"><label for="mq" class="sr-only">검색어</label>
+    <input id="mq" name="q" type="search" class="input" maxlength="50" th:value="${q}" placeholder="제목·내용 검색"><button type="submit" class="btn btn-outline">찾기</button></form>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(list)}" class="hint" style="padding:20px 24px;">매뉴얼이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(list)}"><table class="list stack">
+      <thead><tr><th scope="col">부서</th><th scope="col" style="text-align:left">제목</th><th scope="col">판</th><th scope="col">고친 때</th></tr></thead>
+      <tbody><tr th:each="m : ${list}"><td data-label="부서" th:text="${m['dept']} ?: '공통'">부서</td>
+        <td class="left" data-label="제목"><a th:href="@{/biz/manuals/{id}(id=${m['id']})}" th:text="${m['title']}">제목</a></td>
+        <td data-label="판" th:text="${m['version']}">1</td><td data-label="고친 때" th:text="${#temporals.format(m['updatedAt'], 'yyyy-MM-dd')} + ' ' + ${m['updatedBy']}">때</td></tr></tbody>
+    </table></div>
+  </section>
+  <form class="panel" th:action="@{/biz/manuals}" method="post" style="gap:10px;">
+    <h2>새 매뉴얼</h2>
+    <div class="field"><label for="nt">제목</label><input id="nt" name="title" class="input" maxlength="200" required placeholder="예: 여권 발급 접수 절차"></div>
+    <div class="field"><label for="nb">내용</label><textarea id="nb" name="body" class="textarea" rows="8" maxlength="1300" required></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">만들기</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('업무 지원')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a></span><h1>업무 지원</h1></div>
+  <div class="card-grid">
+    <a class="menu-card" th:href="@{/biz/worklog}"><b>업무 일지</b><span>오늘 한 일 적기, 우리 부서 일지 보기</span></a>
+    <a class="menu-card" th:href="@{/biz/events}"><b>부서 일정</b><span>부서 공용 일정, 내 일정 달력에 함께 표시</span></a>
+    <a class="menu-card" th:href="@{/biz/coops}"><b>협조 요청</b><span>다른 부서에 업무 협조 요청·회신, 기한 알림</span></a>
+    <a class="menu-card" th:href="@{/biz/minutes}"><b>회의록</b><span>참석자·결정 사항, 후속 조치는 담당자 할 일로</span></a>
+    <a class="menu-card" th:href="@{/biz/calls}"><b>전화 응대 기록</b><span>민원 전화 요지·결과, 월별 건수</span></a>
+    <a class="menu-card" th:href="@{/biz/visitors}"><b>방문객 출입</b><span>입실·퇴실 기록, 보존기간 뒤 개인정보 파기</span></a>
+    <a class="menu-card" th:href="@{/biz/lost}"><b>습득물</b><span>청사 안 습득물 보관·반환·경찰서 제출</span></a>
+    <a class="menu-card" th:href="@{/biz/info}"><b>정보공개청구</b><span>접수 대장, 결정 기한(10일)·연장, 결정 기록</span></a>
+    <a class="menu-card" th:href="@{/biz/supplies}"><b>비품 신청</b><span>사무용품 신청, 지급·재고 관리</span></a>
+    <a class="menu-card" th:href="@{/biz/manuals}"><b>업무 매뉴얼</b><span>업무별 처리 방법, 판 이력·되돌리기</span></a>
+    <a class="menu-card" th:href="@{/biz/family}"><b>경조사</b><span>결혼·출산·부고 알림</span></a>
+    <a class="menu-card" th:href="@{/biz/praise}"><b>칭찬 릴레이</b><span>동료 칭찬, 이달의 칭찬</span></a>
+  </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

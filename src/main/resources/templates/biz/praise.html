@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('칭찬 릴레이')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 칭찬 릴레이</span><h1>칭찬 릴레이</h1></div>
+  <section class="panel" style="gap:6px;" th:unless="${#lists.isEmpty(top)}">
+    <h2>이달의 칭찬</h2>
+    <ol style="margin:0; padding-left:22px;"><li th:each="t : ${top}" th:text="${t['name']} + ' · ' + ${t['cnt']} + '번'">이름</li></ol>
+  </section>
+  <form class="panel" th:action="@{/biz/praise}" method="post" style="gap:10px;">
+    <h2>동료 칭찬하기</h2>
+    <div class="field" style="max-width:360px;"><label for="pt">칭찬할 직원</label><select id="pt" name="toId" class="select" required><option value="">— 고르세요 —</option>
+      <option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + ' · ' + (${u.deptName} ?: '')">직원</option></select></div>
+    <div class="field"><label for="pb">칭찬</label><textarea id="pb" name="body" class="textarea" rows="3" minlength="5" maxlength="500" required placeholder="예: 바쁜 민원 창구를 끝까지 친절하게 맡아 주셨습니다."></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">칭찬</button></div>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>최근 칭찬</h2></div>
+    <p th:if="${#lists.isEmpty(list)}" class="hint" style="padding:0 24px 20px;">아직 없습니다. 첫 칭찬을 남겨 주세요.</p>
+    <div th:each="p : ${list}" style="padding:12px 24px; border-top:1px solid var(--line-2);">
+      <b th:text="${p['fromName']} + ' → ' + ${p['toName']}">누가 누구</b> <span class="muted" th:text="${#temporals.format(p['at'], 'MM-dd')}">날짜</span>
+      <div style="white-space:pre-wrap;" th:text="${p['body']}">내용</div></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

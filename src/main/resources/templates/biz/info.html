@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('정보공개청구')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 정보공개청구</span><h1>정보공개청구</h1></div>
+  <p class="hint">청구를 받은 날부터 10일 이내에 공개 여부를 결정합니다. 부득이한 사유가 있으면 한 번, 10일 범위에서 연장할 수 있고 청구인에게 문서로 알려야 합니다 (공공기관의 정보공개에 관한 법률 제11조). 끝나는 날이 토요일·공휴일이면 다음 날까지입니다.</p>
+  <section class="panel flush">
+    <div class="panel-head"><h2>접수 대장</h2><span class="muted">내가 맡은 것과 우리 부서 것 (관리자는 전체)</span></div>
+    <p th:if="${#lists.isEmpty(list)}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(list)}"><table class="list stack">
+      <thead><tr><th scope="col">접수번호</th><th scope="col">청구인</th><th scope="col">접수일</th><th scope="col">결정 기한</th><th scope="col">상태</th></tr></thead>
+      <tbody><tr th:each="i : ${list}"><td data-label="접수번호"><a th:href="@{/biz/info/{id}(id=${i['id']})}" th:text="${i['no']}">번호</a></td>
+        <td data-label="청구인" th:text="${i['requester']}">청구인</td><td data-label="접수일" th:text="${i['received']}">접수</td>
+        <td data-label="결정 기한" th:text="${i['due']} + (${i['extended'] == 'Y'} ? ' (연장)' : '')">기한</td>
+        <td data-label="상태"><span th:class="'badge ' + (${i['status'] == 'DONE'} ? 'badge-green' : (${i['late']} ? 'badge-red' : (${i['soon']} ? 'badge-orange' : 'badge-gray')))"
+          th:text="${i['status'] == 'DONE'} ? ${decisions[i['decision']]} : (${i['late']} ? '기한 지남' : (${i['soon']} ? '기한 임박' : '검토 중'))">상태</span></td></tr></tbody>
+    </table></div>
+  </section>
+  <form class="panel" th:action="@{/biz/info}" method="post" style="gap:10px;">
+    <h2>청구 접수</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="ir">청구인</label><input id="ir" name="requester" class="input" maxlength="100" required></div>
+      <div class="field"><label for="ic">연락처 (선택)</label><input id="ic" name="contact" class="input" maxlength="100"></div>
+      <div class="field"><label for="iv">접수일</label><input id="iv" name="received" type="date" class="input" th:value="${today}" th:max="${today}" required></div>
+      <div class="field"><label for="ia">담당자</label><select id="ia" name="assigneeId" class="select"><option value="">나중에</option>
+        <option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + ' · ' + (${u.deptName} ?: '')">직원</option></select></div>
+      <div class="field"><label for="id2">처리 부서 (선택)</label><select id="id2" name="dept" class="select"><option value="">담당자 부서</option>
+        <option th:each="d : ${depts}" th:value="${d}" th:text="${d}">부서</option></select></div>
+    </div>
+    <div class="field"><label for="it">청구 내용</label><textarea id="it" name="content" class="textarea" rows="4" maxlength="1300" required></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">접수</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

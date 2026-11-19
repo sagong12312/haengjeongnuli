@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('습득물')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 습득물</span><h1>습득물</h1></div>
+  <p class="hint" th:text="'청사 안에서 주운 물건은 관리자(기관)가 맡습니다. 습득일부터 ' + ${days} + '일 안에 주인에게 돌려주거나 경찰서에 제출하세요 (유실물법 제9조·제10조). 금지된 물건·범죄 관련 물건은 바로 경찰서에 내세요.'">안내</p>
+  <form class="panel" th:action="@{/biz/lost}" method="post" style="gap:10px;">
+    <h2>습득물 등록</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="lf">습득 일시</label><input id="lf" name="foundAt" type="datetime-local" class="input" th:value="${now}" required></div>
+      <div class="field"><label for="lp">습득 장소</label><input id="lp" name="place" class="input" maxlength="200" required placeholder="예: 1층 민원실 대기석"></div>
+      <div class="field"><label for="lw">습득자 (선택)</label><input id="lw" name="finder" class="input" maxlength="100"></div>
+      <div class="field"><label for="ls">보관 장소</label><input id="ls" name="store" class="input" maxlength="200" required placeholder="예: 총무과 금고"></div>
+    </div>
+    <div class="field"><label for="ld">물건 설명</label><input id="ld" name="desc" class="input" maxlength="300" required placeholder="예: 검은색 장지갑 (신분증 1장)"></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">등록</button></div>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>습득물 대장</h2></div>
+    <p th:if="${#lists.isEmpty(items)}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div th:each="i : ${items}" style="padding:12px 24px; border-top:1px solid var(--line-2); display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"><b th:text="${i['desc']}">물건</b>
+        <span th:class="'badge ' + (${i['status'] == 'KEEP'} ? (${i['late']} ? 'badge-red' : 'badge-orange') : 'badge-green')"
+              th:text="${i['status'] == 'KEEP'} ? (${i['late']} ? '기한 지남' : '보관 중') : (${i['status'] == 'RETURNED'} ? '반환' : '경찰서 제출')">상태</span></div>
+      <span class="hint" style="margin:0;" th:text="${#temporals.format(i['foundAt'], 'yyyy-MM-dd HH:mm')} + ' · ' + ${i['place']} + ' · 보관 ' + ${i['store']} + (${i['status'] == 'KEEP'} ? ' · 기한 ' + ${i['deadline']} : ' · ' + (${i['owner']} ?: '') + ' ' + ${i['handledBy']})">정보</span>
+      <form th:if="${i['status'] == 'KEEP'}" th:action="@{/biz/lost/{id}/handle(id=${i['id']})}" method="post" style="display:flex; flex-wrap:wrap; gap:8px; margin:0;">
+        <label class="sr-only" th:for="'lo' + ${i['id']}">돌려받은 사람</label>
+        <input th:id="'lo' + ${i['id']}" name="owner" class="input" maxlength="100" placeholder="돌려받은 사람 (신분 확인 뒤)" style="flex:1; min-width:180px;">
+        <button type="submit" name="status" value="RETURNED" class="btn btn-outline btn-sm">주인에게 반환</button>
+        <button type="submit" name="status" value="POLICE" class="btn btn-outline btn-sm">경찰서 제출</button></form>
+    </div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

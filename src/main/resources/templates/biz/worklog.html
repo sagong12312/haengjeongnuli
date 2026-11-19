@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('업무 일지')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 업무 일지</span><h1>업무 일지</h1></div>
+  <form th:action="@{/biz/worklog}" method="get" class="search-row" style="max-width:420px;">
+    <label for="wd" class="sr-only">날짜</label><input id="wd" name="date" type="date" class="input" th:value="${date}" th:max="${today}">
+    <button type="submit" class="btn btn-outline">보기</button></form>
+  <form th:if="${editable}" class="panel" th:action="@{/biz/worklog}" method="post" style="gap:10px;">
+    <h2 th:text="${date} + ' 내 일지'">일지</h2>
+    <input type="hidden" name="date" th:value="${date}">
+    <div class="field"><label for="wb">한 일</label><textarea id="wb" name="body" class="textarea" rows="6" maxlength="1300" required
+      th:text="${log} ? ${log['body']} : ''" placeholder="예: 민원 3건 처리, ○○사업 계약 서류 검토"></textarea></div>
+    <p class="hint" style="margin:0;">오늘부터 7일 전까지의 일지만 쓰고 고칠 수 있습니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">저장</button></div>
+  </form>
+  <section th:unless="${editable}" class="panel"><h2 th:text="${date} + ' 내 일지'">일지</h2>
+    <p style="white-space:pre-wrap; margin:0;" th:text="${log} ? ${log['body']} : '적은 일지가 없습니다.'">내용</p></section>
+  <section class="panel flush" th:unless="${#strings.isEmpty(myDept)}">
+    <div class="panel-head"><h2 th:text="${myDept} + ' 일지 (' + ${date} + ')'">부서 일지</h2><span class="muted" th:text="${#lists.size(dept)} + '명'">0명</span></div>
+    <p th:if="${#lists.isEmpty(dept)}" class="hint" style="padding:0 24px 20px;">아직 아무도 쓰지 않았습니다.</p>
+    <div th:each="d : ${dept}" style="padding:12px 24px; border-top:1px solid var(--line-2);"><b th:text="${d['userName']}">이름</b>
+      <div style="white-space:pre-wrap;" th:text="${d['body']}">내용</div></div>
+  </section>
+  <section class="panel" style="gap:6px;"><h2>최근 30일 내 일지</h2>
+    <p th:if="${#lists.isEmpty(mine)}" class="hint" style="margin:0;">없습니다.</p>
+    <ul th:unless="${#lists.isEmpty(mine)}" style="margin:0; padding-left:20px;">
+      <li th:each="w : ${mine}"><a th:href="@{/biz/worklog(date=${w['day']})}" th:text="${w['day']}">날짜</a> — <span th:text="${#strings.abbreviate(w['body'], 60)}">요약</span></li></ul>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

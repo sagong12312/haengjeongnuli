@@ -70,6 +70,18 @@ public class SearchController {
             new Menu("회의실 예약", "회의실 예약 회의 참석자", "/office/rooms"),
             new Menu("당직", "당직 숙직 일직 교대 근무일지", "/office/duty"),
             new Menu("보안 설정", "보안 2단계 OTP 로그인 기록", "/mypage/security"),
+            new Menu("업무 일지", "업무일지 일지 한 일", "/biz/worklog"),
+            new Menu("부서 일정", "부서 일정 행사 공용 일정", "/biz/events"),
+            new Menu("협조 요청", "협조 요청 부서 간 업무 협조 회신", "/biz/coops"),
+            new Menu("회의록", "회의록 회의 결정 후속 조치", "/biz/minutes"),
+            new Menu("전화 응대 기록", "전화 응대 통화 기록 민원 전화", "/biz/calls"),
+            new Menu("방문객 출입", "방문객 방문 출입 입실 퇴실", "/biz/visitors"),
+            new Menu("습득물", "습득물 분실물 유실물 분실", "/biz/lost"),
+            new Menu("정보공개청구", "정보공개 청구 공개 결정 비공개", "/biz/info"),
+            new Menu("비품 신청", "비품 소모품 사무용품 신청 재고", "/biz/supplies"),
+            new Menu("업무 매뉴얼", "매뉴얼 업무 처리 방법 지침", "/biz/manuals"),
+            new Menu("경조사", "경조사 결혼 출산 부고", "/biz/family"),
+            new Menu("칭찬 릴레이", "칭찬 동료", "/biz/praise"),
             new Menu("비밀번호 변경", "내 정보 비밀번호", "/mypage/password"));
 
     private final ApprovalService approvalService;

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('부서 일정')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 부서 일정</span><h1>부서 일정</h1></div>
+  <p th:if="${#strings.isEmpty(myDept)}" class="hint">부서가 정해지지 않아 부서 일정을 쓸 수 없습니다.</p>
+  <th:block th:unless="${#strings.isEmpty(myDept)}">
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <a class="btn btn-outline btn-sm" th:href="@{/biz/events(ym=${prev})}">‹ 이전 달</a><h2 style="margin:0;" th:text="${myDept} + ' ' + ${ym}">달</h2>
+    <a class="btn btn-outline btn-sm" th:href="@{/biz/events(ym=${next})}">다음 달 ›</a></div>
+  <section class="panel flush">
+    <p th:if="${#lists.isEmpty(events)}" class="hint" style="padding:20px 24px;">이 달 부서 일정이 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(events)}"><table class="list stack">
+      <thead><tr><th scope="col">날짜</th><th scope="col" style="text-align:left">일정</th><th scope="col">올린 사람</th><th scope="col">지우기</th></tr></thead>
+      <tbody><tr th:each="e : ${events}"><td data-label="날짜" th:text="${e['day']}">날짜</td><td class="left" data-label="일정" th:text="${e['title']}">일정</td>
+        <td data-label="올린 사람" th:text="${e['byName']}">이름</td>
+        <td data-label="지우기"><form th:if="${e['by'] == loginUser.loginId or loginUser.admin}" th:action="@{/biz/events/{id}/delete(id=${e['id']})}" method="post" class="inline-form">
+          <button type="submit" class="btn btn-plain btn-sm">지우기</button></form></td></tr></tbody>
+    </table></div>
+  </section>
+  <form class="panel" th:action="@{/biz/events}" method="post" style="gap:10px;">
+    <h2>부서 일정 올리기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <div class="field"><label for="ed">날짜</label><input id="ed" name="day" type="date" class="input" required></div>
+      <div class="field" style="grid-column:span 2;"><label for="et">일정</label><input id="et" name="title" class="input" maxlength="200" required placeholder="예: 부서 워크숍, 감사 수감"></div>
+    </div>
+    <label class="check"><input type="checkbox" name="notify" value="true" checked>부서원에게 알림 보내기</label>
+    <p class="hint" style="margin:0;">부서 일정은 부서원 모두의 '내 일정' 달력에도 나옵니다.</p>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">올리기</button></div>
+  </form>
+  </th:block>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

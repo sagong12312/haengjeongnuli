@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('회의록')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › <a th:href="@{/biz/minutes}">회의록</a></span><h1>회의록</h1></div>
+  <section class="panel" style="gap:10px;">
+    <h2 th:text="${m['title']}">회의</h2>
+    <dl class="kv" style="margin:0; display:grid; grid-template-columns:110px 1fr; gap:8px;">
+      <dt class="muted">날짜</dt><dd style="margin:0" th:text="${m['day']}">날짜</dd>
+      <dt class="muted">참석자</dt><dd style="margin:0" th:text="${m['attendeeNames']}">참석자</dd>
+      <dt class="muted">작성</dt><dd style="margin:0" th:text="${m['writerName']} + (${m['dept']} ? ' · ' + ${m['dept']} : '')">작성</dd>
+    </dl>
+    <h3 style="margin:8px 0 0;">회의 내용</h3><div style="white-space:pre-wrap;" th:text="${m['body']}">내용</div>
+    <th:block th:if="${m['decisions']}"><h3 style="margin:8px 0 0;">결정 사항</h3><div style="white-space:pre-wrap;" th:text="${m['decisions']}">결정</div></th:block>
+    <div class="form-actions"><button type="button" class="btn btn-outline" data-print>인쇄</button></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

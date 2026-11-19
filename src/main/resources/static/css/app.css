@@ -216,7 +216,7 @@ table.list td a { color: var(--text); text-decoration: none; }
 .cal .d { font-weight: 800; display: block; margin-bottom: 4px; }
 .cal .sun .d, .cal .holi .d { color: var(--red-fg); }
 .cal .ev { display: block; border-radius: 6px; padding: 2px 6px; margin-bottom: 3px; text-decoration: none; color: var(--text); overflow-wrap: anywhere; line-height: 1.35; }
-.ev.duty { background: var(--brand-tint); } .ev.night { background: var(--orange-bg); } .ev.meet { background: var(--green-bg); } .ev.todo { background: var(--gray-bg); }
+.ev.duty { background: var(--brand-tint); } .ev.dept { background: #EFE7FB; } .ev.night { background: var(--orange-bg); } .ev.meet { background: var(--green-bg); } .ev.todo { background: var(--gray-bg); }
 .bar { height: 14px; background: var(--gray-bg); border-radius: 999px; overflow: hidden; }
 .bar > span { display: block; height: 100%; background: var(--brand); }
 .cal-list { display: none; }

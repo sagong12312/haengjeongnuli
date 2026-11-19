@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('비품 신청')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 비품 신청</span><h1>비품 신청</h1></div>
+  <form class="panel" th:action="@{/biz/supplies}" method="post" style="gap:10px;">
+    <h2>신청하기</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="si">비품</label><select id="si" name="itemId" class="select" required><option value="">— 고르세요 —</option>
+        <option th:each="i : ${items}" th:value="${i['id']}" th:text="${i['name']} + ' (재고 ' + ${i['stock']} + ${i['unit']} + ')'">비품</option></select></div>
+      <div class="field"><label for="sq">수량</label><input id="sq" name="qty" type="number" min="1" max="1000" class="input" value="1" required></div>
+      <div class="field"><label for="sn">쓰는 곳 (선택)</label><input id="sn" name="note" class="input" maxlength="200"></div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">신청</button></div>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>내 신청</h2></div>
+    <p th:if="${#lists.isEmpty(mine)}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(mine)}"><table class="list stack">
+      <thead><tr><th scope="col">비품</th><th scope="col">수량</th><th scope="col">상태</th><th scope="col" style="text-align:left">메모</th></tr></thead>
+      <tbody><tr th:each="r : ${mine}"><td data-label="비품" th:text="${r['item']}">비품</td><td data-label="수량" th:text="${r['qty']} + ${r['unit']}">수량</td>
+        <td data-label="상태"><span th:class="'badge ' + (${r['status'] == 'DONE'} ? 'badge-green' : (${r['status'] == 'NO'} ? 'badge-red' : 'badge-orange'))"
+          th:text="${r['status'] == 'DONE'} ? '지급' : (${r['status'] == 'NO'} ? '반려' : '기다림')">상태</span></td>
+        <td class="left" data-label="메모" th:text="${r['note']} ?: '—'">메모</td></tr></tbody>
+    </table></div>
+  </section>
+  <th:block th:if="${loginUser.admin}">
+  <section class="panel flush">
+    <div class="panel-head"><h2>신청 처리 (관리자)</h2></div>
+    <p th:if="${#lists.isEmpty(all)}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div th:each="r : ${all}" th:if="${r['status'] == 'WAIT'}" style="padding:12px 24px; border-top:1px solid var(--line-2);">
+      <div th:text="${r['userName']} + (${r['dept']} ? ' · ' + ${r['dept']} : '') + ' — ' + ${r['item']} + ' ' + ${r['qty']} + ${r['unit']} + (${r['note']} ? ' (' + ${r['note']} + ')' : '')">신청</div>
+      <form th:action="@{/biz/supplies/{id}/give(id=${r['id']})}" method="post" style="display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 0;">
+        <label class="sr-only" th:for="'sr' + ${r['id']}">메모</label><input th:id="'sr' + ${r['id']}" name="note" class="input" maxlength="200" placeholder="메모 (반려할 때는 꼭)" style="flex:1; min-width:180px;">
+        <button type="submit" class="btn btn-primary btn-sm">지급</button>
+        <button type="submit" class="btn btn-outline btn-sm" th:formaction="@{/biz/supplies/{id}/reject(id=${r['id']})}">반려</button></form>
+    </div>
+  </section>
+  <section class="panel" style="gap:10px;">
+    <h2>비품·재고 (관리자)</h2>
+    <div th:each="i : ${items}" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+      <span th:text="${i['name']} + ' · 재고 ' + ${i['stock']} + ${i['unit']}" style="min-width:200px;">비품</span>
+      <form th:action="@{/biz/supplies/items/{id}/stock(id=${i['id']})}" method="post" style="display:flex; gap:6px; margin:0;">
+        <label class="sr-only" th:for="'st' + ${i['id']}">들어온 수량</label><input th:id="'st' + ${i['id']}" name="qty" type="number" min="1" class="input" placeholder="입고" style="max-width:110px;">
+        <button type="submit" class="btn btn-plain btn-sm">입고</button></form></div>
+    <form th:action="@{/biz/supplies/items}" method="post" style="display:flex; flex-wrap:wrap; gap:8px; margin:0;">
+      <label class="sr-only" for="nn">비품 이름</label><input id="nn" name="name" class="input" maxlength="100" placeholder="비품 이름" required style="flex:1; min-width:160px;">
+      <label class="sr-only" for="nu">단위</label><input id="nu" name="unit" class="input" maxlength="20" placeholder="단위 (개)" required style="max-width:110px;">
+      <label class="sr-only" for="ns">재고</label><input id="ns" name="stock" type="number" min="0" class="input" placeholder="재고" required style="max-width:110px;">
+      <button type="submit" class="btn btn-outline">비품 등록</button></form>
+  </section>
+  </th:block>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('업무 매뉴얼')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › <a th:href="@{/biz/manuals}">업무 매뉴얼</a></span><h1>업무 매뉴얼</h1></div>
+  <section th:unless="${edit}" class="panel" style="gap:8px;">
+    <h2 th:text="${m['title']}">제목</h2>
+    <p class="hint" style="margin:0;" th:text="(${m['dept']} ?: '공통') + ' · ' + ${m['version']} + '판 · ' + ${#temporals.format(m['updatedAt'], 'yyyy-MM-dd HH:mm')} + ' ' + ${m['updatedBy']}">정보</p>
+    <div style="white-space:pre-wrap; font-size:19px;" th:text="${m['body']}">내용</div>
+    <div class="form-actions"><a class="btn btn-outline" th:href="@{/biz/manuals/{id}(id=${m['id']}, edit=true)}">고치기</a>
+      <button type="button" class="btn btn-outline" data-print>인쇄</button></div>
+  </section>
+  <form th:if="${edit}" class="panel" th:action="@{/biz/manuals}" method="post" style="gap:10px;">
+    <h2 th:text="${m['version']} + '판 고치기'">고치기</h2>
+    <input type="hidden" name="id" th:value="${m['id']}"><input type="hidden" name="version" th:value="${m['version']}">
+    <div class="field"><label for="et">제목</label><input id="et" name="title" class="input" maxlength="200" required th:value="${m['title']}"></div>
+    <div class="field"><label for="eb">내용</label><textarea id="eb" name="body" class="textarea" rows="10" maxlength="1300" required th:text="${m['body']}"></textarea></div>
+    <div class="form-actions"><a class="btn btn-plain" th:href="@{/biz/manuals/{id}(id=${m['id']})}">취소</a><button type="submit" class="btn btn-primary">저장 (새 판)</button></div>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>이전 판</h2></div>
+    <p th:if="${#lists.isEmpty(revs)}" class="hint" style="padding:0 24px 20px;">아직 없습니다.</p>
+    <details th:each="r : ${revs}" style="padding:10px 24px; border-top:1px solid var(--line-2);">
+      <summary th:text="${r['version']} + '판 · ' + ${#temporals.format(r['updatedAt'], 'yyyy-MM-dd HH:mm')} + ' ' + ${r['updatedBy']} + ' · ' + ${r['title']}">판</summary>
+      <div style="white-space:pre-wrap; margin:8px 0;" th:text="${r['body']}">내용</div>
+      <form th:action="@{/biz/manuals/{id}/restore(id=${m['id']})}" method="post" class="inline-form" th:attr="data-confirm=${r['version']} + '판 내용으로 되돌릴까요? (지금 내용도 이력에 남습니다)'">
+        <input type="hidden" name="version" th:value="${r['version']}"><button type="submit" class="btn btn-outline btn-sm">이 판으로 되돌리기</button></form>
+    </details>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

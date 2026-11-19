@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('방문객 출입')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › 방문객 출입</span><h1>방문객 출입</h1></div>
+  <p class="hint" th:text="'방문객 이름·연락처는 방문일부터 ' + ${keepDays} + '일이 지나면 자동으로 지웁니다 (방문 사실과 목적은 남김). 방문 기록 목적 외에는 쓰지 마세요.'">안내</p>
+  <form class="panel" th:action="@{/biz/visitors}" method="post" style="gap:10px;">
+    <h2>입실 기록</h2>
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="field"><label for="vn">방문객 이름</label><input id="vn" name="name" class="input" maxlength="100" required></div>
+      <div class="field"><label for="vp">연락처 (선택)</label><input id="vp" name="phone" class="input" type="tel" maxlength="20"></div>
+      <div class="field"><label for="vo">소속 (선택)</label><input id="vo" name="org" class="input" maxlength="100"></div>
+      <div class="field"><label for="vh">만날 직원</label><select id="vh" name="hostId" class="select">
+        <option value="">나</option><option th:each="u : ${staff}" th:value="${u.loginId}" th:text="${u.userName} + ' · ' + (${u.deptName} ?: '')">직원</option></select></div>
+    </div>
+    <div class="field"><label for="vu">방문 목적</label><input id="vu" name="purpose" class="input" maxlength="200" required></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">입실</button></div>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>방문 기록</h2></div>
+    <p th:if="${#lists.isEmpty(visits)}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(visits)}"><table class="list stack">
+      <thead><tr><th scope="col">방문객</th><th scope="col">소속</th><th scope="col" style="text-align:left">목적</th><th scope="col">만난 직원</th><th scope="col">입실</th><th scope="col">퇴실</th></tr></thead>
+      <tbody><tr th:each="v : ${visits}"><td data-label="방문객" th:text="${v['name']}">이름</td><td data-label="소속" th:text="${v['org']} ?: '—'">소속</td>
+        <td class="left" data-label="목적" th:text="${v['purpose']}">목적</td><td data-label="만난 직원" th:text="${v['hostName']}">직원</td>
+        <td data-label="입실" th:text="${#temporals.format(v['inAt'], 'MM-dd HH:mm')}">입실</td>
+        <td data-label="퇴실"><span th:if="${v['outAt']}" th:text="${#temporals.format(v['outAt'], 'HH:mm')}">퇴실</span>
+          <form th:unless="${v['outAt']}" th:action="@{/biz/visitors/{id}/out(id=${v['id']})}" method="post" class="inline-form"><button type="submit" class="btn btn-outline btn-sm">퇴실</button></form></td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

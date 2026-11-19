@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('협조 요청')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/biz}">업무 지원</a> › <a th:href="@{/biz/coops}">협조 요청</a></span><h1>협조 요청</h1></div>
+  <section class="panel" style="gap:8px;">
+    <h2 th:text="${c['title']}">제목</h2>
+    <p style="margin:0;" class="hint" th:text="(${c['fromDept']} ?: '') + ' ' + ${c['fromName']} + ' → ' + ${c['toDept']} + ' · 회신 기한 ' + ${c['due']}">요약</p>
+    <div style="white-space:pre-wrap;" th:text="${c['body']}">내용</div>
+  </section>
+  <section class="panel" th:if="${c['status'] == 'DONE'}" style="gap:6px;">
+    <h2>회신</h2><p class="hint" style="margin:0;" th:text="${c['repliedBy']} + ' · ' + ${#temporals.format(c['repliedAt'], 'yyyy-MM-dd HH:mm')}">회신자</p>
+    <div style="white-space:pre-wrap;" th:text="${c['reply']}">회신</div></section>
+  <form th:if="${canReply}" class="panel" th:action="@{/biz/coops/{id}/reply(id=${c['id']})}" method="post" style="gap:10px;">
+    <h2>회신하기</h2>
+    <div class="field"><label for="rr">회신 내용</label><textarea id="rr" name="reply" class="textarea" rows="5" maxlength="1300" required></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">회신</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

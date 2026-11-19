@@ -123,7 +123,8 @@ public enum AuditAction {
     HOLIDAY_DELETE("공휴일 삭제"),
 
     ATTEND_IN("출근"),
-    ATTEND_OUT("퇴근");
+    ATTEND_OUT("퇴근"),
+    BIZ("업무 지원 (방문객·습득물·정보공개)");
 
     private final String label;
 

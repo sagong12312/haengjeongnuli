@@ -77,6 +77,9 @@ public class DeskService {
     static final int REPEAT_THRESHOLD = 3;
 
     private final DeskMapper mapper;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private egovframework.haengjeongnuli.biz.BizMapper bizMapper;
     private final UserService users;
     private final NotificationService notifications;
     private final OfficeService office;
@@ -687,6 +690,13 @@ public class DeskService {
                 LocalDate x = date(r.get("day"));
                 add(m, new Event(x, "meet", r.get("start") + " " + r.get("title") + " (" + r.get("roomName") + (mine ? "" : ", 참석") + ")",
                         "/office/rooms?date=" + x));
+            }
+        }
+        // 우리 부서 공용 일정
+        if (bizMapper != null && !me.dept().isEmpty()) {
+            for (Map<String, Object> e : bizMapper.deptEvents(me.dept(), from, to)) {
+                LocalDate x = date(e.get("day"));
+                add(m, new Event(x, "dept", "부서: " + e.get("title"), "/biz/events?ym=" + ym));
             }
         }
         for (Map<String, Object> t : todos(me)) {
