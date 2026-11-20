@@ -96,7 +96,7 @@
     <h2>물품 올리기</h2>
     <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));">
       <div class="field"><label for="an">품명 <span class="req">*</span></label><input id="an" name="name" class="input" required maxlength="200"></div>
-      <div class="field"><label for="asp">규격</label><input id="asp" name="spec" class="input" maxlength="300"></div>
+      <div class="field"><label for="asp">규격</label><input id="asp" name="spec" class="input" maxlength="300" placeholder="예: 삼성 NT750XGR, 15.6인치, i5/16GB/512GB"></div>
       <div class="field"><label for="aqt">수량 <span class="req">*</span></label><input id="aqt" name="quantity" class="input" required inputmode="numeric" value="1"></div>
       <div class="field"><label for="aup">단가 <span class="req">*</span></label><input id="aup" name="unitPrice" class="input" required inputmode="numeric"></div>
       <div class="field"><label for="aad">취득일 <span class="req">*</span></label><input id="aad" name="acquiredDate" type="date" class="input" required th:value="${today}" th:max="${today}"></div>
