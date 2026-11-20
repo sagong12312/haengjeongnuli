@@ -279,16 +279,40 @@ public class EPetitionMemberService {
         return complaints(memberId, page, null);
     }
 
+    /** 가입 화면에서 바로 알려 주기: 그 아이디를 쓸 수 있는지 (글자 규칙·예약어·중복) */
+    public Map<String, Object> checkLoginId(String loginId) {
+        String id = loginId == null ? "" : loginId.trim();
+        Map<String, Object> out = new LinkedHashMap<>();
+        String reason = null;
+        if (!id.matches("[a-z][a-z0-9_]{4,19}")) {
+            reason = "아이디는 영문 소문자로 시작하고 영문 소문자·숫자·밑줄(_)로 5~20자입니다.";
+        } else if (RESERVED.contains(id) || id.startsWith("admin")) {
+            reason = "쓸 수 없는 아이디입니다. 다른 아이디를 정하세요.";
+        } else if (mapper.loginIdUsed(id) > 0) {
+            reason = "이미 쓰고 있는 아이디입니다.";
+        }
+        out.put("available", reason == null);
+        out.put("reason", reason == null ? "" : reason);
+        return out;
+    }
+
     /** status: open(처리 중) · done(처리 완료) · 그 밖은 모두 */
     public Map<String, Object> complaints(long memberId, int page, String status) {
+        return complaints(memberId, page, status, null);
+    }
+
+    /** q: 제목에 들어간 말 (50자까지) */
+    public Map<String, Object> complaints(long memberId, int page, String status, String q) {
         mustGet(memberId);
+        String like = q == null || q.isBlank() ? null : "%" + q.trim().substring(0, Math.min(50, q.trim().length()))
+                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
         String filter = "open".equals(status) ? "OPEN" : "done".equals(status) ? "DONE" : null;
         int size = EPetitionService.PAGE_SIZE;
-        int total = mapper.countMemberComplaints(memberId, filter);
+        int total = mapper.countMemberComplaints(memberId, filter, like);
         int pages = Math.max(1, (total + size - 1) / size);
         int p = Math.min(Math.max(page, 1), pages);
         List<Map<String, Object>> items = new ArrayList<>();
-        for (Map<String, Object> c : mapper.memberComplaints(memberId, (p - 1) * size, p * size, filter)) {
+        for (Map<String, Object> c : mapper.memberComplaints(memberId, (p - 1) * size, p * size, filter, like)) {
             Map<String, Object> it = new LinkedHashMap<>();
             it.put("receiptNo", c.get("receiptNo"));
             it.put("kindLabel", EPetitionService.kindLabel((String) c.get("kind")));

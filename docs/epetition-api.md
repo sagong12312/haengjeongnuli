@@ -277,7 +277,8 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 | `POST /members/{id}/profile` | `{"name","mobile","email","address"}` | `invalid_input` |
 | `POST /members/{id}/password` | `{"currentPassword","newPassword"}` | `wrong_password`, `invalid_password` |
 | `POST /members/{id}/delete` | `{"password"}` → `{deleted,complaints}` | 회원 정보는 바로 지우고, 낸 민원은 남기되 연결만 끊음 |
-| `GET /members/{id}/complaints?page=1&status=open` | `{total,page,totalPages,items:[{receiptNo,kindLabel,title,status,statusLabel,receivedAt,deadlineAt,completedAt}]}`. `status`(선택): `open` 처리 중(접수 대기 포함), `done` 처리 완료(취하 포함), 없거나 다른 값이면 모두 | |
+| `GET /members/{id}/complaints?page=1&status=open` | `{total,page,totalPages,items:[{receiptNo,kindLabel,title,status,statusLabel,receivedAt,deadlineAt,completedAt}]}`. `status`(선택): `open` 처리 중(접수 대기 포함), `done` 처리 완료(취하 포함), 없거나 다른 값이면 모두. `q`(선택): 제목에 들어간 말 (50자까지) | |
+| `GET /members/check?loginId=` | `{available, reason}` — 가입 화면에서 아이디를 쓸 수 있는지 바로 알려 준다 (글자 규칙·예약어·중복). 쓸 수 있으면 `reason` 은 빈 문자열 | |
 | `GET /members/{id}/complaints/{receiptNo}` | 5-2와 같은 꼴 (본인용 값 포함) | 남의 민원이면 404 |
 
 5-1 접수에 `"memberId": 7`을 넣으면 회원 민원이 되며, 이때 `password`는 빼도 됩니다(넣으면 비회원 조회도 됨).

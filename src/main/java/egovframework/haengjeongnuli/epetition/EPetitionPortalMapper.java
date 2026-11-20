@@ -201,16 +201,17 @@ public interface EPetitionPortalMapper {
 
     /** st: null 이면 모두, OPEN 이면 처리 중(접수 대기 포함), DONE 이면 처리 완료(취하 포함) */
     @Select("SELECT COUNT(*) FROM CIVIL_COMPLAINT WHERE MEMBER_ID = #{memberId} "
-            + "AND (#{st, jdbcType=VARCHAR} IS NULL OR (#{st, jdbcType=VARCHAR} = 'DONE' AND STATUS = 'DONE') OR (#{st, jdbcType=VARCHAR} = 'OPEN' AND STATUS <> 'DONE'))")
-    int countMemberComplaints(@Param("memberId") long memberId, @Param("st") String st);
+            + "AND (#{st, jdbcType=VARCHAR} IS NULL OR (#{st, jdbcType=VARCHAR} = 'DONE' AND STATUS = 'DONE') OR (#{st, jdbcType=VARCHAR} = 'OPEN' AND STATUS <> 'DONE')) AND (#{q, jdbcType=VARCHAR} IS NULL OR TITLE LIKE #{q, jdbcType=VARCHAR} ESCAPE '\\')")
+    int countMemberComplaints(@Param("memberId") long memberId, @Param("st") String st, @Param("q") String q);
 
     @Select("SELECT * FROM (SELECT X.*, ROWNUM AS RN FROM (SELECT COMPLAINT_ID AS \"id\", RECEIPT_NO AS \"receiptNo\", KIND AS \"kind\", "
             + "TITLE AS \"title\", STATUS AS \"status\", RECEIVED_AT AS \"receivedAt\", DEADLINE_AT AS \"deadlineAt\", "
             + "COMPLETED_AT AS \"completedAt\", RESULT_TYPE AS \"resultType\" FROM CIVIL_COMPLAINT WHERE MEMBER_ID = #{memberId} "
             + "AND (#{st, jdbcType=VARCHAR} IS NULL OR (#{st, jdbcType=VARCHAR} = 'DONE' AND STATUS = 'DONE') OR (#{st, jdbcType=VARCHAR} = 'OPEN' AND STATUS <> 'DONE')) "
+            + "AND (#{q, jdbcType=VARCHAR} IS NULL OR TITLE LIKE #{q, jdbcType=VARCHAR} ESCAPE '\\') "
             + "ORDER BY COMPLAINT_ID DESC) X WHERE ROWNUM <= #{endRow}) WHERE RN > #{startRow}")
     List<Map<String, Object>> memberComplaints(@Param("memberId") long memberId, @Param("startRow") int startRow, @Param("endRow") int endRow,
-                                               @Param("st") String st);
+                                               @Param("st") String st, @Param("q") String q);
 
     @Select("SELECT COMPLAINT_ID FROM CIVIL_COMPLAINT WHERE MEMBER_ID = #{memberId} AND RECEIPT_NO = #{receiptNo}")
     Long memberComplaintId(@Param("memberId") long memberId, @Param("receiptNo") String receiptNo);

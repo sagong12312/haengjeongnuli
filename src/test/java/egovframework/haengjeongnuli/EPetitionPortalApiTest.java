@@ -54,6 +54,15 @@ class EPetitionPortalApiTest {
         return call(signed("GET", API + path, null, nonce()), expect);
     }
 
+    /** 이미 인코딩한 주소를 그대로 보낸다 (MockMvc 가 % 를 다시 인코딩하지 않게) */
+    JsonNode rawGet(String path, int expect) throws Exception {
+        String ts = String.valueOf(java.time.Instant.now().getEpochSecond());
+        String n = nonce();
+        String sig = egovframework.haengjeongnuli.epetition.EPetitionAuthFilter.sign(EPetitionApiTest.SECRET, "GET", API + path, ts, n, new byte[0]);
+        return call(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(java.net.URI.create(API + path))
+                .header("X-EP-Timestamp", ts).header("X-EP-Nonce", n).header("X-EP-Signature", sig).header("X-EP-Client-IP", "203.0.113.7"), expect);
+    }
+
     JsonNode apiGet(String path, int expect, String ip) throws Exception {
         return call(signed("GET", API + path, null, nonce(), ip), expect);
     }
@@ -232,7 +241,12 @@ class EPetitionPortalApiTest {
         assertThat(apiPost("/members", base.formatted(id, "abcdefgh"), 422).get("error").asText()).isEqualTo("invalid_password");
         assertThat(apiPost("/members", base.formatted(id, id + "Xy9!"), 422).get("error").asText()).isEqualTo("invalid_password");
         apiPost("/members", base.formatted(id, "Tq7-Rivers-Blue!").replace("\"termsConsent\":true", "\"termsConsent\":false"), 422);
+        // 가입 화면의 아이디 확인
+        assertThat(apiGet("/members/check?loginId=" + id, 200).get("data").get("available").asBoolean()).isTrue();
+        assertThat(apiGet("/members/check?loginId=1bad", 200).get("data").get("available").asBoolean()).isFalse();
+        assertThat(apiGet("/members/check?loginId=adminkim", 200).get("data").get("available").asBoolean()).isFalse();
         JsonNode m = apiPost("/members", base.formatted(id, "Tq7-Rivers-Blue!"), 200).get("data");
+        assertThat(apiGet("/members/check?loginId=" + id, 200).get("data").get("reason").asText()).contains("이미");
         long mid = m.get("memberId").asLong();
         assertThat(m.get("mobile").asText()).isEqualTo("010-9876-5432");
         assertThat(m.has("hash")).isFalse();
@@ -255,6 +269,11 @@ class EPetitionPortalApiTest {
         assertThat(apiGet("/members/" + mid + "/complaints?page=1&status=open", 200).get("data").get("total").asInt()).isEqualTo(1);
         assertThat(apiGet("/members/" + mid + "/complaints?page=1&status=done", 200).get("data").get("total").asInt()).isZero();
         assertThat(apiGet("/members/" + mid + "/complaints?page=1&status=bogus", 200).get("data").get("total").asInt()).isEqualTo(1);
+        // 제목으로 찾기 (LIKE 특수문자는 글자 그대로)
+        assertThat(rawGet("/members/" + mid + "/complaints?page=1&q=" + java.net.URLEncoder.encode("회원", java.nio.charset.StandardCharsets.UTF_8), 200)
+                .get("data").get("total").asInt()).isEqualTo(1);
+        assertThat(rawGet("/members/" + mid + "/complaints?page=1&q=%25", 200).get("data").get("total").asInt()).isZero();
+        assertThat(apiGet("/members/" + mid + "/complaints?page=1&q=zzz", 200).get("data").get("total").asInt()).isZero();
         JsonNode one = apiGet("/members/" + mid + "/complaints/" + no, 200).get("data");
         assertThat(one.get("title").asText()).isEqualTo("회원 민원");
         assertThat(one.get("actionToken").asText()).hasSize(32);
