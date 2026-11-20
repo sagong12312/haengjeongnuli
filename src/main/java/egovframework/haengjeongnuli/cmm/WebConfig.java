@@ -17,6 +17,9 @@ public class WebConfig implements WebMvcConfigurer {
     @org.springframework.beans.factory.annotation.Autowired
     private egovframework.haengjeongnuli.cmm.secapp.SecurityAppGate securityAppGate;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.security.ExternalAccessGate externalAccessGate;
+
     public WebConfig(PasswordAgeInterceptor passwordAgeInterceptor, egovframework.haengjeongnuli.security.SecurityWeb.OtpGate otpGate,
                      egovframework.haengjeongnuli.security.SecurityWeb.Reauth reauth,
                      egovframework.haengjeongnuli.security.SecurityWeb.DownloadReason downloadReason) {
@@ -28,6 +31,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 내부망 밖(인터넷)에서 온 직원은 2단계 인증을 켠 사람만 (맨 먼저)
+        registry.addInterceptor(externalAccessGate).addPathPatterns("/**");
         // 2단계 인증을 마치기 전에는 아무 화면도 못 쓴다 (비밀번호 만료 안내보다 먼저)
         registry.addInterceptor(otpGate).addPathPatterns("/**");
         // 시스템 관리 화면에서 바꾸는 요청은 최근에 비밀번호를 다시 확인했어야 한다

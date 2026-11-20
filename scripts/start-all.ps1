@@ -18,7 +18,11 @@ param(
     [int]$EPetitionPort = 3000,
     [string]$OrgName = '시험시',
     # 행정누리를 이 PC 에서만 열기 (집 안 다른 기기에서는 막음)
-    [switch]$ThisPcOnly
+    [switch]$ThisPcOnly,
+    # 집 밖 인터넷에서도 열기 (공유기 포트포워딩 필요). 행정누리는 밖에서 2단계 인증을 켠 직원만 쓴다
+    [switch]$Internet,
+    # 밖에서 쓸 주소: 집 공인 IP 또는 DDNS 이름(예: myhome.iptime.org). 인증서에 넣는다
+    [string]$PublicHost = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -152,6 +156,10 @@ if (-not (Test-Path $keytool)) {
 
 $san = 'dns:localhost,ip:127.0.0.1'
 foreach ($a in $addrs) { $san += ",ip:$a" }
+if ($Internet -and $PublicHost -ne '') {
+    if ($PublicHost -notmatch '^[A-Za-z0-9.\-]{1,200}$') { Fail "PublicHost 는 IP 나 도메인 이름만 적으세요: $PublicHost" }
+    if ($PublicHost -match '^\d{1,3}(\.\d{1,3}){3}$') { $san += ",ip:$PublicHost" } else { $san += ",dns:$PublicHost" }
+}
 $oldSan = ''
 if (Test-Path $ipsFile) { $oldSan = ([System.IO.File]::ReadAllText($ipsFile)).Trim() }
 if (-not (Test-Path $p12) -or -not (Test-Path $passFile) -or $oldSan -ne $san) {
@@ -183,6 +191,13 @@ $tlsPass = ([System.IO.File]::ReadAllText($passFile)).Trim()
 # 행정누리: 이 PC 와 집 공유기 내부망에서만, HTTPS 로
 $allowed = '127.0.0.1/32,::1/128'
 if (-not $ThisPcOnly -and $homeNets.Count -gt 0) { $allowed += ',' + ($homeNets -join ',') }
+if ($Internet) {
+    # 내부망(이 PC + 집)은 그대로, 그 밖(인터넷)에서 온 직원은 2단계 인증을 켠 사람만
+    $env:APP_INTERNAL_NETWORKS = $allowed
+    $allowed = '0.0.0.0/0,::/0'
+} else {
+    Remove-Item Env:APP_INTERNAL_NETWORKS -ErrorAction SilentlyContinue
+}
 $env:APP_ALLOWED_NETWORKS = $allowed
 $env:SERVER_PORT = "$NuriPort"
 $env:APP_SSL_ENABLED = 'true'
@@ -243,6 +258,25 @@ Write-Host "    $cer"
 Write-Host '  국민에게 실제로 열 때는 기관 정식 인증서(GPKI·상용 SSL)를 쓰세요.'
 Write-Host ''
 Write-Host '  휴대폰·노트북은 이 PC와 같은 공유기(와이파이)에 연결되어 있어야 합니다.'
+if ($Internet) {
+    $outside = $(if ($PublicHost -ne '') { $PublicHost } else { '집공인IP' })
+    Write-Host ''
+    Write-Host '  [집 밖 인터넷에서 쓰기]' -ForegroundColor Cyan
+    Write-Host "  전자민원 : https://${outside}:$EPetitionPort"
+    Write-Host "  행정누리 : https://${outside}:$NuriPort   (밖에서는 2단계 인증(OTP)을 켠 직원만. 집 안에서 '내 보안'에서 먼저 켜세요)"
+    Write-Host '  1) 공유기 관리 화면(ipTIME 은 http://192.168.0.1)에서 포트포워드를 두 개 만드세요:'
+    foreach ($a in $homeAddrs) {
+        Write-Host "       외부 포트 $EPetitionPort -> 내부 IP $a 포트 $EPetitionPort (TCP)"
+        Write-Host "       외부 포트 $NuriPort -> 내부 IP $a 포트 $NuriPort (TCP)"
+        break
+    }
+    Write-Host '     이 PC 의 내부 IP 가 바뀌지 않게 공유기에서 "고정 IP(수동 할당)"로 묶어 두세요.'
+    Write-Host '  2) 집 공인 IP 는 바뀔 수 있으니 공유기의 DDNS(예: myhome.iptime.org)를 쓰고, -PublicHost 로 그 이름을 주세요.'
+    Write-Host '  3) 관리자 PowerShell 에서 방화벽을 인터넷 쪽으로도 여세요:'
+    Write-Host "     New-NetFirewallRule -DisplayName '행정누리·전자민원 (인터넷)' -Direction Inbound -Protocol TCP -LocalPort $NuriPort,$EPetitionPort -Action Allow -Profile Any"
+    Write-Host '  4) 확인은 휴대폰 와이파이를 끄고 모바일 데이터로 위 주소를 열어 보세요 (집 와이파이에서는 공유기에 따라 안 열릴 수 있음).'
+    Write-Host '  주의: 인터넷에 열면 전 세계에서 비밀번호를 맞혀 보는 공격이 들어옵니다. 관리자 비밀번호를 길게, 다 쓰면 -Internet 없이 다시 켜세요.' -ForegroundColor Yellow
+}
 Write-Host "  다른 기기에서 열리지 않으면 관리자 PowerShell 에서 방화벽을 한 번 열어 주세요 (집 내부망에서만 열림):"
 Write-Host "  New-NetFirewallRule -DisplayName '행정누리·전자민원 (집 안)' -Direction Inbound -Protocol TCP -LocalPort $NuriPort,$NuriHttpPort,$EPetitionPort -Action Allow -Profile Private -RemoteAddress LocalSubnet"
 Write-Host '  윈도우 설정 > 네트워크 > 지금 연결된 네트워크의 "네트워크 프로필"이 "개인"이어야 합니다 (공용이면 위 규칙이 적용되지 않음).'

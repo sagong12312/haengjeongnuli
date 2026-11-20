@@ -96,6 +96,8 @@ app:
     # true 면 계정이 없을 때 APP_INIT_ADMIN_PASSWORD 가 없으면 시작하지 않는다 (운영 프로필에서 켠다)
     require-password: false
   security:
+    # 내부망(집·사무실). 정하면 그 밖(인터넷)에서 온 직원은 2단계 인증을 켠 사람만 쓸 수 있다. 비우면 검사 안 함
+    internal-networks: ${APP_INTERNAL_NETWORKS:}
     # 최근 몇 개 비밀번호를 다시 쓰지 못하게 할지
     password-history: 3
     # 이 날수 동안 로그인하지 않은 직원 계정은 매일 새벽 사용 중지 (0 이면 끔, 관리자 계정은 빼고 알림만)

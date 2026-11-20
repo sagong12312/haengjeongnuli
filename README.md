@@ -23,6 +23,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-all.ps1
 ```
 
 - 창이 두 개 새로 뜹니다. 행정누리(`https://이PC주소:8443`)와 전자민원(`https://이PC주소:3000`) 모두 이 PC와 **같은 집 공유기에 연결된 휴대폰·노트북**에서 열립니다. 행정누리는 공유기 내부망(사설 주소)에서 오는 접속만 받고, PC가 공유기 없이 공인 주소를 받았으면 이 PC에서만 엽니다. 이 PC에서만 열려면 `scripts\start-all.bat -ThisPcOnly`. 열 주소를 화면에 알려 줍니다.
+- **집 밖 인터넷에서 쓰기:** `scripts\start-all.bat -Internet -PublicHost myhome.iptime.org` 로 켜고 공유기에서 포트포워딩(3000·8443 → 이 PC)을 합니다. 행정누리는 집 밖에서 **2단계 인증(OTP)을 켠 직원만** 쓸 수 있으니 집 안에서 먼저 '내 보안'에서 켜 두세요. 다 쓰면 `-Internet` 없이 다시 켜서 닫으세요.
 - 오가는 비밀번호·개인정보를 가로채지 못하게 둘 다 HTTPS 로 켭니다. 이 PC 전용 시험 인증서(`data\tls\haengjeongnuli.cer`)라서 처음에 "안전하지 않음" 경고가 뜹니다. 경고를 없애려면 그 파일을 휴대폰·PC에 인증서로 설치하세요.
 - 두 프로그램이 같이 쓰는 비밀값은 `data\epetition-secret.txt`에 처음 한 번 무작위로 만들어집니다(저장소에 올라가지 않음).
 - 전자민원 폴더는 행정누리 폴더 옆·안, 내려받기·바탕화면에서 `haengjeongnuli-e-Petition`으로 시작하는 폴더(zip으로 받아 이름 뒤에 `-main` 등이 붙은 것 포함)를 찾아 씁니다. 찾은 두 폴더를 화면 첫 줄에 보여 줍니다.

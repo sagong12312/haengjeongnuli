@@ -330,4 +330,37 @@ class SecurityExtraTest {
         f.doFilter(local, new MockHttpServletResponse(), c4);
         assertThat(c4.getRequest()).isNotNull();
     }
+
+    @Test
+    void 보강_인터넷에서_온_직원은_2단계_인증을_켠_사람만_쓴다() throws Exception {
+        egovframework.haengjeongnuli.security.ExternalAccessGate gate =
+                new egovframework.haengjeongnuli.security.ExternalAccessGate("127.0.0.1/32,192.168.0.0/24", security);
+        LoginUser u = staff("밖에서");
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(u, null, u.getAuthorities()));
+        try {
+            MockHttpServletRequest home = new MockHttpServletRequest("GET", "/approval");
+            home.setRemoteAddr("192.168.0.20");
+            assertThat(gate.preHandle(home, new MockHttpServletResponse(), null)).isTrue();
+
+            MockHttpServletRequest outside = new MockHttpServletRequest("GET", "/approval");
+            outside.setRemoteAddr("203.0.113.7");
+            MockHttpServletResponse r = new MockHttpServletResponse();
+            assertThat(gate.preHandle(outside, r, null)).isFalse();
+            assertThat(r.getRedirectedUrl()).isEqualTo("/login?error=external_otp");
+
+            // 내부망에서 OTP 를 켜면 밖에서도 쓴다
+            org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(u, null, u.getAuthorities()));
+            String secret = security.startOtp(u);
+            security.enableOtp(u, Totp.code(secret, Totp.step(System.currentTimeMillis() / 1000)));
+            MockHttpServletRequest again = new MockHttpServletRequest("GET", "/approval");
+            again.setRemoteAddr("203.0.113.7");
+            assertThat(gate.preHandle(again, new MockHttpServletResponse(), null)).isTrue();
+            // 목록을 비우면 검사하지 않는다
+            assertThat(new egovframework.haengjeongnuli.security.ExternalAccessGate("", security).enabled()).isFalse();
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
 }
