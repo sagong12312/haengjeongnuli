@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('업무 계산 도구')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div><span class="crumb">업무 계산 도구</span><h1>업무 계산 도구</h1></div>
+  <p class="hint">결과는 참고용입니다. 개별 법령에 특례가 있으면 그 법령을 따르세요. 입력한 내용은 저장하지 않습니다.
+    공휴일은 관리자가 등록한 공휴일 달력을 씁니다.</p>
+  <nav class="panel" aria-label="도구 목록" style="flex-direction:row; flex-wrap:wrap; gap:6px;">
+    <a class="btn btn-outline btn-sm" href="#t-preset">법정 기한</a><a class="btn btn-outline btn-sm" href="#t-term">기간 계산</a>
+    <a class="btn btn-outline btn-sm" href="#t-work">근무일</a><a class="btn btn-outline btn-sm" href="#t-between">날짜 사이</a>
+    <a class="btn btn-outline btn-sm" href="#t-age">만 나이</a><a class="btn btn-outline btn-sm" href="#t-won">금액 한글</a>
+    <a class="btn btn-outline btn-sm" href="#t-vat">부가세</a><a class="btn btn-outline btn-sm" href="#t-official">공문 날짜</a>
+    <a class="btn btn-outline btn-sm" href="#t-text">글자 수·개인정보 가리기</a><a class="btn btn-outline btn-sm" href="#t-area">면적</a>
+  </nav>
+  <div th:if="${toolError}" class="alert alert-error" role="alert" th:text="${toolError}">오류</div>
+
+  <section class="panel" id="t-preset" style="gap:10px;">
+    <h2>법정 기한 바로 보기</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="preset">
+      <div class="field"><label for="ps">기준일 (받은 날·안 날 등)</label><input id="ps" name="start" type="date" class="input" th:value="${start}"></div>
+      <button type="submit" class="btn btn-primary">계산</button></form>
+    <div class="table-wrap"><table class="list stack">
+      <thead><tr><th scope="col" style="text-align:left">기한</th><th scope="col">일수</th><th scope="col">마지막 날</th><th scope="col">근거</th></tr></thead>
+      <tbody><tr th:each="p : ${presets}">
+        <td class="left" data-label="기한" th:text="${p['name']}">기한</td><td data-label="일수" th:text="${p['days']} + '일'">일</td>
+        <td data-label="마지막 날"><b th:text="${p['end']}">날</b> <span class="hint" style="margin:0;" th:text="${p['note']}"></span></td>
+        <td data-label="근거" th:text="${p['law']}">근거</td></tr></tbody>
+    </table></div>
+    <p class="hint" style="margin:0;">첫날은 넣지 않고(민법 제157조), 마지막 날이 토요일·공휴일이면 다음 날에 끝납니다(민법 제161조).</p>
+  </section>
+
+  <section class="panel" id="t-term" style="gap:10px;">
+    <h2>기간 계산 (민법)</h2>
+    <form th:action="@{/tools}" method="get" class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); align-items:end;">
+      <input type="hidden" name="tool" value="term">
+      <div class="field"><label for="ts">시작일</label><input id="ts" name="start" type="date" class="input" th:value="${start}"></div>
+      <div class="field"><label for="tn">기간</label><input id="tn" name="n" type="number" min="1" max="3650" class="input" th:value="${n} ?: 10"></div>
+      <div class="field"><label for="tu">단위</label><select id="tu" name="unit" class="select">
+        <option value="D" th:selected="${unit == 'D'}">일</option><option value="M" th:selected="${unit == 'M'}">개월</option>
+        <option value="Y" th:selected="${unit == 'Y'}">년</option></select></div>
+      <label class="check" style="display:flex; gap:6px; align-items:center;"><input type="checkbox" name="firstDay" value="true" th:checked="${firstDay}"> 첫날도 넣기 (오전 0시 시작 등)</label>
+      <button type="submit" class="btn btn-primary">계산</button></form>
+    <div th:if="${term}" class="alert alert-success" role="status">
+      <p style="margin:0;">끝나는 날: <b th:text="${term.endShifted}">날</b> <span th:text="${term.note}"></span></p></div>
+  </section>
+
+  <section class="panel" id="t-work" style="gap:10px;">
+    <h2>근무일로 세기</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="work">
+      <div class="field"><label for="ws">시작일</label><input id="ws" name="start" type="date" class="input" th:value="${start}"></div>
+      <div class="field"><label for="wn">근무일 수</label><input id="wn" name="n" type="number" min="1" max="365" class="input" th:value="${n} ?: 7"></div>
+      <button type="submit" class="btn btn-primary">계산</button></form>
+    <div th:if="${workEnd}" class="alert alert-success" role="status"><p style="margin:0;" th:text="'토·일요일과 공휴일을 빼고 ' + ${n} + '근무일 뒤: ' + ${workEnd}">결과</p></div>
+  </section>
+
+  <section class="panel" id="t-between" style="gap:10px;">
+    <h2>두 날짜 사이</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="between">
+      <div class="field"><label for="bs">앞 날짜</label><input id="bs" name="start" type="date" class="input" th:value="${start}"></div>
+      <div class="field"><label for="be">뒤 날짜</label><input id="be" name="end" type="date" class="input" th:value="${end} ?: ${today}"></div>
+      <button type="submit" class="btn btn-primary">계산</button></form>
+    <div th:if="${between}" class="alert alert-success" role="status"><p style="margin:0;"
+      th:text="${between['days']} + '일 차이 (양 끝 포함 ' + ${between['daysInclusive']} + '일) · 근무일 ' + ${between['workDays']} + '일 · ' + ${between['period']}">결과</p></div>
+  </section>
+
+  <section class="panel" id="t-age" style="gap:10px;">
+    <h2>만 나이 (행정기본법 제7조의2)</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="age">
+      <div class="field"><label for="as">생년월일</label><input id="as" name="start" type="date" class="input" th:value="${tool == 'age'} ? ${start} : ''" required></div>
+      <div class="field"><label for="ae">기준일</label><input id="ae" name="end" type="date" class="input" th:value="${end} ?: ${today}"></div>
+      <button type="submit" class="btn btn-primary">계산</button></form>
+    <div th:if="${age}" class="alert alert-success" role="status"><p style="margin:0;"
+      th:text="'만 ' + ${age['years']} + '세 (' + ${age['months']} + '개월) · 연 나이 ' + ${age['yearAge']} + '세 · 다음 생일 ' + ${age['nextBirthday']}">결과</p>
+      <p class="hint" style="margin:4px 0 0;">병역·청소년 보호 등 연 나이를 쓰는 법령은 그 기준을 따르세요.</p></div>
+  </section>
+
+  <section class="panel" id="t-won" style="gap:10px;">
+    <h2>금액 한글 표기</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="won">
+      <div class="field"><label for="wa">금액(원)</label><input id="wa" name="amount" type="number" class="input" th:value="${tool == 'won'} ? ${amount} : ''" required></div>
+      <button type="submit" class="btn btn-primary">바꾸기</button></form>
+    <div th:if="${won}" class="alert alert-success" role="status"><p style="margin:0;"><b th:text="${won}">결과</b></p></div>
+  </section>
+
+  <section class="panel" id="t-vat" style="gap:10px;">
+    <h2>부가가치세 (10%)</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="vat">
+      <div class="field"><label for="va">금액(원)</label><input id="va" name="amount" type="number" min="0" class="input" th:value="${tool == 'vat'} ? ${amount} : ''" required></div>
+      <div class="field"><label for="vm">이 금액은</label><select id="vm" name="vatMode" class="select">
+        <option value="total" th:selected="${vatMode != 'supply'}">합계 (세금 포함)</option><option value="supply" th:selected="${vatMode == 'supply'}">공급가액</option></select></div>
+      <button type="submit" class="btn btn-primary">계산</button></form>
+    <div th:if="${vat}" class="alert alert-success" role="status"><p style="margin:0;"
+      th:text="'공급가액 ' + ${#numbers.formatInteger(vat['supply'], 1, 'COMMA')} + '원 · 세액 ' + ${#numbers.formatInteger(vat['tax'], 1, 'COMMA')} + '원 · 합계 ' + ${#numbers.formatInteger(vat['total'], 1, 'COMMA')} + '원'">결과</p></div>
+  </section>
+
+  <section class="panel" id="t-official" style="gap:10px;">
+    <h2>공문서 날짜·시각 표기</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="official">
+      <div class="field"><label for="os">날짜</label><input id="os" name="start" type="date" class="input" th:value="${start}"></div>
+      <div class="field"><label for="ot">시각</label><input id="ot" name="time" type="time" class="input" th:value="${time}"></div>
+      <button type="submit" class="btn btn-primary">바꾸기</button></form>
+    <div th:if="${officialDate}" class="alert alert-success" role="status"><p style="margin:0;"><b th:text="${officialDate} + ' ' + ${officialTime}">결과</b></p>
+      <p class="hint" style="margin:4px 0 0;">날짜는 연·월·일 글자 대신 온점, 시각은 24시각제로 시·분 사이에 쌍점을 찍습니다 (행정업무의 운영 및 혁신에 관한 규정).</p></div>
+  </section>
+
+  <section class="panel" id="t-text" style="gap:10px;">
+    <h2>글자 수 세기 · 개인정보 가리기</h2>
+    <form th:action="@{/tools/text}" method="post" style="display:flex; flex-direction:column; gap:8px;">
+      <div class="field"><label for="tx">글</label><textarea id="tx" name="text" class="textarea" rows="6" maxlength="20000" th:text="${text}"></textarea></div>
+      <div class="form-actions"><button type="submit" name="action" value="count" class="btn btn-outline">글자 수 세기</button>
+        <button type="submit" name="action" value="mask" class="btn btn-primary">개인정보 가리기</button></div></form>
+    <div th:if="${count}" class="alert alert-success" role="status"><p style="margin:0;"
+      th:text="${count['chars']} + '자 (공백 빼고 ' + ${count['charsNoSpace']} + '자) · ' + ${count['lines']} + '줄 · UTF-8 ' + ${count['utf8']} + '바이트' + (${count['euckr']} != null ? ' · EUC-KR ' + ${count['euckr']} + '바이트' : '')">결과</p></div>
+    <div th:if="${masked}" class="alert alert-success" role="status">
+      <p style="margin:0 0 6px;" th:text="${#maps.isEmpty(masked.found)} ? '가릴 개인정보를 찾지 못했습니다. 이름·주소는 직접 확인하세요.' : '가린 것: ' + ${masked.found}">요약</p>
+      <label for="mx" class="sr-only">가린 글</label>
+      <textarea id="mx" class="textarea" rows="6" readonly th:text="${masked.text}"></textarea>
+      <p class="hint" style="margin:4px 0 0;">주민등록번호·전화·이메일·카드·계좌번호 모양만 찾습니다. 이름·주소는 사람이 확인해야 합니다.</p></div>
+  </section>
+
+  <section class="panel" id="t-area" style="gap:10px;">
+    <h2>면적 환산</h2>
+    <form th:action="@{/tools}" method="get" style="display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+      <input type="hidden" name="tool" value="area">
+      <div class="field"><label for="ar">값</label><input id="ar" name="area" type="number" step="any" min="0" class="input" th:value="${area}" required></div>
+      <div class="field"><label for="af">단위</label><select id="af" name="areaFrom" class="select">
+        <option value="pyeong" th:selected="${areaFrom != 'sqm'}">평 → ㎡</option><option value="sqm" th:selected="${areaFrom == 'sqm'}">㎡ → 평</option></select></div>
+      <button type="submit" class="btn btn-primary">바꾸기</button></form>
+    <div th:if="${areaResult}" class="alert alert-success" role="status"><p style="margin:0;"
+      th:text="${areaResult['sqm']} + '㎡ = ' + ${areaResult['pyeong']} + '평'">결과</p>
+      <p class="hint" style="margin:4px 0 0;">법정 단위는 ㎡입니다. 공문서에는 ㎡로 적으세요 (1평 = 400/121㎡).</p></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

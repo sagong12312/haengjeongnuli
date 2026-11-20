@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('대장 찾기')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div><span class="crumb"><a th:href="@{/reg}">대장</a> › 찾기</span><h1>대장 찾기</h1></div>
+  <form class="panel" th:action="@{/reg/search}" method="get" role="search" style="flex-direction:row; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+    <div class="field" style="flex:1; min-width:200px;"><label for="rq">찾을 말</label><input id="rq" name="q" type="search" class="input" maxlength="50" th:value="${q}"></div>
+    <button type="submit" class="btn btn-primary">찾기</button>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="'찾은 것 ' + ${#lists.size(items)} + '건' + (${#lists.size(items)} == 50 ? ' (최근 50건까지)' : '')">결과</h2></div>
+    <p th:if="${#lists.isEmpty(items)}" class="hint" style="padding:0 24px 20px;">없습니다. 2글자 이상으로 찾아 보세요.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(items)}"><table class="list stack">
+      <thead><tr><th scope="col">대장</th><th scope="col" style="text-align:left">내용</th><th scope="col">상태</th><th scope="col">부서</th></tr></thead>
+      <tbody><tr th:each="e : ${items}">
+        <td data-label="대장" th:text="${e['regName']}">대장</td>
+        <td class="left" data-label="내용"><a th:href="@{/reg/{c}/{id}(c=${e['code']},id=${e['id']})}" th:text="${e['title']}">내용</a></td>
+        <td data-label="상태" th:text="${e['status']}">상태</td>
+        <td data-label="부서" th:text="${e['dept']}">부서</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

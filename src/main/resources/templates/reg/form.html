@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${d.name})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/reg}">대장</a> › <a th:href="@{/reg/{c}(c=${d.code})}" th:text="${d.name}">대장</a></span>
+    <h1 th:text="${e} == null ? ${d.name} + ' 등록' : ${d.name} + ' 고치기'">등록</h1></div>
+  <p class="hint" th:text="${d.guide}">안내</p>
+  <form class="panel" method="post" style="gap:10px;"
+        th:action="${e} == null ? @{/reg/{c}(c=${d.code})} : @{/reg/{c}/{id}(c=${d.code},id=${e['id']})}">
+    <div class="grid-fields" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+      <th:block th:each="f : ${d.fields}" th:with="cur=${draft != null ? draft['f_' + f.key] : (e != null ? e['values'][f.key] : null)}">
+        <div class="field" th:style="${f.type == 'L'} ? 'grid-column:1/-1' : ''">
+          <label th:for="'f_' + ${f.key}" th:text="${f.label} + (${f.required} ? ' (필수)' : '')">칸</label>
+          <textarea th:if="${f.type == 'L'}" th:id="'f_' + ${f.key}" th:name="'f_' + ${f.key}" class="textarea" rows="4" th:maxlength="${f.maxLen()}"
+                    th:required="${f.required}" th:text="${cur}"></textarea>
+          <select th:if="${f.type == 'S'}" th:id="'f_' + ${f.key}" th:name="'f_' + ${f.key}" class="select" th:required="${f.required}">
+            <option value="">— 고르세요 —</option>
+            <option th:each="o : ${f.options}" th:value="${o}" th:text="${o}" th:selected="${o == cur}">값</option></select>
+          <input th:if="${f.type == 'D'}" th:id="'f_' + ${f.key}" th:name="'f_' + ${f.key}" type="date" class="input" th:value="${cur}" th:required="${f.required}">
+          <input th:if="${f.type == 'N'}" th:id="'f_' + ${f.key}" th:name="'f_' + ${f.key}" class="input" inputmode="numeric" pattern="-?[0-9,]{1,19}"
+                 th:maxlength="${f.maxLen()}" th:value="${cur}" th:required="${f.required}">
+          <input th:if="${f.type == 'P'}" th:id="'f_' + ${f.key}" th:name="'f_' + ${f.key}" type="tel" class="input" maxlength="20" placeholder="010-1234-5678"
+                 th:value="${cur}" th:required="${f.required}">
+          <input th:if="${f.type == 'T'}" th:id="'f_' + ${f.key}" th:name="'f_' + ${f.key}" class="input" th:maxlength="${f.maxLen()}" th:value="${cur}"
+                 th:required="${f.required}">
+          <p th:if="${f.due}" class="hint" style="margin:2px 0 0;" th:text="${f.dueDays} > 0 ? '이 날짜부터 ' + ${f.dueDays} + '일 뒤가 기한으로 잡힙니다.' : '이 날짜가 기한으로 잡혀 알림이 뜹니다.'">기한</p>
+          <p th:if="${f.pii}" class="hint" style="margin:2px 0 0;">개인정보: 목록에서는 가려 보입니다.</p>
+        </div>
+      </th:block>
+      <div class="field" th:if="${e} == null">
+        <label for="f_status">처음 상태</label>
+        <select id="f_status" name="status" class="select">
+          <option th:each="s : ${d.statuses}" th:value="${s.label}" th:text="${s.label}">상태</option></select>
+      </div>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;">
+      <a class="btn btn-outline" th:href="${e} == null ? @{/reg/{c}(c=${d.code})} : @{/reg/{c}/{id}(c=${d.code},id=${e['id']})}">취소</a>
+      <button type="submit" class="btn btn-primary" th:text="${e} == null ? '등록' : '저장'">저장</button></div>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

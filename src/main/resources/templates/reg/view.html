@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${d.name})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/reg}">대장</a> › <a th:href="@{/reg/{c}(c=${d.code})}" th:text="${d.name}">대장</a></span>
+    <h1 th:text="${e['title']}">제목</h1></div>
+  <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+    <span th:class="'badge ' + (${e['closed']} ? 'badge-green' : 'badge-orange')" th:text="${e['status']}">상태</span>
+    <span th:if="${e['due']} != null" th:class="'badge ' + (${e['late']} ? 'badge-red' : (${e['soon']} ? 'badge-orange' : 'badge-gray'))"
+          th:text="'기한 ' + ${e['due']} + (${e['dday']} != '' ? ' · ' + ${e['dday']} : '')">기한</span>
+    <span class="hint" style="margin:0;" th:text="'#' + ${e['id']} + ' · ' + (${e['dept']} ?: '') + ' ' + ${e['ownerName']} + ' 등록 · 마지막 수정 ' + ${#temporals.format(e['updatedAt'], 'yyyy-MM-dd HH:mm')} + ' ' + ${e['updatedBy']}">정보</span>
+  </div>
+  <section class="panel">
+    <dl class="meta" style="display:grid; grid-template-columns:minmax(120px, 200px) 1fr; gap:8px 16px; margin:0;">
+      <th:block th:each="f : ${d.fields}">
+        <dt th:text="${f.label}">칸</dt>
+        <dd style="margin:0; white-space:pre-wrap;" th:text="${#strings.isEmpty(e['shown'][f.key])} ? '—' : ${e['shown'][f.key]} + (${f.type == 'N'} ? '' : '')">값</dd>
+      </th:block>
+    </dl>
+  </section>
+  <div class="form-actions">
+    <a class="btn btn-outline" th:href="@{/reg/{c}(c=${d.code})}">목록</a>
+    <a class="btn btn-outline" th:href="@{/reg/{c}/{id}/print(c=${d.code},id=${e['id']})}">인쇄용</a>
+    <a th:if="${e['canEdit']}" class="btn btn-primary" th:href="@{/reg/{c}/{id}/edit(c=${d.code},id=${e['id']})}">고치기</a>
+    <form th:action="@{/reg/{c}/{id}/copy(c=${d.code},id=${e['id']})}" method="post" style="margin:0;">
+      <button type="submit" class="btn btn-outline">복사해 새로</button></form>
+  </div>
+  <form th:if="${e['canEdit']}" class="panel" th:action="@{/reg/{c}/{id}/status(c=${d.code},id=${e['id']})}" method="post"
+        style="flex-direction:row; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+    <div class="field" style="min-width:150px;"><label for="vs">상태 바꾸기</label><select id="vs" name="status" class="select">
+      <option th:each="s : ${d.statuses}" th:value="${s.label}" th:text="${s.label} + (${s.closed} ? ' (끝)' : '')" th:selected="${s.label == e['status']}">상태</option></select></div>
+    <div class="field" style="flex:1; min-width:200px;"><label for="vn">메모 (선택)</label><input id="vn" name="note" class="input" maxlength="300"></div>
+    <button type="submit" class="btn btn-primary">바꾸기</button>
+  </form>
+  <section class="panel flush">
+    <div class="panel-head"><h2>변경 이력</h2></div>
+    <div class="table-wrap"><table class="list stack">
+      <thead><tr><th scope="col">때</th><th scope="col">한 사람</th><th scope="col">한 일</th><th scope="col" style="text-align:left">내용</th></tr></thead>
+      <tbody><tr th:each="h : ${e['history']}">
+        <td data-label="때" th:text="${#temporals.format(h['at'], 'yyyy-MM-dd HH:mm')}">때</td>
+        <td data-label="한 사람" th:text="${h['actor']}">사람</td>
+        <td data-label="한 일" th:text="${h['action']}">일</td>
+        <td class="left" data-label="내용" th:text="${h['note']}">내용</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+  <form th:if="${e['canEdit']}" class="panel" th:action="@{/reg/{c}/{id}/delete(c=${d.code},id=${e['id']})}" method="post"
+        style="flex-direction:row; flex-wrap:wrap; gap:8px; align-items:flex-end;" data-confirm="정말 지울까요? 지운 기록은 남습니다.">
+    <div class="field" style="flex:1; min-width:200px;"><label for="vr">지우는 사유</label><input id="vr" name="reason" class="input" minlength="2" maxlength="200" required></div>
+    <button type="submit" class="btn btn-danger">지우기</button>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

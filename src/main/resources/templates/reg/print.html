@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${d.name} + ' 인쇄')}"></head>
+<body class="print-page">
+<main class="page" style="max-width:800px;">
+  <h1 th:text="${d.name}">대장</h1>
+  <table class="list" style="width:100%;">
+    <tbody>
+      <tr><th scope="row" style="width:30%; text-align:left;">번호</th><td th:text="${e['id']}">1</td></tr>
+      <tr th:each="f : ${d.fields}"><th scope="row" style="text-align:left;" th:text="${f.label}">칸</th>
+        <td style="white-space:pre-wrap;" th:text="${e['shown'][f.key]}">값</td></tr>
+      <tr><th scope="row" style="text-align:left;">상태</th><td th:text="${e['status']}">상태</td></tr>
+      <tr th:if="${e['due']} != null"><th scope="row" style="text-align:left;">기한</th><td th:text="${e['due']}">기한</td></tr>
+      <tr><th scope="row" style="text-align:left;">등록</th><td th:text="(${e['dept']} ?: '') + ' ' + ${e['ownerName']} + ' · ' + ${#temporals.format(e['createdAt'], 'yyyy. M. d.')}">등록</td></tr>
+    </tbody>
+  </table>
+  <p class="hint" th:text="'출력: ' + ${printedBy} + ' · ' + ${#temporals.format(printedAt, 'yyyy. M. d. HH:mm')}">출력</p>
+  <p class="no-print"><button type="button" class="btn btn-primary" data-print>인쇄</button>
+    <a class="btn btn-outline" th:href="@{/reg/{c}/{id}(c=${d.code},id=${e['id']})}">돌아가기</a></p>
+</main>
+</body>
+</html>

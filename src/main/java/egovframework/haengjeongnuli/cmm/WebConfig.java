@@ -38,7 +38,7 @@ public class WebConfig implements WebMvcConfigurer {
         // 시스템 관리 화면에서 바꾸는 요청은 최근에 비밀번호를 다시 확인했어야 한다
         registry.addInterceptor(reauth).addPathPatterns("/admin/**");
         // 개인정보가 든 파일은 사유를 적어야 내려받는다
-        registry.addInterceptor(downloadReason).addPathPatterns("/civil/certs.csv", "/hr/pay/summary.csv", "/office/weekly/dept.csv",
+        registry.addInterceptor(downloadReason).addPathPatterns("/reg/*/export.csv", "/civil/certs.csv", "/hr/pay/summary.csv", "/office/weekly/dept.csv",
                 "/hygiene/sanctions.csv", "/vehicles/*/logs.csv");
         registry.addInterceptor(passwordAgeInterceptor)
                 .addPathPatterns("/**")

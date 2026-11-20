@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${d.name})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb"><a th:href="@{/reg}">대장</a> › <span th:text="${d.group}">묶음</span></span>
+    <h1 th:text="${d.name}">대장</h1></div>
+  <p class="hint" th:text="${d.guide} + ' (공개 범위: ' + ${d.scopeLabel} + ')'">안내</p>
+  <div class="form-actions"><a class="btn btn-primary" th:href="@{/reg/{c}/new(c=${d.code})}">새로 등록</a></div>
+
+  <section class="panel" style="gap:8px;">
+    <h2 th:text="(${year} != '' ? ${year} + '년 ' : '전체 ') + '현황 ' + ${stats['total']} + '건'">현황</h2>
+    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+      <a th:each="s : ${stats['byStatus']}" class="badge badge-gray" th:href="@{/reg/{c}(c=${d.code},status=${s.key},year=${year})}"
+         th:text="${s.key} + ' ' + ${s.value}">상태</a>
+      <span th:if="${stats['amount']} != null" class="badge badge-blue" th:text="'금액 합계 ' + ${#numbers.formatInteger(stats['amount'], 1, 'COMMA')} + '원'">합계</span>
+    </div>
+  </section>
+
+  <form class="panel" th:action="@{/reg/{c}(c=${d.code})}" method="get" role="search" style="flex-direction:row; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+    <div class="field" style="flex:2; min-width:180px;"><label for="lq">찾을 말</label><input id="lq" name="q" type="search" class="input" maxlength="50" th:value="${q}"></div>
+    <div class="field" style="flex:1; min-width:130px;"><label for="ls">상태</label><select id="ls" name="status" class="select">
+      <option value="">모두</option><option th:each="s : ${d.statuses}" th:value="${s.label}" th:text="${s.label}" th:selected="${s.label == status}">상태</option></select></div>
+    <div class="field" style="flex:1; min-width:130px;"><label for="lv">보기</label><select id="lv" name="view" class="select">
+      <option value="">모두</option><option value="open" th:selected="${view == 'open'}">끝나지 않은 것</option>
+      <option value="late" th:selected="${view == 'late'}">기한 지난 것</option></select></div>
+    <div class="field" style="flex:1; min-width:110px;"><label for="ly">등록 연도</label><select id="ly" name="year" class="select">
+      <option value="">모두</option><option th:each="y : ${years}" th:value="${y}" th:text="${y}" th:selected="${#strings.toString(y) == year}">연도</option></select></div>
+    <button type="submit" class="btn btn-outline">보기</button>
+  </form>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2 th:text="'목록 ' + ${result['total']} + '건'">목록</h2></div>
+    <p th:if="${#lists.isEmpty(result['items'])}" class="hint" style="padding:0 24px 20px;">없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(result['items'])}"><table class="list stack">
+      <thead><tr><th scope="col">번호</th>
+        <th scope="col" th:each="f : ${d.listFields}" th:text="${f.label}" th:style="${f.key == d.titleField().key} ? 'text-align:left' : ''">칸</th>
+        <th scope="col">상태</th><th scope="col">기한</th></tr></thead>
+      <tbody><tr th:each="e : ${result['items']}">
+        <td data-label="번호"><a th:href="@{/reg/{c}/{id}(c=${d.code},id=${e['id']})}" th:text="${e['id']}">1</a></td>
+        <td th:each="f : ${d.listFields}" th:attr="data-label=${f.label}" th:class="${f.key == d.titleField().key} ? 'left' : ''">
+          <a th:if="${f.key == d.titleField().key}" th:href="@{/reg/{c}/{id}(c=${d.code},id=${e['id']})}" th:text="${e['shown'][f.key]}">값</a>
+          <span th:unless="${f.key == d.titleField().key}" th:text="${e['shown'][f.key]}">값</span></td>
+        <td data-label="상태"><span th:class="'badge ' + (${e['closed']} ? 'badge-green' : 'badge-orange')" th:text="${e['status']}">상태</span></td>
+        <td data-label="기한"><span th:if="${e['due']} != null" th:class="${e['late']} ? 'badge badge-red' : (${e['soon']} ? 'badge badge-orange' : '')"
+              th:text="${e['due']} + (${e['dday']} != '' ? ' (' + ${e['dday']} + ')' : '')">기한</span></td>
+      </tr></tbody>
+    </table></div>
+    <nav class="pager" th:if="${result['pages']} > 1" aria-label="쪽 이동" style="padding:12px 24px; display:flex; gap:8px; flex-wrap:wrap;">
+      <a th:if="${result['page']} > 1" class="btn btn-outline btn-sm" th:href="@{/reg/{c}(c=${d.code},q=${q},status=${status},view=${view},year=${year},page=${result['page'] - 1})}">이전</a>
+      <span class="hint" style="margin:0; align-self:center;" th:text="${result['page']} + ' / ' + ${result['pages']} + '쪽'">쪽</span>
+      <a th:if="${result['page']} < ${result['pages']}" class="btn btn-outline btn-sm" th:href="@{/reg/{c}(c=${d.code},q=${q},status=${status},view=${view},year=${year},page=${result['page'] + 1})}">다음</a>
+    </nav>
+  </section>
+
+  <form class="panel" th:action="@{/reg/{c}/export.csv(c=${d.code})}" method="get" style="flex-direction:row; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+    <input type="hidden" name="q" th:value="${q}"><input type="hidden" name="status" th:value="${status}">
+    <input type="hidden" name="view" th:value="${view}"><input type="hidden" name="year" th:value="${year}">
+    <div class="field" style="flex:1; min-width:200px;"><label for="lr">엑셀(CSV) 내려받는 사유 (개인정보가 들어 있을 수 있어 기록합니다)</label>
+      <input id="lr" name="reason" class="input" minlength="2" maxlength="200" required placeholder="예: 분기 실적 보고"></div>
+    <button type="submit" class="btn btn-outline">지금 조건으로 내려받기</button>
+  </form>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

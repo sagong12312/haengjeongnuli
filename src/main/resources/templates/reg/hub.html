@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('대장')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('work')}"></header>
+<main class="page">
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div><span class="crumb">대장</span><h1>대장</h1></div>
+  <p class="hint" th:text="'업무별 관리 대장 ' + ${total} + '종입니다. 모든 대장에서 검색·기한 알림·엑셀(CSV)·인쇄·변경 이력을 쓸 수 있습니다. 공개 범위는 대장마다 다릅니다 (부서 안에서만 / 본인과 관리자만 / 기관 전체).'">안내</p>
+  <form class="panel" th:action="@{/reg/search}" method="get" role="search" style="flex-direction:row; flex-wrap:wrap; gap:8px; align-items:flex-end;">
+    <div class="field" style="flex:1; min-width:200px;"><label for="rq">모든 대장에서 찾기</label><input id="rq" name="q" type="search" class="input" maxlength="50" placeholder="예: 가로등, 홍길동, 감사"></div>
+    <button type="submit" class="btn btn-primary">찾기</button>
+  </form>
+  <section class="panel flush" th:unless="${#lists.isEmpty(due)}">
+    <div class="panel-head"><h2>기한이 다가온 것 (7일 안·지난 것)</h2></div>
+    <div class="table-wrap"><table class="list stack">
+      <thead><tr><th scope="col">대장</th><th scope="col" style="text-align:left">내용</th><th scope="col">상태</th><th scope="col">기한</th></tr></thead>
+      <tbody><tr th:each="e : ${due}">
+        <td data-label="대장" th:text="${e['regName']}">대장</td>
+        <td class="left" data-label="내용"><a th:href="@{/reg/{c}/{id}(c=${e['code']},id=${e['id']})}" th:text="${e['title']}">내용</a></td>
+        <td data-label="상태" th:text="${e['status']}">상태</td>
+        <td data-label="기한"><span th:class="'badge ' + (${e['late']} ? 'badge-red' : 'badge-orange')" th:text="${e['due']} + ' ' + ${e['dday']}">기한</span></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+  <section th:each="g : ${groups}" class="panel" style="gap:10px;">
+    <h2 th:text="${g.key}">묶음</h2>
+    <div class="card-grid">
+      <a class="menu-card" th:each="d : ${g.value}" th:href="@{/reg/{c}(c=${d.code})}">
+        <b th:text="${d.name}">대장</b>
+        <span th:with="c=${counts[d.code]}" th:text="${d.scopeLabel} + (${c} != null ? ' · 진행 ' + ${c['open']} + '건' + (${c['late']} > 0 ? ' · 기한 지남 ' + ${c['late']} + '건' : '') : ' · 아직 없음')">요약</span>
+      </a>
+    </div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
