@@ -186,3 +186,29 @@
     }
   });
 })();
+
+// 화면 색 바꾸기: 자동(기기 설정) → 밝게 → 어둡게 → 자동
+(function () {
+  var KEY = 'hjn-theme';
+  var root = document.documentElement;
+  var NAMES = { auto: '자동', light: '밝게', dark: '어둡게' };
+  function current() { return root.getAttribute('data-theme') || 'auto'; }
+  function label() {
+    var t = current();
+    var bs = document.querySelectorAll('[data-theme-toggle]');
+    for (var i = 0; i < bs.length; i++) {
+      bs[i].querySelector('[data-theme-name]').textContent = NAMES[t];
+      bs[i].setAttribute('aria-label', '화면 색: ' + NAMES[t] + ' (누르면 바뀝니다)');
+      bs[i].setAttribute('title', '화면 색: ' + NAMES[t] + ' (자동 → 밝게 → 어둡게)');
+    }
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-theme-toggle]') : null;
+    if (!b) return;
+    var next = { auto: 'light', light: 'dark', dark: 'auto' }[current()];
+    if (next === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', next);
+    try { if (next === 'auto') window.localStorage.removeItem(KEY); else window.localStorage.setItem(KEY, next); } catch (err) { /* 저장 못 해도 이 화면에서는 바뀜 */ }
+    label();
+  });
+  label();
+})();

@@ -246,3 +246,83 @@ table.list td a { color: var(--text); text-decoration: none; }
   .panel-head a, .form-actions a, .crumb a, a.more { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
   .btn-sm { min-height: 44px; }
 }
+
+
+/* ── 화면 색: 밝게 / 어둡게 (기본은 기기 설정을 따름, 머리글의 단추로 바꿈) ── */
+:root { --header: var(--brand); color-scheme: light; }
+:root[data-theme="dark"] {
+  --brand: #6FA3E8;
+  --brand-dark: #8DB8F0;
+  --brand-tint: #1C2D45;
+  --text: #E6EAF0;
+  --text-2: #B7C1CF;
+  --text-3: #A3AEBE;
+  --line: #2E3A4B;
+  --line-2: #273242;
+  --input: #46546A;
+  --bg: #0F141C;
+  --panel: #171E29;
+  --soft: #1B2330;
+  --orange-bg: #33240F; --orange-fg: #FFC98A; --orange-strong: #FFB061; --orange-line: #6B4A22;
+  --green-bg: #12301D;  --green-fg: #8EE0A8;
+  --red-bg: #3A1717;    --red-fg: #FF9C9C;
+  --gray-bg: #232C39;
+  --header: #0B1A30;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand: #6FA3E8;
+    --brand-dark: #8DB8F0;
+    --brand-tint: #1C2D45;
+    --text: #E6EAF0;
+    --text-2: #B7C1CF;
+    --text-3: #A3AEBE;
+    --line: #2E3A4B;
+    --line-2: #273242;
+    --input: #46546A;
+    --bg: #0F141C;
+    --panel: #171E29;
+    --soft: #1B2330;
+    --orange-bg: #33240F; --orange-fg: #FFC98A; --orange-strong: #FFB061; --orange-line: #6B4A22;
+    --green-bg: #12301D;  --green-fg: #8EE0A8;
+    --red-bg: #3A1717;    --red-fg: #FF9C9C;
+    --gray-bg: #232C39;
+    --header: #0B1A30;
+    color-scheme: dark;
+  }
+}
+.site-header { background: var(--header); }
+.theme-toggle { width: auto; padding: 0 12px; gap: 6px; font: inherit; font-size: 16px; }
+.theme-toggle .ico-moon { display: none; }
+:root[data-theme="dark"] .theme-toggle .ico-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .ico-moon { display: inline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .ico-sun { display: none; }
+  :root:not([data-theme="light"]) .theme-toggle .ico-moon { display: inline; }
+}
+.theme-float { position: fixed; top: 12px; right: 12px; z-index: 50; background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+
+/* 흰 바탕으로 정해 둔 것들을 판(panel) 색으로 */
+.btn-outline, .btn-plain, .input, .select, .textarea, .search-bar, .menu-card, .pager a, .site-footer, .session-warning { background: var(--panel); }
+.btn-outline { color: var(--brand); }
+.badge-blue { color: var(--text); }
+.btn-primary, .btn-primary:hover, .pager a[aria-current="page"], .badge-brand { color: #fff; }
+:root[data-theme="dark"] .btn-primary, :root[data-theme="dark"] .pager a[aria-current="page"], :root[data-theme="dark"] .badge-brand { color: #0B1A30; }
+:root[data-theme="dark"] table.list tr.warn { background: #2A2116; }
+:root[data-theme="dark"] [style*="background:#fff"], :root[data-theme="dark"] [style*="background: #fff"],
+:root[data-theme="dark"] [style*="background:#F8FAFC"], :root[data-theme="dark"] [style*="background:#FFF8F0"] { background: var(--soft) !important; }
+:root[data-theme="dark"] [style*="color:#1D3A5F"], :root[data-theme="dark"] [style*="color:#6B3A0E"], :root[data-theme="dark"] [style*="color:#7A1E1E"] { color: var(--text) !important; }
+:root[data-theme="dark"] [style*="color:#B42318"] { color: var(--red-fg) !important; }
+:root[data-theme="dark"] img:not([src$=".svg"]) { filter: brightness(.92); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .btn-primary, :root:not([data-theme="light"]) .pager a[aria-current="page"], :root:not([data-theme="light"]) .badge-brand { color: #0B1A30; }
+  :root:not([data-theme="light"]) table.list tr.warn { background: #2A2116; }
+  :root:not([data-theme="light"]) [style*="background:#fff"], :root:not([data-theme="light"]) [style*="background: #fff"],
+  :root:not([data-theme="light"]) [style*="background:#F8FAFC"], :root:not([data-theme="light"]) [style*="background:#FFF8F0"] { background: var(--soft) !important; }
+  :root:not([data-theme="light"]) [style*="color:#1D3A5F"], :root:not([data-theme="light"]) [style*="color:#6B3A0E"], :root:not([data-theme="light"]) [style*="color:#7A1E1E"] { color: var(--text) !important; }
+  :root:not([data-theme="light"]) [style*="color:#B42318"] { color: var(--red-fg) !important; }
+}
+/* 문서 본문·한글 보기는 인쇄물과 같게 늘 흰 종이로 */
+.doc-body, .hwp-view { color-scheme: light; }
+@media print { :root, :root[data-theme="dark"] { --bg: #fff; --panel: #fff; --text: #000; --header: #fff; } }
