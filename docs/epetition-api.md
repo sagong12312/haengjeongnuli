@@ -277,15 +277,31 @@ function signHeaders(secret, method, pathAndQuery, body /* Buffer */) {
 | `POST /members/{id}/profile` | `{"name","mobile","email","address"}` | `invalid_input` |
 | `POST /members/{id}/password` | `{"currentPassword","newPassword"}` | `wrong_password`, `invalid_password` |
 | `POST /members/{id}/delete` | `{"password"}` → `{deleted,complaints}` | 회원 정보는 바로 지우고, 낸 민원은 남기되 연결만 끊음 |
-| `GET /members/{id}/complaints?page=1` | `{total,page,totalPages,items:[{receiptNo,kindLabel,title,status,statusLabel,receivedAt,deadlineAt,completedAt}]}` | |
+| `GET /members/{id}/complaints?page=1&status=open` | `{total,page,totalPages,items:[{receiptNo,kindLabel,title,status,statusLabel,receivedAt,deadlineAt,completedAt}]}`. `status`(선택): `open` 처리 중(접수 대기 포함), `done` 처리 완료(취하 포함), 없거나 다른 값이면 모두 | |
 | `GET /members/{id}/complaints/{receiptNo}` | 5-2와 같은 꼴 (본인용 값 포함) | 남의 민원이면 404 |
 
 5-1 접수에 `"memberId": 7`을 넣으면 회원 민원이 되며, 이때 `password`는 빼도 됩니다(넣으면 비회원 조회도 됨).
 비밀번호는 BCrypt로만 저장합니다. 가입·로그인·정보 변경·탈퇴는 행정누리 접속기록에 남습니다.
 
+### 5-9. 민원인 PC 보안 프로그램 `GET /api/epetition/v1/security-apps`
+
+행정누리 관리자가 **시스템 관리 › 보안 프로그램 안내**에서 대상을 "민원인 PC" 또는 "직원·민원인 모두"로 정한 항목입니다.
+
+```json
+{"items":[{"id":12,"name":"키보드 보안","purpose":"입력 내용 보호","guide":"1. 내려받아 실행…","url":"https://…",
+           "required":true,"version":2,"checkUrl":"http://127.0.0.1:14440/status"}]}
+```
+
+- `required`: `true` 강제(설치하지 않으면 전자민원을 쓰지 못하게), `false` 권고(안내만).
+- `version`: 관리자가 "다시 확인 요청"을 누르면 올라갑니다. 민원인의 설치 확인은 `id.version` 으로 기억하고, 판이 바뀌면 다시 받습니다.
+- `checkUrl`(없을 수 있음): 프로그램이 민원인 PC에 띄우는 확인 주소로, `127.0.0.1`·`localhost`만 옵니다. 있으면 브라우저가 이 주소에 응답이 오는지 확인한 뒤에만 설치 확인을 받습니다. 그 화면에서만 CSP `connect-src`에 이 주소를 더합니다.
+- `url`·`checkUrl`은 형식을 다시 확인하고 쓰세요(`http(s)`만, 확인 주소는 이 PC 주소만).
+- **휴대폰·태블릿은 PC 용 프로그램을 설치할 수 없으므로 강제 항목으로 막지 않습니다.**
+- 정부 방침은 공공 누리집에서 플러그인을 걷어 내고 보안 프로그램 설치를 이용자가 고르게 하는 것이므로, 민원인에게는 되도록 권고로 둡니다.
+
 ## 6. 전자민원 쪽에서 지켜야 할 것
 
-1. **HTTPS만** 씁니다. HSTS를 켜고, 쿠키에 Secure·HttpOnly·SameSite를 설정합니다.
+1. **HTTPS만** 씁니다. HSTS를 켜고, 쿠키에 Secure·HttpOnly·SameSite를 설정합니다. 같은 PC가 아닌 곳에서 `http://`로 오면 받지 않습니다(이 서버가 인증서로 켜졌거나 앞단 프록시가 HTTPS를 받을 때만 `https://`로 넘김).
 2. **개인정보 수집·이용 동의**를 받습니다. 수집 항목, 목적, 보유기간, 동의 거부 권리와 불이익을 화면에 알리고 동의한 경우에만 `privacyConsent: true`로 보냅니다(개인정보 보호법 제15조). 보유기간은 기관 기준(행정누리의 민원 기록 보존기간)과 맞춥니다.
 3. **조회 비밀번호를 저장하지 않습니다.** 전자민원 로그에 요청 본문을 남기지 마세요. 비밀번호와 연락처가 들어 있습니다.
 4. 국민 IP별 요청 횟수 제한과 자동입력 방지를 둡니다. 특히 접수와 조회에 필요합니다.
