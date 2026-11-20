@@ -4,8 +4,8 @@
 #   powershell -ExecutionPolicy Bypass -File .\scripts\start-all.ps1
 #   (또는 탐색기에서 scripts\start-all.bat 를 더블클릭)
 #
-# - 행정누리는 이 PC에서만 (http://localhost:8080)
-# - 전자민원은 같은 공유기에 붙은 휴대폰·노트북에서도 (http://이PC주소:3000)
+# - 행정누리와 전자민원 모두 이 PC와, 같은 집 공유기(내부망)에 붙은 휴대폰·노트북에서 열립니다 (HTTPS)
+#   이 PC에서만 열려면: .\scripts\start-all.bat -ThisPcOnly
 # - 두 프로그램이 함께 쓰는 비밀값은 data\epetition-secret.txt 에 처음 한 번 만들어 둡니다 (저장소에 올라가지 않음)
 # - 창이 두 개 새로 뜹니다. 끄려면 각 창에서 Ctrl + C 를 누르거나 창을 닫습니다.
 
@@ -16,7 +16,9 @@ param(
     [int]$NuriPort = 8443,
     [int]$NuriHttpPort = 8080,
     [int]$EPetitionPort = 3000,
-    [string]$OrgName = '시험시'
+    [string]$OrgName = '시험시',
+    # 행정누리를 이 PC 에서만 열기 (집 안 다른 기기에서는 막음)
+    [switch]$ThisPcOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -93,11 +95,42 @@ if ($secret -notmatch '^[0-9a-f]{64}$') {
 
 # 다른 기기에서 열 주소 (공유기가 준 이 PC 주소)
 $addrs = @()
+$ipObjs = @()
 try {
-    $addrs = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
-        Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
-        Select-Object -ExpandProperty IPAddress
+    $ipObjs = @(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
+        Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' })
+    $addrs = @($ipObjs | Select-Object -ExpandProperty IPAddress)
 } catch { }
+
+# 집 공유기 내부망(사설 주소: 10.x, 172.16~31.x, 192.168.x)만 골라 그 망 전체를 행정누리 접속 허용 목록에 넣는다.
+# 벽 랜이 공유기 없이 통신사에 바로 붙어 공인 주소를 받은 경우에는 넣지 않는다 (같은 통신사 망의 남이 들어올 수 있음).
+function Get-NetworkOf([string]$ip, [int]$len) {
+    $b = [System.Net.IPAddress]::Parse($ip).GetAddressBytes()
+    [Array]::Reverse($b)
+    $n = [BitConverter]::ToUInt32($b, 0)
+    $mask = [uint32]0
+    if ($len -gt 0) { $mask = [uint32]([math]::Pow(2, 32) - [math]::Pow(2, 32 - $len)) }
+    $net = [uint32]($n -band $mask)
+    $nb = [BitConverter]::GetBytes($net)
+    [Array]::Reverse($nb)
+    return ([System.Net.IPAddress]::new($nb)).ToString() + '/' + $len
+}
+$homeNets = @()
+$homeAddrs = @()
+$publicAddrs = @()
+foreach ($o in $ipObjs) {
+    $ip = $o.IPAddress
+    if ($ip -match '^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)') {
+        # 너무 넓은 망(/16 보다 넓음)은 /24 로 줄인다
+        $len = [int]$o.PrefixLength
+        if ($len -lt 16) { $len = 24 }
+        $net = Get-NetworkOf $ip $len
+        if ($homeNets -notcontains $net) { $homeNets += $net }
+        $homeAddrs += $ip
+    } else {
+        $publicAddrs += $ip
+    }
+}
 
 
 # ---------------------------------------------------------------- HTTPS 인증서
@@ -147,7 +180,10 @@ $tlsPass = ([System.IO.File]::ReadAllText($passFile)).Trim()
 
 # 새 창은 이 창의 환경변수를 물려받는다. 그래서 값을 여기서 정해 두고,
 # 새 창에는 짧은 명령만 넘긴다 (따옴표·한글이 섞인 긴 명령은 Windows 에서 깨지기 쉬움).
-# 행정누리: 이 PC에서만 열리게 (APP_ALLOWED_NETWORKS 를 주지 않으면 기본이 이 PC만), HTTPS 로
+# 행정누리: 이 PC 와 집 공유기 내부망에서만, HTTPS 로
+$allowed = '127.0.0.1/32,::1/128'
+if (-not $ThisPcOnly -and $homeNets.Count -gt 0) { $allowed += ',' + ($homeNets -join ',') }
+$env:APP_ALLOWED_NETWORKS = $allowed
 $env:SERVER_PORT = "$NuriPort"
 $env:APP_SSL_ENABLED = 'true'
 $env:APP_HTTP_REDIRECT_PORT = "$NuriHttpPort"
@@ -182,10 +218,22 @@ Start-Process -FilePath 'cmd.exe' -WorkingDirectory $EPetitionDir -ArgumentList 
 Write-Host ''
 Write-Host '두 창이 떴습니다. 행정누리 창에 글자가 올라가다 멈추면 (1분쯤) 다 켜진 것입니다.' -ForegroundColor Green
 Write-Host ''
-Write-Host "  행정누리 (이 PC에서만)     : https://localhost:$NuriPort   (http://localhost:$NuriHttpPort 로 넣어도 넘어갑니다)"
+Write-Host "  행정누리 (이 PC)           : https://localhost:$NuriPort   (http://localhost:$NuriHttpPort 로 넣어도 넘어갑니다)"
 Write-Host "  전자민원 (이 PC)           : https://localhost:$EPetitionPort   (http:// 로 넣어도 https 로 넘어갑니다)"
-foreach ($a in $addrs) {
-    Write-Host "  전자민원 (휴대폰·노트북)   : https://${a}:$EPetitionPort"
+foreach ($a in $homeAddrs) {
+    if (-not $ThisPcOnly) { Write-Host "  행정누리 (집 안 다른 기기) : https://${a}:$NuriPort" }
+    Write-Host "  전자민원 (집 안 다른 기기) : https://${a}:$EPetitionPort"
+}
+if ($ThisPcOnly) {
+    Write-Host '  (행정누리는 -ThisPcOnly 로 켜서 이 PC 에서만 열립니다)'
+} elseif ($homeNets.Count -gt 0) {
+    Write-Host ('  행정누리 접속 허용: 이 PC + 집 내부망 ' + ($homeNets -join ', '))
+}
+if ($publicAddrs.Count -gt 0 -and $homeAddrs.Count -eq 0) {
+    Write-Host ''
+    Write-Host ('  이 PC 주소(' + ($publicAddrs -join ', ') + ')는 공유기 내부 주소가 아닙니다. 벽 랜이 공유기 없이 통신사에 바로 연결된 것 같습니다.') -ForegroundColor Yellow
+    Write-Host '  이대로 열면 같은 통신사 망의 다른 사람도 들어올 수 있어 행정누리는 이 PC 에서만 엽니다.' -ForegroundColor Yellow
+    Write-Host '  휴대폰과 함께 쓰려면 PC 를 와이파이 공유기의 랜 포트(노란색 등)에 꽂거나 와이파이로 연결하세요.' -ForegroundColor Yellow
 }
 Write-Host ''
 Write-Host '  주소는 꼭 https:// 로 넣으세요. 오가는 내용이 암호화되어 같은 와이파이의 다른 사람이 가로채도 읽을 수 없습니다.' -ForegroundColor Yellow
@@ -195,6 +243,7 @@ Write-Host "    $cer"
 Write-Host '  국민에게 실제로 열 때는 기관 정식 인증서(GPKI·상용 SSL)를 쓰세요.'
 Write-Host ''
 Write-Host '  휴대폰·노트북은 이 PC와 같은 공유기(와이파이)에 연결되어 있어야 합니다.'
-Write-Host "  다른 기기에서 열리지 않으면 관리자 PowerShell 에서 방화벽을 한 번 열어 주세요:"
-Write-Host "  New-NetFirewallRule -DisplayName '행정누리 전자민원 $EPetitionPort' -Direction Inbound -Protocol TCP -LocalPort $EPetitionPort -Action Allow -Profile Any -RemoteAddress LocalSubnet"
+Write-Host "  다른 기기에서 열리지 않으면 관리자 PowerShell 에서 방화벽을 한 번 열어 주세요 (집 내부망에서만 열림):"
+Write-Host "  New-NetFirewallRule -DisplayName '행정누리·전자민원 (집 안)' -Direction Inbound -Protocol TCP -LocalPort $NuriPort,$NuriHttpPort,$EPetitionPort -Action Allow -Profile Private -RemoteAddress LocalSubnet"
+Write-Host '  윈도우 설정 > 네트워크 > 지금 연결된 네트워크의 "네트워크 프로필"이 "개인"이어야 합니다 (공용이면 위 규칙이 적용되지 않음).'
 Write-Host ''
