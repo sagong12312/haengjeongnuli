@@ -1,0 +1,7 @@
+/* 기관 글꼴: static/fonts/MDotum.ttf 가 있을 때만 화면이 이 파일을 불러온다 (없으면 404 가 나지 않게) */
+@font-face {
+  font-family: 'MDotum';
+  src: url('../fonts/MDotum.ttf') format('truetype');
+  font-weight: 400 800;
+  font-display: swap;
+}

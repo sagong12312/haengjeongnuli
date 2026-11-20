@@ -8,7 +8,7 @@
   <div th:replace="~{fragments/layout :: flash}"></div>
   <div class="page-head">
     <div><span class="crumb"><a th:href="@{/}">홈</a> › 건축·토지</span><h1>건축·토지</h1></div>
-    <a class="btn btn-outline" th:href="@{/civil/new}">건축 민원 접수 (창구)</a>
+    <a th:if="${loginUser.counterStaff}" class="btn btn-outline" th:href="@{/civil/new}">건축 민원 접수 (창구)</a>
   </div>
 
   <div class="stat-grid">

@@ -1,10 +1,4 @@
 /* 행정누리 공통 스타일 (design/ 시안 기준) */
-@font-face {
-  font-family: 'MDotum';
-  src: url('../fonts/MDotum.ttf') format('truetype');
-  font-weight: 400 800;
-  font-display: swap;
-}
 
 :root {
   --brand: #1D4E89;
@@ -235,4 +229,20 @@ table.list td a { color: var(--text); text-decoration: none; }
   table.list.stack td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; padding: 6px 16px; text-align: right; }
   table.list.stack td::before { content: attr(data-label); font-weight: 700; color: var(--text-2); text-align: left; flex: 0 0 auto; }
   table.list.stack td.left { text-align: right; }
+}
+
+/* 휴대폰: 모든 목록 표를 카드처럼 (칸 이름은 app.js 가 머리글에서 data-label 로 붙인다) */
+@media (max-width: 720px) {
+  .table-wrap.stacked { overflow: visible; }
+  table.list.stacked { min-width: 0 !important; font-size: 17px; }
+  table.list.stacked thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.list.stacked tr { display: block; border-top: 1px solid var(--line-2); padding: 8px 0; }
+  table.list.stacked td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; padding: 6px 16px; text-align: right; }
+  table.list.stacked td[data-label]::before { content: attr(data-label); font-weight: 700; color: var(--text-2); text-align: left; flex: 0 0 auto; max-width: 45%; }
+  table.list.stacked td:empty { display: none; }
+  /* 누르기 쉬운 크기 (44px) */
+  input[type=checkbox], input[type=radio] { width: 24px; height: 24px; }
+  label.check { min-height: 44px; }
+  .panel-head a, .form-actions a, .crumb a, a.more { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; }
+  .btn-sm { min-height: 44px; }
 }

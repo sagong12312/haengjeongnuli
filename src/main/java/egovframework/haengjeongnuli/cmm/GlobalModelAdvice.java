@@ -16,6 +16,13 @@ public class GlobalModelAdvice {
         this.notificationService = notificationService;
     }
 
+    private static final boolean FONT = new org.springframework.core.io.ClassPathResource("static/fonts/MDotum.ttf").exists();
+
+    /** 기관 글꼴 파일을 넣었는지 (없으면 글꼴을 부르지 않아 404 가 나지 않게) */
+    public boolean fontAvailable() {
+        return FONT;
+    }
+
     /** 로그인한 직원. 로그인 화면에서는 null */
     @ModelAttribute("loginUser")
     public LoginUser loginUser(@AuthenticationPrincipal LoginUser user) {

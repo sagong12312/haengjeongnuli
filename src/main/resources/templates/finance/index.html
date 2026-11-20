@@ -27,7 +27,7 @@
 
   <nav class="tabs" aria-label="업무 영역">
     <a th:href="@{/finance(area='fin',year=${year})}" th:attr="aria-current=${area == 'fin'} ? 'page' : null" style="font-size:21px; padding:0 26px;">세출 (예산·집행)</a>
-    <a th:href="@{/finance(area='rev',year=${year})}" th:attr="aria-current=${area == 'rev'} ? 'page' : null" style="font-size:21px; padding:0 26px;">세입</a>
+    <a th:if="${loginUser.revenueStaff}" th:href="@{/finance(area='rev',year=${year})}" th:attr="aria-current=${area == 'rev'} ? 'page' : null" style="font-size:21px; padding:0 26px;">세입</a>
   </nav>
 
   <!-- ===== 세출 ===== -->

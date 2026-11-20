@@ -17,7 +17,7 @@
       <option th:each="t : ${templates}" th:value="${t.templateId}" th:text="'[' + ${t.scopeLabel} + '] ' + ${t.name}">서식</option>
     </select>
     <button type="submit" class="btn btn-outline">불러오기</button>
-    <a th:href="@{/approval/templates}">서식 관리</a>
+    <a class="more" th:href="@{/approval/templates}">서식 관리</a>
   </form>
 
   <form th:action="${doc} ? @{/approval/{id}/edit(id=${doc.docId})} : @{/approval/draft}" th:object="${approvalForm}"

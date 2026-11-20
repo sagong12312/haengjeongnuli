@@ -163,3 +163,26 @@
     });
   });
 })();
+
+// 휴대폰에서 표를 카드처럼 보이게: 머리글 이름을 칸마다 data-label 로 붙이고, 옆으로 넘치는 표 영역은 키보드로도 움직일 수 있게
+(function () {
+  document.querySelectorAll('table.list').forEach(function (t) {
+    var heads = [];
+    t.querySelectorAll('thead th').forEach(function (th) { heads.push((th.textContent || '').trim()); });
+    if (heads.length) {
+      t.querySelectorAll('tbody tr').forEach(function (tr) {
+        var i = 0;
+        tr.querySelectorAll('td').forEach(function (td) {
+          if (!td.hasAttribute('data-label') && heads[i]) td.setAttribute('data-label', heads[i]);
+          i += td.colSpan || 1;
+        });
+      });
+      t.classList.add('stacked');
+    }
+    var wrap = t.closest('.table-wrap');
+    if (wrap) {
+      if (heads.length) wrap.classList.add('stacked');
+      if (!wrap.hasAttribute('tabindex')) { wrap.setAttribute('tabindex', '0'); wrap.setAttribute('role', 'region'); wrap.setAttribute('aria-label', '표'); }
+    }
+  });
+})();

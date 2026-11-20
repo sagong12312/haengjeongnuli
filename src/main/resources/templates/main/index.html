@@ -41,7 +41,7 @@
         <a class="menu-card" th:href="@{/civil}"><b>민원</b><span>민원 접수·처리, 구비서류, 처리기한 관리</span></a>
         <a th:if="${loginUser.counterStaff or loginUser.admin}" class="menu-card" th:href="@{/civil/certs}"><b>증명 발급</b><span>등·초본·인감증명 발급대장, 수수료</span></a>
         <a th:if="${loginUser.counterStaff or loginUser.admin}" class="menu-card" th:href="@{/epetition}"><b>전자민원 운영</b><span>국민용 공지사항·자주 묻는 질문, 만족도·처리 통계</span></a>
-        <a class="menu-card" th:href="@{/finance(area='rev')}"><b>세입</b><span>세입예산, 수납 기록 (세입 담당)</span></a>
+        <a th:if="${loginUser.revenueStaff}" class="menu-card" th:href="@{/finance(area='rev')}"><b>세입</b><span>세입예산, 수납 기록 (세입 담당)</span></a>
         <a class="menu-card" th:href="@{/finance(area='fin')}"><b>재정·회계</b><span>예산 편성·집행, 추경·이월, 지출결의</span></a>
         <a class="menu-card" th:href="@{/finance/purchases}"><b>구매·계약</b><span>견적 비교, 계약대장, 검수, 물품대장</span></a>
         <a class="menu-card" th:href="@{/hr}"><b>인사</b><span>인사정보, 근태, 휴가·출장·시간외근무 신청</span></a>
@@ -56,7 +56,7 @@
         <a class="menu-card" th:href="@{/office}"><b>공통 업무</b><span>회의실 예약, 당직, 주간 업무 보고, 인계인수, 의무교육, 비상연락망</span></a>
         <a class="menu-card" th:href="@{/board}"><b>게시판</b><span>공지사항, 건의사항, 자료실</span></a>
         <a th:if="${loginUser.admin}" class="menu-card" th:href="@{/admin/users}"><b>시스템 관리</b><span>직원 계정·권한, 부서, 기관 정보·관인, 공휴일, 접속 기록</span></a>
-        <a class="menu-card" th:href="@{/welfare}"><b>사회복지</b><span>기초생활보장 급여 신청·조사·결정 (복지 담당)</span></a>
+        <a th:if="${loginUser.welfareStaff}" class="menu-card" th:href="@{/welfare}"><b>사회복지</b><span>기초생활보장 급여 신청·조사·결정 (복지 담당)</span></a>
         <a class="menu-card" th:href="@{/building}"><b>건축·토지</b><span>건축신고·허가 민원, 인허가 대장, 착수기한</span></a>
         <a class="menu-card" th:href="@{/hygiene}"><b>환경·위생</b><span>식품 영업신고, 영업소 대장, 위생 점검</span></a>
         <a class="menu-card" th:href="@{/stats}"><b>통계·보고</b><span>민원·결재·예산·복무 통계, CSV 내려받기</span></a>
@@ -78,7 +78,7 @@
         <h2 id="fav-title">자주 쓰는 메뉴</h2>
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
           <a th:href="@{/approval/draft}" style="text-decoration:none; border:1px solid var(--input); border-radius:999px; padding:10px 14px;">기안 작성</a>
-          <a th:href="@{/civil/new}" style="text-decoration:none; border:1px solid var(--input); border-radius:999px; padding:10px 14px;">민원 접수</a>
+          <a th:if="${loginUser.counterStaff}" th:href="@{/civil/new}" style="text-decoration:none; border:1px solid var(--input); border-radius:999px; padding:10px 14px;">민원 접수</a>
           <a th:href="@{/hr/duty/new(kind='ANNUAL')}" style="text-decoration:none; border:1px solid var(--input); border-radius:999px; padding:10px 14px;">휴가 신청</a>
           <a th:href="@{/approval/draft(kind='지출결의')}" style="text-decoration:none; border:1px solid var(--input); border-radius:999px; padding:10px 14px;">지출결의</a>
           <a th:href="@{/finance}" style="text-decoration:none; border:1px solid var(--input); border-radius:999px; padding:10px 14px;">예산 현황</a>
@@ -88,7 +88,7 @@
       <section class="panel" aria-labelledby="notice-title" style="padding:22px; gap:10px;">
         <div style="display:flex; align-items:baseline; justify-content:space-between;">
           <h2 id="notice-title">공지사항</h2>
-          <a th:href="@{/board}" style="font-size:17px;">더보기</a>
+          <a class="more" th:href="@{/board}" style="font-size:17px;">더보기</a>
         </div>
         <p th:if="${#lists.isEmpty(notices)}" class="hint" style="padding:10px 0;">등록된 공지가 없습니다.</p>
         <a th:each="n : ${notices}" th:href="@{/board/{id}(id=${n.postId})}" style="text-decoration:none; color:var(--text); display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #EDF0F4;">

@@ -9,7 +9,7 @@
   <div class="page-head">
     <div><span class="crumb"><a th:href="@{/}">홈</a> › 환경·위생</span><h1>환경·위생</h1>
       <a th:href="@{/hygiene/sanctions}">행정처분 대장</a></div>
-    <a class="btn btn-outline" th:href="@{/civil/new}">영업신고 민원 접수 (창구)</a>
+    <a th:if="${loginUser.counterStaff}" class="btn btn-outline" th:href="@{/civil/new}">영업신고 민원 접수 (창구)</a>
   </div>
 
   <section class="panel flush" aria-labelledby="c-title">
