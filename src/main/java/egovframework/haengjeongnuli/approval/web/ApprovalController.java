@@ -112,6 +112,9 @@ public class ApprovalController {
         }
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private egovframework.haengjeongnuli.cmm.mark.DownloadMarkService downloadMarks;
+
     public ApprovalController(ApprovalService approvalService, AuditService auditService, FileStorage fileStorage,
                               egovframework.haengjeongnuli.finance.service.FinanceService finance,
                               egovframework.haengjeongnuli.approval.service.DispatchService dispatch) {
@@ -327,13 +330,14 @@ public class ApprovalController {
             }
             receiver = rs.get(to);
         }
-        byte[] bytes = hwpService.make(d, receiver);
         auditService.record(AuditAction.APPROVAL_HWP, "결재 " + docId, receiver == null ? "문서" : "시행문 " + receiver);
         String name = (d.getDocNo() == null ? "기안" : d.getDocNo()) + "_" + d.getTitle().replaceAll("[\\\\/:*?\"<>|]", "_")
                 + (receiver == null ? "" : "_" + receiver) + ".hwp";
         if (name.length() > 120) {
             name = name.substring(0, 116) + ".hwp";
         }
+        // 내려받은 사람마다 다른 보이지 않는 추적 번호를 심는다
+        byte[] bytes = hwpService.make(d, receiver, downloadMarks.issue("HWP", name));
         return org.springframework.http.ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.parseMediaType("application/x-hwp"))
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment()

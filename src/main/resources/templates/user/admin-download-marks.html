@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('유출 추적')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+<main class="page">
+  <div><span class="crumb"><a th:href="@{/admin/users}">시스템 관리</a> › 유출 추적</span><h1>유출 추적 (보이지 않는 워터마크)</h1></div>
+  <p class="hint">엑셀(CSV)·한글(HWP)로 내려받은 파일에는 내려받은 사람마다 다른 추적 번호가 보이지 않게 들어 있습니다.
+    밖에서 발견된 파일을 넣거나 내용을 복사해 붙여 넣으면 누가 언제 내려받은 것인지 찾아 줍니다. 넣은 파일·글은 저장하지 않습니다.
+    사진을 찍거나 손으로 옮겨 적은 것은 추적 번호가 남지 않으니, 그때는 화면·인쇄물의 보이는 워터마크를 확인하세요.</p>
+
+  <form class="panel" th:action="@{/admin/download-marks/trace}" method="post" enctype="multipart/form-data" style="gap:10px;">
+    <h2>발견된 파일·글 넣기</h2>
+    <div class="field"><label for="lf">파일 (.hwp · .csv · .txt, 20MB까지)</label><input id="lf" name="file" type="file" class="input" accept=".hwp,.csv,.txt"></div>
+    <div class="field"><label for="lt">또는 내용 붙여 넣기 (엑셀 칸·한글 글을 그대로 복사)</label><textarea id="lt" name="text" class="textarea" rows="5"></textarea></div>
+    <div class="form-actions" style="justify-content:flex-end;"><button type="submit" class="btn btn-primary">추적</button></div>
+  </form>
+
+  <section th:if="${traced}" class="panel" style="gap:8px;">
+    <h2>추적 결과</h2>
+    <div th:if="${traceError}" class="alert alert-error" role="alert" th:text="${traceError}">오류</div>
+    <p th:if="${#lists.isEmpty(hits)} and ${traceError == null}" class="hint" style="margin:0;"
+       th:text="${#sets.isEmpty(codes)} ? '추적 번호를 찾지 못했습니다. 이 시스템에서 내려받은 파일이 아니거나, 다시 입력·변환되면서 지워졌을 수 있습니다.' : '추적 번호는 찾았지만 기록에 없습니다: ' + ${codes}">없음</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(hits)}"><table class="list stack">
+      <thead><tr><th scope="col">추적 번호</th><th scope="col">내려받은 사람</th><th scope="col">부서</th><th scope="col">때</th><th scope="col">IP</th><th scope="col" style="text-align:left">파일</th><th scope="col" style="text-align:left">사유</th></tr></thead>
+      <tbody><tr th:each="h : ${hits}">
+        <td data-label="추적 번호"><code th:text="${h['code']}">번호</code></td>
+        <td data-label="내려받은 사람"><b th:text="${h['userName']} + ' (' + ${h['loginId']} + ')'">사람</b></td>
+        <td data-label="부서" th:text="${h['dept']}">부서</td>
+        <td data-label="때" th:text="${h['at']}">때</td>
+        <td data-label="IP" th:text="${h['ip']}">IP</td>
+        <td class="left" data-label="파일" th:text="${h['fileName']}">파일</td>
+        <td class="left" data-label="사유" th:text="${h['reason']}">사유</td>
+      </tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel flush">
+    <div class="panel-head"><h2>최근 내려받기 (100건)</h2></div>
+    <form th:action="@{/admin/download-marks}" method="get" style="display:flex; gap:8px; flex-wrap:wrap; padding:0 24px 12px;">
+      <label class="sr-only" for="lq">찾기</label><input id="lq" name="q" type="search" class="input" maxlength="50" th:value="${q}" placeholder="이름·아이디·파일·추적 번호" style="flex:1; min-width:200px;">
+      <button type="submit" class="btn btn-outline">찾기</button></form>
+    <p th:if="${#lists.isEmpty(recent)}" class="hint" style="padding:0 24px 20px;">아직 없습니다.</p>
+    <div class="table-wrap" th:unless="${#lists.isEmpty(recent)}"><table class="list stack">
+      <thead><tr><th scope="col">때</th><th scope="col">사람</th><th scope="col">종류</th><th scope="col" style="text-align:left">파일</th><th scope="col">추적 번호</th></tr></thead>
+      <tbody><tr th:each="h : ${recent}">
+        <td data-label="때" th:text="${h['at']}">때</td>
+        <td data-label="사람" th:text="${h['userName']} + ' (' + ${h['loginId']} + ')'">사람</td>
+        <td data-label="종류" th:text="${h['kind']}">종류</td>
+        <td class="left" data-label="파일" th:text="${h['fileName']}">파일</td>
+        <td data-label="추적 번호"><code th:text="${h['code']}">번호</code></td>
+      </tr></tbody>
+    </table></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

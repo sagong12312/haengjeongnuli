@@ -65,7 +65,7 @@ class RecordReportTest {
         // 다른 처리과를 지정해도 내 처리과만 나온다
         String csv = m.perform(get("/records/report.csv").param("year", String.valueOf(year)).param("dept", "남의" + dept))
                 .andExpect(header().string("Content-Disposition", containsString("attachment")))
-                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8).replaceAll("[\u200B\u200C\u2060]", "");
         assertThat(csv).startsWith("﻿처리과,등록번호").contains("생산 1").contains("접수 1")
                 .contains("\"'=HYPERLINK(\"\"x\"\"), 접수 2\"").doesNotContain("남의 부서 문서");
         assertThat(csv.split("\r\n")).hasSize(4);

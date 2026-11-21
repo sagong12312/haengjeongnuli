@@ -28,7 +28,9 @@ class CsvExportTest {
     private static String csv(MockMvc m, String url) throws Exception {
         return m.perform(get(url)).andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("attachment")))
-                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)
+                // 내려받은 사람을 추적하는 보이지 않는 글자는 빼고 비교한다
+                .replaceAll("[\u200B\u200C\u2060]", "");
     }
 
     @Test

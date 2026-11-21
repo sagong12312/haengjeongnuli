@@ -125,7 +125,8 @@ public enum AuditAction {
     ATTEND_IN("출근"),
     ATTEND_OUT("퇴근"),
     BIZ("업무 지원 (방문객·습득물·정보공개)"),
-    REG("대장");
+    REG("대장"),
+    LEAK_TRACE("유출 추적");
 
     private final String label;
 

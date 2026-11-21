@@ -32,9 +32,14 @@ public class ApprovalHwpService {
 
     /** @param receiver 시행문 수신자 (null 이면 결재 문서 그대로) */
     public byte[] make(ApprovalDocVO d, String receiver) throws Exception {
+        return make(d, receiver, null);
+    }
+
+    /** mark: 보이지 않는 추적 번호 (기관명 아래 빈 줄 끝에 빈칸으로 숨긴다) */
+    public byte[] make(ApprovalDocVO d, String receiver, String mark) throws Exception {
         List<Line> l = new ArrayList<>();
         l.add(Line.title(org.get("orgName", "(행정기관명)")));
-        l.add(Line.blank());
+        l.add(mark == null ? Line.blank() : Line.of(egovframework.haengjeongnuli.cmm.mark.DownloadMark.spaces(mark)));
         String recv = receiver != null ? receiver : (d.isExternal() ? String.join(", ", d.getReceiverList()) : "내부결재");
         l.add(Line.of("수신  " + recv));
         if (d.getVia() != null) {
