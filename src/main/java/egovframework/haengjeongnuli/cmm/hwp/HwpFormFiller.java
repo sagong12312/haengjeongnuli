@@ -84,6 +84,25 @@ public final class HwpFormFiller {
             }
             FieldFinder.setClickHereText(hwp, name, texts);
         }
+        // 채운 누름틀이 든 문단은 서식에 적혀 있던 줄 정보를 지운다.
+        // 그대로 두면 글이 길어졌을 때 한글이 옛 줄 위치대로 그려 글자가 겹친다 (지우면 한글이 열 때 줄을 다시 계산).
+        java.util.Set<kr.dogfoot.hwplib.object.bodytext.paragraph.Paragraph> touched =
+                java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        ControlFinder.find(hwp, (c, para, sec) -> {
+            if (c.getType() == ControlType.FIELD_CLICKHERE && para != null) {
+                String n = ((ControlField) c).getName();
+                String v = n == null ? null : values.get(n.trim());
+                if (v != null && !v.isBlank()) {
+                    touched.add(para);
+                }
+            }
+            return false;
+        });
+        for (kr.dogfoot.hwplib.object.bodytext.paragraph.Paragraph para : touched) {
+            if (para.getLineSeg() != null) {
+                para.deleteLineSeg();
+            }
+        }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         HWPWriter.toStream(hwp, out);
         return out.toByteArray();

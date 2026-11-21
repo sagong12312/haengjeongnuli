@@ -83,6 +83,7 @@ public class HwpMaker {
         int baseChar, boldChar, titleChar;
         int basePara, centerPara, rightPara;
         int borderFill;
+        int baseSize = 1000, titleSize = 1800;
         LineSegItem seg;
         int vpos;
         final SecureRandom random = new SecureRandom();
@@ -100,6 +101,8 @@ public class HwpMaker {
         // 글자 모양: 기본, 굵게, 제목
         List<CharShape> cs = hwp.getDocInfo().getCharShapeList();
         CharShape base = cs.get(c.baseChar);
+        c.baseSize = base.getBaseSize() > 0 ? base.getBaseSize() : 1000;
+        c.titleSize = 1800;
         CharShape bold = base.clone();
         bold.getProperty().setBold(true);
         cs.add(bold);
@@ -140,9 +143,10 @@ public class HwpMaker {
                 tableParagraph(c, c.section.addNewParagraph(), l.rows(), last);
             } else {
                 int height = l.style() == Style.TITLE ? c.seg.getLineHeight() * 18 / 10 : c.seg.getLineHeight();
-                textParagraph(c, c.section.addNewParagraph(), clean(l.text()), charId(c, l.style()), paraId(c, l.align()),
-                        last, c.vpos, height, c.seg.getSegmentWidth());
-                c.vpos += height + c.seg.getLineSpace();
+                int size = l.style() == Style.TITLE ? c.titleSize : c.baseSize;
+                int n = textParagraph(c, c.section.addNewParagraph(), clean(l.text()), charId(c, l.style()), paraId(c, l.align()),
+                        last, c.vpos, height, c.seg.getSegmentWidth(), size, l.style() != Style.NORMAL);
+                c.vpos += n * (height + c.seg.getLineSpace());
             }
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -173,8 +177,12 @@ public class HwpMaker {
 
     private static void lineSeg(Ctx c, Paragraph p, int vpos, int height, int width) {
         p.createLineSeg();
+        addSeg(c, p, 0, vpos, height, width);
+    }
+
+    private static void addSeg(Ctx c, Paragraph p, int start, int vpos, int height, int width) {
         LineSegItem s = p.getLineSeg().addNewLineSegItem();
-        s.setTextStartPosition(0);
+        s.setTextStartPosition(start);
         s.setLineVerticalPosition(vpos);
         s.setLineHeight(height);
         s.setTextPartHeight(height);
@@ -185,14 +193,70 @@ public class HwpMaker {
         s.getTag().setValue(c.seg.getTag().getValue());
     }
 
-    private static void textParagraph(Ctx c, Paragraph p, String text, int charShape, int paraShape, boolean last,
-                                      int vpos, int height, int width) throws Exception {
+    /**
+     * 글 문단. 한글은 파일에 적힌 줄 정보대로 그리므로, 줄이 넘치면 직접 나눠 줄마다 위치를 적는다
+     * (한 줄로만 적으면 긴 글이 한 줄에 겹쳐 보이고 다음 문단과도 겹친다). 돌려주는 값은 줄 수.
+     */
+    private static int textParagraph(Ctx c, Paragraph p, String text, int charShape, int paraShape, boolean last,
+                                     int vpos, int height, int width, int fontSize, boolean bold) throws Exception {
         header(p, paraShape, text.length() + 1, last);
         p.createText();
         p.getText().addString(text);
         p.createCharShape();
         p.getCharShape().addParaCharShape(0, charShape);
-        lineSeg(c, p, vpos, height, width);
+        List<Integer> starts = lineStarts(text, width, fontSize, bold);
+        p.createLineSeg();
+        for (int i = 0; i < starts.size(); i++) {
+            addSeg(c, p, starts.get(i), vpos + i * (height + c.seg.getLineSpace()), height, width);
+        }
+        return starts.size();
+    }
+
+    /** 글자 폭 어림 (HWPUNIT). 실제보다 조금 넓게 잡아 줄 끝이 넘치지 않게 한다 */
+    static int charWidth(char ch, int fontSize, boolean bold) {
+        double w;
+        if (ch == ' ') {
+            w = 0.5;
+        } else if ((ch >= 0x1100 && ch <= 0x11FF) || (ch >= 0x2E80 && ch <= 0xA4CF) || (ch >= 0xAC00 && ch <= 0xD7A3)
+                || (ch >= 0xF900 && ch <= 0xFAFF) || (ch >= 0xFF00 && ch <= 0xFF60) || (ch >= 0x2500 && ch <= 0x257F)
+                || (ch >= 0x25A0 && ch <= 0x27BF) || ch == '·' || ch == '…') {
+            w = 1.0;
+        } else if (Character.isUpperCase(ch) || ch == 'm' || ch == 'w' || ch == 'M' || ch == 'W' || ch == '%' || ch == '@') {
+            w = 0.72;
+        } else {
+            w = 0.58;
+        }
+        return (int) Math.ceil(fontSize * w * (bold ? 1.06 : 1.0));
+    }
+
+    /** 줄마다 시작하는 글자 위치. 가능하면 띄어쓰기에서 끊고, 긴 낱말은 글자 단위로 끊는다 */
+    static List<Integer> lineStarts(String text, int width, int fontSize, boolean bold) {
+        List<Integer> starts = new java.util.ArrayList<>();
+        starts.add(0);
+        int avail = Math.max(fontSize * 2, width);
+        int used = 0;
+        int lastSpace = -1;
+        int lineStart = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            int w = charWidth(ch, fontSize, bold);
+            if (used + w > avail && i > lineStart) {
+                int next = lastSpace >= lineStart && lastSpace + 1 < i + 1 && lastSpace + 1 > lineStart ? lastSpace + 1 : i;
+                starts.add(next);
+                lineStart = next;
+                used = 0;
+                for (int k = next; k <= i; k++) {
+                    used += charWidth(text.charAt(k), fontSize, bold);
+                }
+                lastSpace = ch == ' ' ? i : -1;
+                continue;
+            }
+            used += w;
+            if (ch == ' ') {
+                lastSpace = i;
+            }
+        }
+        return starts;
     }
 
     /** 표를 담는 문단: [표 확장 제어 문자(8칸)][문단 끝] */
@@ -201,7 +265,19 @@ public class HwpMaker {
         int cols = Math.min(MAX_COLS, rows.stream().mapToInt(List::size).max().orElse(1));
         int totalWidth = c.seg.getSegmentWidth();
         int colWidth = totalWidth / cols;
-        int tableHeight = ROW_HEIGHT * rows.size();
+        int textWidth = Math.max(MM * 4, colWidth - CELL_LR * 2);
+        int lineH = c.seg.getLineHeight() + c.seg.getLineSpace();
+        int[] rowHeights = new int[rows.size()];
+        int tableHeight = 0;
+        for (int r = 0; r < rows.size(); r++) {
+            int maxLines = 1;
+            for (int col = 0; col < cols; col++) {
+                String text = col < rows.get(r).size() ? clean(rows.get(r).get(col)).strip() : "";
+                maxLines = Math.max(maxLines, lineStarts(text, textWidth, c.baseSize, r == 0).size());
+            }
+            rowHeights[r] = Math.max(ROW_HEIGHT, maxLines * lineH - c.seg.getLineSpace() + CELL_TB * 2);
+            tableHeight += rowHeights[r];
+        }
 
         header(p, c.basePara, 8 + 1, last);
         p.createText();
@@ -275,17 +351,17 @@ public class HwpMaker {
                 lh.setColSpan(1);
                 lh.setRowSpan(1);
                 lh.setWidth(colWidth);
-                lh.setHeight(ROW_HEIGHT);
+                lh.setHeight(rowHeights[r]);
                 lh.setLeftMargin(CELL_LR);
                 lh.setRightMargin(CELL_LR);
                 lh.setTopMargin(CELL_TB);
                 lh.setBottomMargin(CELL_TB);
                 lh.setBorderFillId(c.borderFill);
-                lh.setTextWidth(colWidth - CELL_LR * 2);
+                lh.setTextWidth(textWidth);
                 lh.setFieldName("");
                 ParagraphList pl = cell.getParagraphList();
                 textParagraph(c, pl.addNewParagraph(), text, r == 0 ? c.boldChar : c.baseChar, r == 0 ? c.centerPara : c.basePara,
-                        true, 0, c.seg.getLineHeight(), colWidth - CELL_LR * 2);
+                        true, 0, c.seg.getLineHeight(), textWidth, c.baseSize, r == 0);
             }
         }
         int height = tableHeight + CELL_TB * 2;
