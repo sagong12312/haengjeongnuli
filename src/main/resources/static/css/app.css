@@ -326,3 +326,8 @@ table.list td a { color: var(--text); text-decoration: none; }
 /* 문서 본문·한글 보기는 인쇄물과 같게 늘 흰 종이로 */
 .doc-body, .hwp-view { color-scheme: light; }
 @media print { :root, :root[data-theme="dark"] { --bg: #fff; --panel: #fff; --text: #000; --header: #fff; } }
+
+/* 워터마크: 어두운 화면에서는 글자 색을 밝게 뒤집어 똑같이 보이게 (인쇄는 늘 원래 색) */
+:root[data-theme="dark"] .watermark { filter: invert(1); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .watermark { filter: invert(1); } }
+@media print { :root .watermark, :root[data-theme="dark"] .watermark { filter: none !important; } }
