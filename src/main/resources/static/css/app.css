@@ -331,3 +331,25 @@ table.list td a { color: var(--text); text-decoration: none; }
 :root[data-theme="dark"] .watermark { filter: invert(1); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .watermark { filter: invert(1); } }
 @media print { :root .watermark, :root[data-theme="dark"] .watermark { filter: none !important; } }
+
+/* ── 휴대폰: 화면 밖으로 튀어나가는 것 막기 ── */
+.input, .select, .textarea, select, input[type=file] { max-width: 100%; min-width: 0; }
+fieldset { min-width: 0; }
+@media (max-width: 720px) {
+  main form, main .field, main fieldset, .panel > *, .grid-fields > * { min-width: 0; max-width: 100%; }
+  /* 칸 너비를 고정해 둔 입력 칸 묶음은 휴대폰에서 한 줄에 하나씩 */
+  .grid-fields { grid-template-columns: 1fr !important; }
+  /* 긴 선택지가 있는 목록 상자·파일 고르기는 화면 폭에 맞춘다 */
+  select, .select, input[type=file] { width: 100%; }
+  /* 줄바꿈 없이 한 줄로 늘어선 묶음은 넘치면 다음 줄로 */
+  main form[style*="display:flex"]:not([style*="column"]), main form[style*="display: flex"]:not([style*="column"]),
+  main div[style*="display:flex"]:not([style*="column"]), main div[style*="display: flex"]:not([style*="column"]) { flex-wrap: wrap; }
+  main form[style*="column"] > *, main div[style*="column"] > * { min-width: 0; max-width: 100%; }
+  main [style*="flex: 1 1 460px"], main [style*="flex:1 1 460px"], main [style*="flex: 1 1 320px"] { flex-basis: 100% !important; }
+  main [style*="min-width:200px"], main [style*="min-width: 200px"], main [style*="min-width:220px"], main [style*="min-width:180px"] { min-width: 0 !important; flex-basis: 100%; }
+  .panel { padding-left: 16px; padding-right: 16px; }
+  /* 한 줄 폼 안의 목록 상자는 따로 한 줄을 차지해 글자가 잘리지 않게 */
+  main form:not([style*="column"]) > select, main form:not([style*="column"]) > .select { flex: 1 1 100% !important; }
+  /* 긴 낱말(주소·파일 이름 등)은 칸 안에서 줄을 바꾼다 */
+  main { overflow-wrap: anywhere; }
+}
