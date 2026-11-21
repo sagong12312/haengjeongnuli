@@ -22,7 +22,7 @@ public class BuiltInTemplates implements ApplicationRunner {
 
     record T(String name, String kind, String retention, String title, String body) {}
 
-    static final List<T> ALL = List.of(
+    static final List<T> BASE = List.of(
             new T("[기본] 협조 요청", "협조 요청", "3년", "○○ 관련 협조 요청", """
                     1. 관련: ○○과-○○○(20○○. ○. ○.)
                     2. 위 호와 관련하여 ○○ 업무 추진을 위해 다음과 같이 협조를 요청하오니 기한 내 회신하여 주시기 바랍니다.
@@ -174,6 +174,9 @@ public class BuiltInTemplates implements ApplicationRunner {
                       바. 감독 공무원: ○○과 ○○○
 
                     붙임  착공계 1부.  끝."""));
+
+    /** 기본 16종 + 지출품의·지출결의·불용·보고 서식 (MoreTemplates) */
+    static final List<T> ALL = java.util.stream.Stream.concat(BASE.stream(), MoreTemplates.build().stream()).toList();
 
     private final ApprovalTemplateMapper mapper;
     private final JdbcTemplate jdbc;
