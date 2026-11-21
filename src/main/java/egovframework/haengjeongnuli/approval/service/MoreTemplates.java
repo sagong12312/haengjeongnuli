@@ -139,6 +139,13 @@ final class MoreTemplates {
         l.add(goods("근무복 구매", "근무복", office + "(피복비)", small, new String[] {"근무복", "동·하복", "벌"}));
         l.add(goods("명함 제작", "명함", office, small, new String[] {"명함", "90×50mm, 양면", "갑"}));
         l.add(goods("상장·상패 제작", "상장·상패", event, small, new String[] {"상장", "A4 상장 용지", "매"}, new String[] {"상패", "○○", "개"}));
+        l.add(goods("전산 소모품 구매", "전산 소모품(USB 허브·마우스·키보드 등)", office + "(소모품)", small,
+                new String[] {"USB 허브", "USB 3.0, ○포트", "개"}, new String[] {"마우스", "유선 USB", "개"}, new String[] {"키보드", "유선 USB", "개"},
+                new String[] {"랜 케이블", "CAT.6, ○m", "개"}, new String[] {"멀티탭", "○구, 개별 스위치", "개"}));
+        l.add(goods("전산 주변기기 구매", "전산 주변기기(화상회의용 등)", office + "(소모품)", small,
+                new String[] {"웹캠", "FHD", "개"}, new String[] {"헤드셋", "USB", "개"}, new String[] {"스피커", "USB", "개"}));
+        l.add(goods("보안 USB 구매", "보안 USB(이동식 저장매체)", office, mas + " (보안적합성 검증 제품, 구매 후 보안 담당에 등록)",
+                new String[] {"보안 USB", "○○GB, 암호화", "개"}));
         l.add(goods("민원 안내 표지판 제작", "안내 표지판", office, small, new String[] {"안내판", "○○×○○", "개"}));
 
         /* ---------- 지출품의: 용역 (28) ---------- */

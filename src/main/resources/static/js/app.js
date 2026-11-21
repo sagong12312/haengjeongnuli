@@ -212,3 +212,30 @@
   });
   label();
 })();
+
+// 서식 찾기: 입력하는 대로 목록 상자의 선택지를 거른다 (띄어쓰기·대소문자 무시). 스크립트가 없어도 '찾기' 단추로 된다
+(function () {
+  var inputs = document.querySelectorAll('[data-filter-select]');
+  Array.prototype.forEach.call(inputs, function (input) {
+    var sel = document.getElementById(input.getAttribute('data-filter-select'));
+    if (!sel) return;
+    var count = document.querySelector('[data-filter-count="' + sel.id + '"]');
+    var opts = Array.prototype.slice.call(sel.options, 1);
+    var norm = function (s) { return (s || '').toLowerCase().replace(/\s+/g, ''); };
+    var first = sel.options[0].textContent;
+    input.addEventListener('input', function () {
+      var words = input.value.trim().toLowerCase().split(/\s+/).map(norm).filter(Boolean);
+      var shown = 0;
+      opts.forEach(function (o) {
+        var t = norm(o.textContent);
+        var ok = words.every(function (w) { return t.indexOf(w) >= 0; });
+        o.hidden = !ok;
+        o.disabled = !ok;
+        if (ok) shown++;
+      });
+      if (sel.selectedOptions.length && sel.selectedOptions[0].hidden) sel.selectedIndex = 0;
+      sel.options[0].textContent = words.length ? '이름에 맞는 서식 ' + shown + '개 (본문까지 찾으려면 찾기)' : first;
+      if (count && words.length) count.textContent = '이름에 ‘' + input.value.trim() + '’이(가) 들어간 서식 ' + shown + '개. 품목·내용까지 찾으려면 찾기를 누르세요.';
+    });
+  });
+})();

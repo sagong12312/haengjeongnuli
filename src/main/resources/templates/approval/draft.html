@@ -10,10 +10,20 @@
     <h1 th:text="${doc} ? '임시저장 문서 고치기' : '기안하기'">기안하기</h1>
   </div>
   <div th:replace="~{fragments/layout :: flash}"></div>
+  <form th:unless="${doc}" th:action="@{/approval/draft}" method="get" class="search-bar" role="search" style="margin:0 0 8px;">
+    <label for="tq" style="font-weight:700;">서식 찾기</label>
+    <input id="tq" name="tq" type="search" class="input" maxlength="50" th:value="${tq}" placeholder="예: USB 허브, 출장, 현수막, 용역"
+           data-filter-select="tpl" style="flex:1; min-width:0;">
+    <button type="submit" class="btn btn-primary">찾기</button>
+    <a th:if="${!#strings.isEmpty(tq)}" class="more" th:href="@{/approval/draft}">모두 보기</a>
+  </form>
+  <p th:unless="${doc}" class="hint" style="margin:0 0 8px;" role="status" data-filter-count="tpl"
+     th:text="${#strings.isEmpty(tq)} ? '서식 ' + ${#lists.size(templates)} + '개 · 품목·용도로 찾으면 맞는 서식만 보여 줍니다.' : (${#lists.isEmpty(templates)} ? '‘' + ${tq} + '’에 맞는 서식이 없습니다. [지출품의] 사무용품 구매처럼 가까운 서식을 골라 품목을 고쳐 쓰세요.' : '‘' + ${tq} + '’ 서식 ' + ${#lists.size(templates)} + '개')">안내</p>
   <form th:unless="${doc}" th:action="@{/approval/draft}" method="get" class="search-bar" style="margin:0;">
+    <input type="hidden" name="tq" th:value="${tq}">
     <label for="tpl" style="font-weight:700;">서식</label>
     <select id="tpl" name="template" class="select" style="flex:1;">
-      <option value="">서식 고르기</option>
+      <option value="" th:text="${#strings.isEmpty(tq)} ? '서식 고르기' : '찾은 서식에서 고르기'">서식 고르기</option>
       <option th:each="t : ${templates}" th:value="${t.templateId}" th:text="'[' + ${t.scopeLabel} + '] ' + ${t.name}">서식</option>
     </select>
     <button type="submit" class="btn btn-outline">불러오기</button>

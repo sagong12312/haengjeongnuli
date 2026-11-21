@@ -350,6 +350,8 @@ fieldset { min-width: 0; }
   .panel { padding-left: 16px; padding-right: 16px; }
   /* 한 줄 폼 안의 목록 상자는 따로 한 줄을 차지해 글자가 잘리지 않게 */
   main form:not([style*="column"]) > select, main form:not([style*="column"]) > .select { flex: 1 1 100% !important; }
+  .search-bar { flex-wrap: wrap; }
+  .search-bar > input[type=search], .search-bar > .input { flex: 1 1 100% !important; }
   /* 긴 낱말(주소·파일 이름 등)은 칸 안에서 줄을 바꾼다 */
   main { overflow-wrap: anywhere; }
 }

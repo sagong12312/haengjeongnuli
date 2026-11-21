@@ -23,6 +23,48 @@ public class ApprovalTemplateService {
         return mapper.selectVisible(me.getLoginId(), me.getDeptName());
     }
 
+    /**
+     * 서식 찾기: 이름·제목·본문·문서 종류에서 찾는다. 띄어쓰기와 대소문자는 가리지 않고 (USB허브 = usb 허브),
+     * 여러 낱말을 넣으면 모두 들어 있는 서식만. 이름에 들어 있으면 앞에 보여 준다.
+     */
+    public List<ApprovalTemplateVO> search(LoginUser me, String q) {
+        List<ApprovalTemplateVO> all = visible(me);
+        if (q == null || q.isBlank()) {
+            return all;
+        }
+        String[] words = q.strip().toLowerCase(java.util.Locale.ROOT).split("\\s+");
+        List<ApprovalTemplateVO> inName = new java.util.ArrayList<>();
+        List<ApprovalTemplateVO> inBody = new java.util.ArrayList<>();
+        for (ApprovalTemplateVO t : all) {
+            String name = norm(t.getName());
+            String text = name + norm(t.getTitle()) + norm(t.getKind()) + norm(t.getBody());
+            boolean all1 = true;
+            boolean nameHit = true;
+            for (String w : words) {
+                String n = norm(w);
+                if (n.isEmpty()) {
+                    continue;
+                }
+                if (!text.contains(n)) {
+                    all1 = false;
+                    break;
+                }
+                if (!name.contains(n)) {
+                    nameHit = false;
+                }
+            }
+            if (all1) {
+                (nameHit ? inName : inBody).add(t);
+            }
+        }
+        inName.addAll(inBody);
+        return inName;
+    }
+
+    private static String norm(String s) {
+        return s == null ? "" : s.toLowerCase(java.util.Locale.ROOT).replaceAll("\\s+", "");
+    }
+
     public boolean canUse(ApprovalTemplateVO t, LoginUser me) {
         return t != null && (me.getLoginId().equals(t.getOwnerId()) || "ALL".equals(t.getScope())
                 || ("DEPT".equals(t.getScope()) && t.getDeptName() != null && t.getDeptName().equals(me.getDeptName())));

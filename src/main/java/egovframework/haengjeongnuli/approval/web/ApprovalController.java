@@ -159,7 +159,9 @@ public class ApprovalController {
                             @RequestParam(required = false) String kind, @RequestParam(required = false) Long budgetId,
                             @RequestParam(required = false) Long template, @RequestParam(required = false) Long commit,
                             @RequestParam(required = false) Long purchase,
-                            @RequestParam(required = false) java.util.List<Long> assets, Model model) {
+                            @RequestParam(required = false) java.util.List<Long> assets,
+                            @RequestParam(required = false) String tq, Model model) {
+        model.addAttribute("tq", tq == null ? "" : tq.strip());
         ApprovalForm form = new ApprovalForm();
         if (kind != null && ApprovalForm.KINDS.contains(kind)) {
             form.setKind(kind);
@@ -374,8 +376,9 @@ public class ApprovalController {
 
     /** 기안 서식: 목록, 지금 쓰는 기안 내용을 서식으로 저장, 지우기 */
     @GetMapping("/templates")
-    public String templateList(@AuthenticationPrincipal LoginUser me, Model model) {
-        model.addAttribute("templates", templates.visible(me));
+    public String templateList(@AuthenticationPrincipal LoginUser me, @RequestParam(required = false) String q, Model model) {
+        model.addAttribute("q", q == null ? "" : q.strip());
+        model.addAttribute("templates", templates.search(me, q));
         model.addAttribute("scopes", egovframework.haengjeongnuli.approval.service.ApprovalTemplateVO.SCOPES);
         model.addAttribute("kinds", ApprovalForm.KINDS);
         return "approval/templates";
@@ -596,7 +599,7 @@ public class ApprovalController {
         model.addAttribute("disclosures", ApprovalForm.DISCLOSURES);
         model.addAttribute("maxReviewers", ApprovalForm.MAX_REVIEWERS);
         model.addAttribute("maxCooperators", ApprovalForm.MAX_COOPERATORS);
-        model.addAttribute("templates", templates.visible(me));
+        model.addAttribute("templates", templates.search(me, (String) model.asMap().getOrDefault("tq", "")));
         model.addAttribute("payMethods", ApprovalForm.PAY_METHODS);
         model.addAttribute("spendTypes", ApprovalForm.SPEND_TYPES);
         model.addAttribute("commits", finance.openCommits(me.getDeptName()));
